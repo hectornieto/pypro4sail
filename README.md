@@ -34,94 +34,68 @@ In addition, the inversion of both RTMS requires
 
 ## Code Example
 ### High-level example
-
-The easiest way to get a feeling of TSEB and its configuration is through the provided ipython/jupyter notebooks. 
-In a terminal shell, navigate to your working folder and type
-
-- `jupyter notebook ProcessPointTimeSeries.ipynb` 
->for configuring and running TSEB over a time series of tabulated data
-
-- `jupyter notebook ProcessLocalImage.ipynb` 
->for configuring and running TSEB over an image/scene using local meteorological data
-
-In addition, you can also run TSEB with the scripts *MAIN_TSEB_LocalImage.py* and *MAIN_TSEB_PointTimeSeries.py*, 
-which will read an input configuration file (defaults are *Config_LocalImage.txt* and *Config_PointTimeSeries.txt* respectively). 
-You can edit these configuration files or make a copy to fit your data and site characteristics and either run any of 
-these two scripts in a Python GUI or in a terminal shell:
-
-- `python MAIN_TSEB_LocalImage.py <configuration file>`
-> where \<configuration file> points to a customized configuration file... leave it blank if you want to use the default 
-file *Config_LocalImage.txt*
-
-- `python MAIN_TSEB_PointTimeSeries.py <configuration file>`
-> where \<configuration file> points to a customized configuration file... leave it blank if you want to use the default 
-file *Config_PointTimeSeries.txt*
+*To be implemented* 
 
 ### Low-level example
-You can run any TSEB model or any related process in python by importing the module *TSEB*. 
-It will also import the ancillary modules (*resitances.py* as `res`, *netRadiation* as `rad`,
-*MOsimilarity.py* as `MO`, *ClumpingIndex.py* as `CI` and *meteoUtils.py* as `met`)
+#### Prospect5 RTM
+You can run *Prospect* by importing the module Prospect5.py and then either calling the function `Prospect5` 
+for simulating the full optical spectrum (400-2500nm), or the function `Prospect5_wl` for simulating
+the leaf reflectance and transmittance for a given wavelength
 
 ```python
-import TSEB 
-output=TSEB.TSEB_PT(Tr_K, vza, Ta_K, u, ea, p, Sdn_dir, Sdn_dif, fvis, fnir, sza, Lsky, LAI, hc, emisVeg, emisGrd, spectraVeg, spectraGrd, z_0M, d_0, zu, zt)
-```
+import Prospect5, FourSAIL
+# Simulate leaf full optical spectrum (400-2500nm) 
+wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+# Estimate the Leaf Inclination Distribution Function of a canopy
+lidf = CalcLIDF_Campbell(alpha)
+# Simulate leaf reflectance and transmittance factors of a canopy 
+tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammasowl = FourSAIL.FourSAIL(lai,hotspot,lidf,SZA,VZA,PSI,rho_leaf,tau_leaf,rho_soil)
+# Simulate the canopy reflectance factor for a given difuse/total radiation condition (skyl)
+rho_canopy = rdot*skyl+rsot*(1-skyl)
+``` 
 
 You can type
-`help(TSEB.TSEB_PT)`
+`help(FourSAIL.FourSAIL)`
 to understand better the inputs needed and the outputs returned
 
-The direct and difuse shortwave radiation (`Sdn_dir`, `Sdn_dif`, `fvis`, `fnir`) and the downwelling longwave radiation (`Lsky`) can be estimated by
+#### 4SAIL RTM
+You can run *4SAIL* by importing the module FourSAIL.py and then either calling the function `FourSAIL` 
+for simulating the reflectance and transmittance factor of a given canopy given a list of leaf reflectances 
+and trasmittances, or you can call the function `FourSAIL_wl` for simulating the leaf reflectance and transmittance 
+factor of a given canopy at for a single wavelenght
 
 ```python
-emisAtm = TSEB.rad.CalcEmiss_atm(ea,Ta_K_1) # Estimate atmospheric emissivity from vapour pressure (mb) and air Temperature (K)
-Lsky = emisAtm * TSEB.met.CalcStephanBoltzmann(Ta_K_1) # in W m-2
-difvis,difnir, fvis,fnir=TSEB.rad.CalcDifuseRatio(Sdn,sza,press=p, Wv=1) # fraction of difuse and PAR/NIR radiation from shortwave irradiance (W m-2, solar zenith angle, atmospheric pressure and precipitable water vapour )
-Skyl=difvis*fvis+difnir*fnir # broadband difuse fraction
-Sdn_dir=Sdn*(1.0-Skyl)
-Sdn_dif=Sdn*Skyl
-```
+# Running the coupled Prospect and 4SAIL
+import Prospect5, FourSAIL
+# Simulate leaf full optical spectrum (400-2500nm) 
+wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+
+rho_canopy,tau_canopy=
+# Simulate leaf reflectance and transmittance for a given wavelengh wl 
+wl, rho_leaf_wl, tau_leaf_wl = Prospect5.Prospect5_wl(wl, Nleaf, Cab, Car, Cbrown, Cw, Cm)
+
+``` 
    
 ## Basic Contents
 ### High-level modules
-- *.src/pyTSEB.py*, class object for TSEB scripting
-
-- *ProcessPointTimeSeries.ipynb* and *ProcessLocalImage.ipynb* notebooks for using TSEB and configuring 
-TSEB through a Graphical User Interface, GUI
-
-- *MAIN_TSEB_LocalImage.py* and *MAIN_TSEB_PointTimeSeries.py*, high level scripts for running TSEB 
-through a configuration file (*Config_LocalImage.txt* or *Config_PointTimeSeries.txt*)
-
-- *TSEB_ProcessPointTimeSeries.ipynb* notebook with more details about the high-level TSEB programming
-
-- *pyTSEB_in_Detail.ipynb* notebook with a closer look at the low-level and high-level TSEB code
-
-- *TSEB_and_Resistances.ipynb* notebook for undertanding the TSEB model and the estimation of resistances
+- *.src/pyPro4SAIL.py*
 
 ### Low-level modules
 The low-level modules in this project are aimed at providing customisation and more flexibility in running TSEB. 
 The following modules are included
 
-- *.src/TSEB.py*
-> core functions for running different TSEB models (`TSEB_PT (*args,**kwargs)`, `TSEB_2T(*args,**kwargs)`, 
-`DTD (*args,**kwargs)`), or a One Source Energy Balance model (`OSEB(*args,**kwargs)`). 
+- *.src/Prospect5.py*
+> core functions for running Prospec4 Leaf Radiative Transfer Model. 
 
-- *.src/netRadiation.py*
-> functions for estimating net radiation and its partitioning between soil and canopy
+- *.src/FourSAIL.py*
+> core functions for running 4SAIL Canopy Radiative Transfer Model.
 
-- *.src/resistances.py*
-> functions for estimating the different resistances for momemtum and heat transport and surface roughness
+- *.src/CostFunctionsPROSPECT4SAIL.py*
+> merit functions used to invert Prospect and/or 4SAIL from a given spectrum
 
-- *.src/MOsimilarity.py*
-> functions for computing adiabatic corrections for heat and momentum transport, 
-Monin-Obukhov length, friction velocity and wind profiles
+- *.src/cma.py*
+> Covariance Matrix Adaptation Evolution Strategy optimization method for inverting Prospect5 and/or 4SAIL
 
-- *.src/ClumpingIndex.py*
-> functions for estimating the canopy clumping index and get effective values of Leaf Area Index
-
-- *.src/meteoUtils.py*
-> functions for estimating meteorolgical-related variables such as density of air, 
-heat capacity of air or latent heat of vaporization.
 
 ## API Reference
 http://pyPro4Sail.readthedocs.org/en/latest/index.html
@@ -133,9 +107,7 @@ http://pyPro4Sail.readthedocs.org/en/latest/index.html
 - W. Verhoef, L. Jia, Q. Xiao and Z. Su, Unified Optical-Thermal Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies, IEEE Transactions on Geoscience and Remote Sensing, vol. 45, no. 6, pp. 1808-1822, June 2007. http://dx.doi.org/10.1109/TGRS.2007.895844.
 
 ## Tests
-The folder *./Input* contains examples for running TSEB in a tabulated time series (*ExampleTableInput.txt*) 
-and in an image (*ExampleImage_\< variable >.tif*). Just run the high-level scripts with the configuration files 
-provided by default and compare the resulting outputs with the files stored in *./Output/*
+*to be included*
 
 ## Contributors
 - **Hector Nieto** <hnieto@ias.csic.es> <hector.nieto.solana@gmail.com> main developer
