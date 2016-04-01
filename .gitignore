@@ -8,6 +8,7 @@ __pycache__/
 
 # Linux temporal files
 *~
+*.*~
 
 # Distribution / packaging
 .Python
