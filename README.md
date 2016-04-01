@@ -34,7 +34,20 @@ In addition, the inversion of both RTMS requires
 
 ## Code Example
 ### High-level example
-*To be implemented* 
+You can automatically run the coupled leaf+canopyt Prospect5+4SAIL RTM with *pyPro4Sail.py* module
+
+```python
+# Running Prospect5
+import Prospect5
+# Simulate leaf full optical spectrum (400-2500nm) 
+wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+
+```python
+import pyPro4Sail
+wl,rho=pyPro4Sail.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=DEFAULT_SOIL)
+```
+
+Also it is possible to simulate the surface land-leaving thermal radiance with the function `run_TIR`
 
 ### Low-level example
 #### Prospect5 RTM
@@ -43,6 +56,25 @@ for simulating the full optical spectrum (400-2500nm), or the function `Prospect
 the leaf reflectance and transmittance for a given wavelength
 
 ```python
+# Running Prospect5
+import Prospect5
+# Simulate leaf full optical spectrum (400-2500nm) 
+wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+
+```
+
+You can type
+`help(Prospect5.Prospect5)`
+to understand better the inputs needed and the outputs returned
+
+#### 4SAIL RTM
+You can run *4SAIL* by importing the module FourSAIL.py and then either calling the function `FourSAIL` 
+for simulating the reflectance and transmittance factor of a given canopy given a list of leaf reflectances 
+and trasmittances, or you can call the function `FourSAIL_wl` for simulating the leaf reflectance and transmittance 
+factor of a given canopy at for a single wavelenght
+
+```python
+# Running the coupled Prospect and 4SAIL
 import Prospect5, FourSAIL
 # Simulate leaf full optical spectrum (400-2500nm) 
 wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
@@ -57,28 +89,11 @@ rho_canopy = rdot*skyl+rsot*(1-skyl)
 You can type
 `help(FourSAIL.FourSAIL)`
 to understand better the inputs needed and the outputs returned
-
-#### 4SAIL RTM
-You can run *4SAIL* by importing the module FourSAIL.py and then either calling the function `FourSAIL` 
-for simulating the reflectance and transmittance factor of a given canopy given a list of leaf reflectances 
-and trasmittances, or you can call the function `FourSAIL_wl` for simulating the leaf reflectance and transmittance 
-factor of a given canopy at for a single wavelenght
-
-```python
-# Running the coupled Prospect and 4SAIL
-import Prospect5, FourSAIL
-# Simulate leaf full optical spectrum (400-2500nm) 
-wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
-
-rho_canopy,tau_canopy=
-# Simulate leaf reflectance and transmittance for a given wavelengh wl 
-wl, rho_leaf_wl, tau_leaf_wl = Prospect5.Prospect5_wl(wl, Nleaf, Cab, Car, Cbrown, Cw, Cm)
-
-``` 
    
 ## Basic Contents
 ### High-level modules
 - *.src/pyPro4SAIL.py*
+> Runs the coupled Prospect5+4SAIL to estimate the canopy directional reflectance factor and 4SAIL to estimate the land-leaving broadband thermal radiance
 
 ### Low-level modules
 The low-level modules in this project are aimed at providing customisation and more flexibility in running TSEB. 
