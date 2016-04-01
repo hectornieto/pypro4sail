@@ -1,21 +1,21 @@
 # pyPro4Sail
-Prospect5 and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies
+Prospect5 and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies.
 
 ## Synopsis
 
 This project contains *Python* code for *Prospect* and *4SAIL* Radiative Transfer Models (**RTM**)
 for simulating the transmission of optical and thermal electromagnetic radiation through 
-leaves and vegetated canopies.  
+leaves and vegetated canopies.
 
 The project consists of: 
 
-1. lower-level modules with the basic functions needed in *Prospec5* and *4SAIL* RTMs 
+1. lower-level modules with the basic functions needed in *Prospec5* and *4SAIL* RTMs.
 
 2. higher-level scripts for easily running ProSAIL in both forward and inverse mode.
 
 ## Installation
 
-Download the project to your local system, enter the download directory and then type
+Download the project to your local system, enter the download directory and then type.
 
 `python setup.py install` 
 
@@ -25,7 +25,7 @@ The following Python library ir required for running Prospect and 4SAIL:
 
 - Numpy
 
-In addition, the inversion of both RTMS requires
+In addition, the inversion of both RTMS requires.
 
 - Scipy
 
@@ -34,26 +34,20 @@ In addition, the inversion of both RTMS requires
 
 ## Code Example
 ### High-level example
-You can automatically run the coupled leaf+canopyt Prospect5+4SAIL RTM with *pyPro4Sail.py* module
-
-```python
-# Running Prospect5
-import Prospect5
-# Simulate leaf full optical spectrum (400-2500nm) 
-wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+You can automatically run the coupled leaf+canopyt Prospect5+4SAIL RTM with *pyPro4Sail.py* module.
 
 ```python
 import pyPro4Sail
 wl,rho=pyPro4Sail.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=DEFAULT_SOIL)
 ```
 
-Also it is possible to simulate the surface land-leaving thermal radiance with the function `run_TIR`
+Also it is possible to simulate the surface land-leaving thermal radiance with the function `run_TIR`.
 
 ### Low-level example
 #### Prospect5 RTM
 You can run *Prospect* by importing the module Prospect5.py and then either calling the function `Prospect5` 
 for simulating the full optical spectrum (400-2500nm), or the function `Prospect5_wl` for simulating
-the leaf reflectance and transmittance for a given wavelength
+the leaf reflectance and transmittance for a given wavelength.
 
 ```python
 # Running Prospect5
@@ -71,7 +65,7 @@ to understand better the inputs needed and the outputs returned
 You can run *4SAIL* by importing the module FourSAIL.py and then either calling the function `FourSAIL` 
 for simulating the reflectance and transmittance factor of a given canopy given a list of leaf reflectances 
 and trasmittances, or you can call the function `FourSAIL_wl` for simulating the leaf reflectance and transmittance 
-factor of a given canopy at for a single wavelenght
+factor of a given canopy at for a single wavelenght.
 
 ```python
 # Running the coupled Prospect and 4SAIL
@@ -93,11 +87,11 @@ to understand better the inputs needed and the outputs returned
 ## Basic Contents
 ### High-level modules
 - *.src/pyPro4SAIL.py*
-> Runs the coupled Prospect5+4SAIL to estimate the canopy directional reflectance factor and 4SAIL to estimate the land-leaving broadband thermal radiance
+> Runs the coupled Prospect5+4SAIL to estimate the canopy directional reflectance factor and 4SAIL to estimate the land-leaving broadband thermal radiance.
 
 ### Low-level modules
 The low-level modules in this project are aimed at providing customisation and more flexibility in running TSEB. 
-The following modules are included
+The following modules are included.
 
 - *.src/Prospect5.py*
 > core functions for running Prospec4 Leaf Radiative Transfer Model. 
@@ -109,7 +103,7 @@ The following modules are included
 > merit functions used to invert Prospect and/or 4SAIL from a given spectrum
 
 - *.src/cma.py*
-> Covariance Matrix Adaptation Evolution Strategy optimization method for inverting Prospect5 and/or 4SAIL
+> Covariance Matrix Adaptation Evolution Strategy optimization method for inverting Prospect5 and/or 4SAIL.
 
 
 ## API Reference
