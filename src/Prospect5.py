@@ -25,10 +25,12 @@ def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
         chlorophyll a+b content (mug cm-2)
     Car : float
         carotenoids content (mug cm-2)
+    Cbrown : float
+        brown pigments concentration (unitless)
     Cw  : float
         equivalent water thickness (g cm-2 or cm)
     Cm  : float
-        dry matter content in g cm-2
+        dry matter content (g cm-2)
 
     Returns
     -------
