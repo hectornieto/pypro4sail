@@ -10,8 +10,8 @@ import Prospect5
 import numpy as np
 
 # Define Constants
-SOIL_FOLDER='SoilSpectralLibrary/'
-DEFAULT_SOIL='jhu.becknic.soil.inceptisol.xerumbrept.coarse.87P325.spectrum.txt'
+SOIL_FOLDER='../SoilSpectralLibrary/'
+DEFAULT_SOIL='ProSAIL_WetSoil.txt'
 SB=5.670373e-8 #Stephan Boltzmann constant (W m-2 K-4)
 
 # Common leaf distributions
