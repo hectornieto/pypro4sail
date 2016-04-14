@@ -1,7 +1,7 @@
-FourSAIL package
+pyPro4SAIL package
 ==================
 
-.. automodule:: FourSAIL
+.. automodule:: pyPro4SAIL
     :members:
     :undoc-members:
     :show-inheritance:

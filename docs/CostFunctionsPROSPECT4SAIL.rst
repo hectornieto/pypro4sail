@@ -1,4 +1,4 @@
-meteoUtils package
+CostFunctionsPROSPECT4SAIL package
 ==================
 
 .. automodule:: CostFunctionsPROSPECT4SAIL

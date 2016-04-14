@@ -1,4 +1,4 @@
-meteoUtils package
+Prospect5 package
 ==================
 
 .. automodule:: Prospect5
