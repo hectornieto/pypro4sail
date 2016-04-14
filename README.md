@@ -37,8 +37,8 @@ In addition, the inversion of both RTMS requires.
 You can automatically run the coupled leaf+canopyt Prospect5+4SAIL RTM with *pyPro4Sail.py* module.
 
 ```python
-import pyPro4Sail
-wl,rho=pyPro4Sail.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=DEFAULT_SOIL)
+import pyPro4SAIL
+wl,rho=pyPro4SAIL.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=pyPro4SAIL.DEFAULT_SOIL)
 ```
 
 Also it is possible to simulate the surface land-leaving thermal radiance with the function `run_TIR`.
@@ -94,7 +94,7 @@ The low-level modules in this project are aimed at providing customisation and m
 The following modules are included.
 
 - *.src/Prospect5.py*
-> core functions for running Prospec4 Leaf Radiative Transfer Model. 
+> core functions for running Prospect5 Leaf Radiative Transfer Model. 
 
 - *.src/FourSAIL.py*
 > core functions for running 4SAIL Canopy Radiative Transfer Model.
