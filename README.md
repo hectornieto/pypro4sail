@@ -37,7 +37,7 @@ In addition, the inversion of both RTMS requires.
 You can automatically run the coupled leaf+canopyt Prospect5+4SAIL RTM with *pyPro4Sail.py* module.
 
 ```python
-[N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF]=[1.5,40,8,0.0,0,01,0,009,3,0.01,30,180,10,180,(-0.35,-0.15)]
+[N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF]=[1.5,40,8,0.0,0.01,0.009,3,0.01,30,180,10,180,(-0.35,-0.15)]
 import pyPro4SAIL
 wl,rho=pyPro4SAIL.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=pyPro4SAIL.DEFAULT_SOIL)
 ```
