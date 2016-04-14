@@ -2,7 +2,7 @@
 """
 Created on Mon Mar  2 11:32:19 2015
 
-@author: hector
+@author: Hector Nieto (hnieto@ias.csic.es)
 
 Modified on Apr 14 2016
 @author: Hector Nieto (hnieto@ias.csic.es)
@@ -15,8 +15,7 @@ PROSPECT5.
 PACKAGE CONTENTS
 ================
 * :func:`Prospect5` Runs PROSPECT5 leaf radiative transfer model.
-* :func:`Prospect5_wl` Runs PROSPECT5 leaf radiative transfer model for a specific 
-wavelenght, aimed for computing speed.
+* :func:`Prospect5_wl` Runs PROSPECT5 leaf radiative transfer model for a specific wavelenght, aimed for computing speed.
 
 Ancillary functions
 -------------------
@@ -26,10 +25,12 @@ Ancillary functions
 EXAMPLE
 =======
 .. code-block:: python
+
     # Running Prospect5
     import Prospect5
     # Simulate leaf full optical spectrum (400-2500nm) 
     wl, rho_leaf, tau_leaf = Prospect5.Prospect5(1.2, 30., 10., 0.0, 0.015, 0.009)
+    
 """
 
 # Extinction coefficients and refractive index
@@ -43,31 +44,31 @@ Cm_k=(109.6999969,103.6999969,97.9800034,92.4400024,87.1299973,82.3099976,78.059
 
 def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
-    from 400 nm to 2500 nm (1 nm step)
+    from 400 nm to 2500 nm (1 nm step).
 
     Parameters
     ----------    
     N   : float
-        leaf structure parameter
+        leaf structure parameter.
     Cab : float
-        chlorophyll a+b content (mug cm-2)
+        chlorophyll a+b content (mug cm-2).
     Car : float
-        carotenoids content (mug cm-2)
+        carotenoids content (mug cm-2).
     Cbrown : float
-        brown pigments concentration (unitless)
+        brown pigments concentration (unitless).
     Cw  : float
-        equivalent water thickness (g cm-2 or cm)
+        equivalent water thickness (g cm-2 or cm).
     Cm  : float
-        dry matter content (g cm-2)
+        dry matter content (g cm-2).
 
     Returns
     -------
     l : array_like
-        wavelenght (nm)
+        wavelenght (nm).
     rho : array_like
-        leaf reflectance 
+        leaf reflectance .
     tau : array_like
-        leaf transmittance 
+        leaf transmittance .
     
     References
     ----------
@@ -164,28 +165,28 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     Parameters
     ----------    
     wl : float
-        wavelenght (nm) to simulate
+        wavelenght (nm) to simulate.
     N   : float
-        leaf structure parameter
+        leaf structure parameter.
     Cab : float
-        chlorophyll a+b content (mug cm-2)
+        chlorophyll a+b content (mug cm-2).
     Car : float
-        carotenoids content (mug cm-2)
+        carotenoids content (mug cm-2).
     Cbrown : float
-        brown pigments concentration (unitless)
+        brown pigments concentration (unitless).
     Cw  : float
-        equivalent water thickness (g cm-2 or cm)
+        equivalent water thickness (g cm-2 or cm).
     Cm  : float
-        dry matter content (g cm-2)
+        dry matter content (g cm-2).
 
     Returns
     -------
     l : float
-        wavelenght (nm)
+        wavelenght (nm).
     rho : float
-        leaf reflectance 
+        leaf reflectance .
     tau : float
-        leaf transmittance 
+        leaf transmittance. 
     
     References
     ----------
@@ -300,13 +301,13 @@ def tav(theta,ref):
     Returns
     -------
     f : array_like
-        Average transmittivity at the leaf surface
+        Average transmittivity at the leaf surface.
         
-    Rererences
+    References
     ----------
     .. [Stern64] Stern F. (1964), Transmission of isotropic radiation across an
         interface between two dielectrics, 
-        Applied Optics, 3(1):111-113.
+        Applied Optics, 3(1):111-113,
         http://dx.doi.org/10.1364/AO.3.000111.
     .. [Allen1973] Allen W.A. (1973), Transmission of isotropic light across a
         dielectric surface in two and three dimensions, 
@@ -360,13 +361,13 @@ def tav_wl(theta,ref):
     Returns
     -------
     f : float
-        Average transmittivity at the leaf surface
+        Average transmittivity at the leaf surface.
     
-    Rererences
+    References
     ----------
     .. [Stern64] Stern F. (1964), Transmission of isotropic radiation across an
         interface between two dielectrics, 
-        Applied Optics, 3(1):111-113.
+        Applied Optics, 3(1):111-113,
         http://dx.doi.org/10.1364/AO.3.000111.
     .. [Allen1973] Allen W.A. (1973), Transmission of isotropic light across a
         dielectric surface in two and three dimensions, 

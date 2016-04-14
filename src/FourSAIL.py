@@ -15,15 +15,12 @@ This package contains the main functions to run the canopy radiative transfer mo
 PACKAGE CONTENTS
 ================
 * :func:`FourSAIL` Runs 4SAIL canopy radiative transfer model.
-* :func:`FourSAIL_wl` Runs 4SAIL canopy radiative transfer model for a specific 
-wavelenght, aimed for computing speed.
+* :func:`FourSAIL_wl` Runs 4SAIL canopy radiative transfer model for a specific wavelenght, aimed for computing speed.
 
 Ancillary functions
 -------------------
-* :func:`CalcLIDF_Verhoef` Calculate the Leaf Inclination Distribution Function 
-based on the [Verhoef1998] bimodal LIDF distribution.
-* :func:`CalcLIDF_Campbell` Calculate the Leaf Inclination Distribution Function 
-based on the [Campbell1990] ellipsoidal LIDF distribution.
+* :func:`CalcLIDF_Verhoef` Calculate the Leaf Inclination Distribution Function based on the [Verhoef1998] bimodal LIDF distribution.
+* :func:`CalcLIDF_Campbell` Calculate the Leaf Inclination Distribution Function based on the [Campbell1990] ellipsoidal LIDF distribution.
 * :func:`volscatt` Colume scattering functions and interception coefficients.
 * :func:`Jfunc1` J1 function with avoidance of singularity problem.
 * :func:`Jfunc1_wl` J1 function with avoidance of singularity problem for :func:`FourSAIL_wl`.
@@ -34,6 +31,7 @@ based on the [Campbell1990] ellipsoidal LIDF distribution.
 EXAMPLE
 =======
 .. code-block:: python
+
     # Running the coupled Prospect and 4SAIL
     import Prospect5, FourSAIL
     # Simulate leaf full optical spectrum (400-2500nm) 
@@ -44,40 +42,43 @@ EXAMPLE
     tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammasowl = FourSAIL.FourSAIL(lai,hotspot,lidf,SZA,VZA,PSI,rho_leaf,tau_leaf,rho_soil)
     # Simulate the canopy reflectance factor for a given difuse/total radiation condition (skyl)
     rho_canopy = rdot*skyl+rsot*(1-skyl)
+    
 """
 
 def CalcLIDF_Verhoef(a,b,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
-        Verhoef's bimodal LIDF distribution
+    Verhoef's bimodal LIDF distribution.
 
     Parameters
     ----------
     a : float
-        controls the average leaf slope
+        controls the average leaf slope.
     b : float
-        controls the distribution's bimodality
-        LIDF type       a 		 b
-        Planophile      1		 0
-        Erectophile     -1	 	 0
-        Plagiophile     0		-1
-        Extremophile    0		 1
-        Spherical       -0.35   -0.15
-        Uniform         0       0
-        requirement: |LIDFa| + |LIDFb| < 1	
+        controls the distribution's bimodality.
+        
+            * LIDF type     [a,b].
+            * Planophile    [1,0].
+            * Erectophile   [-1,0].
+            * Plagiophile   [0,-1].
+            * Extremophile  [0,1].
+            * Spherical     [-0.35,-0.15].
+            * Uniform       [0,0].
+            * requirement: |LIDFa| + |LIDFb| < 1.	
     n_elements : int
-        Total number of equally spaced inclination angles 
+        Total number of equally spaced inclination angles.
     
     Returns
     -------
     lidf : list
-        Leaf Inclination Distribution Function at equally spaced angles
+        Leaf Inclination Distribution Function at equally spaced angles.
     
     References
     ----------
     .. [Verhoef1998] Verhoef, Wout. Theory of radiative transfer models applied 
         in optical remote sensing of vegetation canopies. 
         Nationaal Lucht en Ruimtevaartlaboratorium, 1998.
-        http://library.wur.nl/WebQuery/clc/945481'''
+        http://library.wur.nl/WebQuery/clc/945481.
+        '''
 
     import math as m
     freq=1.0
@@ -107,19 +108,19 @@ def CalcLIDF_Verhoef(a,b,n_elements=18):
     
 def CalcLIDF_Campbell(alpha,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
-        mean angle of [Campbell1990] ellipsoidal LIDF distribution
+    mean angle of [Campbell1990] ellipsoidal LIDF distribution.
 
     Parameters
     ----------
     alpha : float
-        Mean leaf angle (degrees) use 57 for a spherical LIDF
+        Mean leaf angle (degrees) use 57 for a spherical LIDF.
     n_elements : int
-        Total number of equally spaced inclination angles 
+        Total number of equally spaced inclination angles .
     
     Returns
     -------
     lidf : list
-        Leaf Inclination Distribution Function for 18 equally spaced angles
+        Leaf Inclination Distribution Function for 18 equally spaced angles.
         
     References
     ----------
@@ -170,80 +171,80 @@ def CalcLIDF_Campbell(alpha,n_elements=18):
     return lidf
 
 def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
-    ''' Runs 4SAIL canopy radiative transfer model
+    ''' Runs 4SAIL canopy radiative transfer model.
     
     Parameters
     ----------
     lai : float
-        Leaf Area Index
+        Leaf Area Index.
     hotspot : float
-        Hotspot parameter
+        Hotspot parameter.
     lidf : list
-        Leaf Inclination Distribution at regular angle steps
+        Leaf Inclination Distribution at regular angle steps.
     tts : float
-        Sun Zenith Angle (degrees)
+        Sun Zenith Angle (degrees).
     tto : float
-        View(sensor) Zenith Angle (degrees)
+        View(sensor) Zenith Angle (degrees).
     psi : float
-        Relative Sensor-Sun Azimuth Angle (degrees)
+        Relative Sensor-Sun Azimuth Angle (degrees).
     rho : array_like
-        leaf lambertian reflectance
+        leaf lambertian reflectance.
     tau : array_like
-        leaf transmittance
+        leaf transmittance.
     rsoil : array_like
-        soil lambertian reflectance
+        soil lambertian reflectance.
     
     Returns
     -------
     tss : array_like
-        beam transmittance in the sun-target path
+        beam transmittance in the sun-target path.
     too : array_like
-        beam transmittance in the target-view path
+        beam transmittance in the target-view path.
     tsstoo : array_like
-        beam tranmittance in the sur-target-view path
+        beam tranmittance in the sur-target-view path.
     rdd : array_like
-        canopy bihemisperical reflectance factor
+        canopy bihemisperical reflectance factor.
     tdd : array_like
-        canopy bihemishperical transmittance factor
+        canopy bihemishperical transmittance factor.
     rsd : array_like 
-        canopy directional-hemispherical reflectance factor
+        canopy directional-hemispherical reflectance factor.
     tsd : array_like
-        canopy directional-hemispherical transmittance factor
+        canopy directional-hemispherical transmittance factor.
     rdo : array_like
-        canopy hemispherical-directional reflectance factor
+        canopy hemispherical-directional reflectance factor.
     tdo : array_like
-        canopy hemispherical-directional transmittance factor
+        canopy hemispherical-directional transmittance factor.
     rso : array_like
-        canopy bidirectional reflectance factor
+        canopy bidirectional reflectance factor.
     rsos : array_like
-        single scattering contribution to rso
+        single scattering contribution to rso.
     rsod : array_like
-        multiple scattering contribution to rso
+        multiple scattering contribution to rso.
     rddt : array_like
-        surface bihemispherical reflectance factor
+        surface bihemispherical reflectance factor.
     rsdt : array_like
-        surface directional-hemispherical reflectance factor
+        surface directional-hemispherical reflectance factor.
     rdot : array_like
-        surface hemispherical-directional reflectance factor
+        surface hemispherical-directional reflectance factor.
     rsodt : array_like
-        reflectance factor
+        reflectance factor.
     rsost : array_like
-        reflectance factor
+        reflectance factor.
     rsot : array_like
-        surface bidirectional reflectance factor
-    gammasdf : 
-        'Thermal gamma factor'
-    gammasdb : 
-        'Thermal gamma factor'
-    gammaso : 
-        'Thermal gamma factor'
+        surface bidirectional reflectance factor.
+    gammasdf : array_like
+        'Thermal gamma factor'.
+    gammasdb : array_like
+        'Thermal gamma factor'.
+    gammaso : array_like
+        'Thermal gamma factor'.
     
     References
     ----------
     .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
         Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
-        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007)
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
 
     from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size
@@ -430,80 +431,80 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
           rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
 
 def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
-    ''' Runs 4SAIL canopy radiative transfer model for a single wavelenght
+    '''Runs 4SAIL canopy radiative transfer model for a single wavelenght.
     
     Parameters
     ----------
     lai : float
-        Leaf Area Index
+        Leaf Area Index.
     hotspot : float
-        Hotspot parameter
+        Hotspot parameter.
     lidf : list
-        Leaf Inclination Distribution at regular angle steps
+        Leaf Inclination Distribution at regular angle steps.
     tts : float
-        Sun Zenith Angle (degrees)
+        Sun Zenith Angle (degrees).
     tto : float
-        View(sensor) Zenith Angle (degrees)
+        View(sensor) Zenith Angle (degrees).
     psi : float
-        Relative Sensor-Sun Azimuth Angle (degrees)
+        Relative Sensor-Sun Azimuth Angle (degrees).
     rho : float
-        leaf lambertian reflectance
+        leaf lambertian reflectance.
     tau : float
-        leaf transmittance
+        leaf transmittance.
     rsoil : float
-        soil lambertian reflectance
+        soil lambertian reflectance.
     
     Returns
     -------
     tss : float
-        beam transmittance in the sun-target path
+        beam transmittance in the sun-target path.
     too : float
-        beam transmittance in the target-view path
+        beam transmittance in the target-view path.
     tsstoo : float
-        beam tranmittance in the sur-target-view path
+        beam tranmittance in the sur-target-view path.
     rdd : float
-        canopy bihemisperical reflectance factor
+        canopy bihemisperical reflectance factor.
     tdd : float
-        canopy bihemishperical transmittance factor
+        canopy bihemishperical transmittance factor.
     rsd : float 
-        canopy directional-hemispherical reflectance factor
+        canopy directional-hemispherical reflectance factor.
     tsd : float
-        canopy directional-hemispherical transmittance factor
+        canopy directional-hemispherical transmittance factor.
     rdo : float
-        canopy hemispherical-directional reflectance factor
+        canopy hemispherical-directional reflectance factor.
     tdo : float
-        canopy hemispherical-directional transmittance factor
+        canopy hemispherical-directional transmittance factor.
     rso : float
-        canopy bidirectional reflectance factor
+        canopy bidirectional reflectance factor.
     rsos : float
-        single scattering contribution to rso
+        single scattering contribution to rso.
     rsod : float
-        multiple scattering contribution to rso
+        multiple scattering contribution to rso.
     rddt : float
-        surface bihemispherical reflectance factor
+        surface bihemispherical reflectance factor.
     rsdt : float
-        surface directional-hemispherical reflectance factor
+        surface directional-hemispherical reflectance factor.
     rdot : float
-        surface hemispherical-directional reflectance factor
+        surface hemispherical-directional reflectance factor.
     rsodt : float
-        reflectance factor
+        reflectance factor.
     rsost : float
-        reflectance factor
+        reflectance factor.
     rsot : float
-        surface bidirectional reflectance factor
-    gammasdf : 
-        'Thermal gamma factor'
-    gammasdb : 
-        'Thermal gamma factor'
-    gammaso : 
-        'Thermal gamma factor'
+        surface bidirectional reflectance factor.
+    gammasdf : float
+        'Thermal gamma factor'.
+    gammasdb : float
+        'Thermal gamma factor'.
+    gammaso : float
+        'Thermal gamma factor'.
     
     References
     ----------
     .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
         Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
-        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007)
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
     from math import cos, tan, radians, pi, sqrt, log, exp, isnan
     cts   = cos(radians(tts))
@@ -687,34 +688,34 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
 
 def volscatt(tts,tto,psi,ttl) :
     '''Compute volume scattering functions and interception coefficients
-        for given solar zenith, viewing zenith, azimuth and leaf inclination angle.
+    for given solar zenith, viewing zenith, azimuth and leaf inclination angle.
     
     Parameters
     ----------
     tts : float
-        Solar Zenith Angle (degrees)
+        Solar Zenith Angle (degrees).
     tto : float
-        View Zenight Angle (degrees)
+        View Zenight Angle (degrees).
     psi : float
-        View-Sun reliative azimuth angle (degrees)
+        View-Sun reliative azimuth angle (degrees).
     ttl : float
-        leaf inclination angle (degrees)
+        leaf inclination angle (degrees).
     
     Returns
     -------    
     chi_s : float
-        Interception function  in the solar path
+        Interception function  in the solar path.
     chi_o : float
-        Interception function  in the view path
+        Interception function  in the view path.
     frho : float
-        Function to be multiplied by leaf reflectance to obtain the volume scattering
+        Function to be multiplied by leaf reflectance to obtain the volume scattering.
     ftau : float
-        Function to be multiplied by leaf transmittance to obtain the volume scattering
-        leaf transmittance tau, respectively, in order to obtain the volume scattering
+        Function to be multiplied by leaf transmittance to obtain the volume scattering.
     
     References
     ----------
-    Wout Verhoef, april 2001, for CROMA'''
+    Wout Verhoef, april 2001, for CROMA.
+    '''
 
     from math import sin, cos, acos, radians, pi 
     cts=cos(radians(tts))
@@ -777,7 +778,7 @@ def volscatt(tts,tto,psi,ttl) :
     return [chi_s,chi_o,frho,ftau]    
 
 def Jfunc1(k,l,t) :
-    ''' J1 function with avoidance of singularity problem'''
+    ''' J1 function with avoidance of singularity problem.'''
     from numpy import exp,zeros,size
     nb=size(l)
     del_=(k-l)*t
@@ -793,12 +794,12 @@ def Jfunc1(k,l,t) :
     return result
 
 def Jfunc2(k,l,t) :
-    '''J2 function'''
+    '''J2 function.'''
     from numpy import exp
     return (1.-exp(-(k+l)*t))/(k+l)
 
 def Jfunc1_wl(k,l,t) :
-    ''' J1 function with avoidance of singularity problem'''
+    '''J1 function with avoidance of singularity problem.'''
     from math import exp
     del_=(k-l)*t
     if abs(del_) > 1e-3 :
@@ -808,7 +809,7 @@ def Jfunc1_wl(k,l,t) :
     return result
 
 def Jfunc2_wl(k,l,t) :
-    '''J2 function'''
+    '''J2 function.'''
     from math import exp
     return (1.-exp(-(k+l)*t))/(k+l)
 

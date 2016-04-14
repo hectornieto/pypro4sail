@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+'''
 Created on Tue Apr 14 13:36:24 2015
 
 @author: ector Nieto (hnieto@ias.csic.es)
@@ -10,7 +10,7 @@ Modified on Apr 14 2016
 DESCRIPTION
 ===========
 This package contains several cost/merit functions for inverting :doc:`Prospect5`
-and :doc:`FourSAIL`. It requires the import of the following modules
+and :doc:`FourSAIL`. It requires the import of the following modules.
 
 * :doc:`FourSAIL` for simulating the canopy reflectance and transmittance factors.
 * :doc:`Prospect5` for simulating the lambertian reflectance and transmittance of a leaf.
@@ -18,58 +18,43 @@ and :doc:`FourSAIL`. It requires the import of the following modules
 PACKAGE CONTENTS
 ================
 
-* :func:`FCost_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
-Square Error of observed vs. modeled reflectances.
-* :func:`FCostScaled_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
-Square Error of observed vs. modeled reflectances and scaled [0,1] parameters 
-(recommended over :func:`FCost_RMSE_ProSail_wl`).
-FCostScaled_RMSE_PROSPECT5_wl
-* :func:`FCostScaled_RMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root Mean
-Square Error of observed vs. modeled reflectances and scaled [0,1] parameters.
-* :func:`FCostScaled_RRMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root Mean
-Square Error of observed vs. modeled reflectances and scaled [0,1] parameters.
+* :func:`FCost_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean Square Error of observed vs. modeled reflectances.
+* :func:`FCostScaled_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean Square Error of observed vs. modeled reflectances and scaled [0,1] parameters (recommended over :func:`FCost_RMSE_ProSail_wl`).
+* :func:`FCostScaled_RMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root MeanSquare Error of observed vs. modeled reflectances and scaled [0,1] parameters.
+* :func:`FCostScaled_RRMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root MeanSquare Error of observed vs. modeled reflectances and scaled [0,1] parameters.
 
-"""    
+'''   
 from FourSAIL import *
 from Prospect5 import *
 
 def FCost_RMSE_ProSail_wl(x0,*args):
     ''' Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
-        Square Error of observed vs. modeled reflectances
+    Square Error of observed vs. modeled reflectances.
         
     Parameters
     ----------
     x0 : list
-        a priori PROSAIL values to be retrieved during the inversion
+        a priori PROSAIL values to be retrieved during the inversion.
     args : list
-        Additional arguments to be parsed in the inversion:
-        'ObjParam': list of the PROSAIL parameters to be retrieved during the inversion, 
-            sorted in the same order as in the param list
-            ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
-        'FixedValues' : dictionary with the values of the parameters that are fixed
-            during the inversion. The dictionary must complement the list from ObjParam
-        'N_obs' : integer with the total number of observations used for the inversion
-            N_Obs=1
-        'rho_canopy': list with the observed surface reflectances. 
-            The size of this list be wls*N_obs
-        'vza' : list with the View Zenith Angle for each one of the observations.
-            The size must be equal to N_obs
-        'sza' : list with the Sun Zenith Angle for each one of the observations.
-            The size must be equal to N_obs
-        'psi' : list with the Relative View-Sun Angle for each one of the observations.
-            The size must be equal to N_obs
-        'skyl' : list with the ratio of diffuse radiation for each one of the observations.
-            The size must be equal to N_obs
-        'rsoil' : list with the background (soil) reflectance. 
-            The size must be equal to the size of wls
-         'wls' : list with wavebands used in the inversion
-          Bounds : minimum and maximum tuple [min,max] for each objective parameter (Unused)
+        Additional arguments to be parsed in the inversion.
+
+            * 'ObjParam': list of the PROSAIL parameters to be retrieved during the inversion,sorted in the same order as in the param list. ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot'].
+            * 'FixedValues' : dictionary with the values of the parameters that are fixed during the inversion. The dictionary must complement the list from ObjParam.
+            * 'N_obs' : integer with the total number of observations used for the inversion. N_Obs=1.
+            * 'rho_canopy': list with the observed surface reflectances. The size of this list be wls*N_obs.
+            * 'vza' : list with the View Zenith Angle for each one of the observations. The size must be equal to N_obs.
+            * 'sza' : list with the Sun Zenith Angle for each one of the observations. The size must be equal to N_obs.
+            * 'psi' : list with the Relative View-Sun Angle for each one of the observations. The size must be equal to N_obs.
+            * 'skyl' : list with the ratio of diffuse radiation for each one of the observations. The size must be equal to N_obs.
+            * 'rsoil' : list with the background (soil) reflectance. The size must be equal to the size of wls.
+            * 'wls' : list with wavebands used in the inversion.
+            * 'Bound' : minimum and maximum tuple [min,max] for each objective parameter (Unused).
     
     Returns
     -------
     rmse : float
-        Root Mean Square Error of observed vs. modelled surface reflectance.
-        This is the function to be minimized'''
+        Root Mean Square Error of observed vs. modelled surface reflectance
+        This is the function to be minimized.'''
     
 
     import numpy as np
@@ -125,42 +110,32 @@ def FCost_RMSE_ProSail_wl(x0,*args):
 
 def FCostScaled_RMSE_ProSail_wl(x0,*args):
     ''' Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
-        Square Error of observed vs. modeled reflectances and scaled [0,1] parameters
+    Square Error of observed vs. modeled reflectances and scaled [0,1] parameters
         
     Parameters
     ----------
-    x0 : list 
-        a priori PROSAIL values to be retrieved during the inversion
+    x0 : list
+        a priori PROSAIL values to be retrieved during the inversion.
     args : list
-        Additional arguments to be parsed in the inversion:
-        ObjParam': list of the PROSAIL parameters to be retrieved during the inversion, 
-            sorted in the same order as in the param list
-            ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
-        FixedValues : dictionary with the values of the parameters that are fixed
-            during the inversion. The dictionary must complement the list from ObjParam
-        n_obs : integer with the total number of observations used for the inversion
-            N_Obs=1
-        rho_canopy: list with the observed surface reflectances. 
-            The size of this list be wls*N_obs
-        vza : list with the View Zenith Angle for each one of the observations.
-            The size must be equal to N_obs
-        sza : list with the Sun Zenith Angle for each one of the observations.
-            The size must be equal to N_obs
-        psi : list with the Relative View-Sun Angle for each one of the observations.
-            The size must be equal to N_obs
-        skyl : list with the ratio of diffuse radiation for each one of the observations.
-            The size must be equal to N_obs
-        rsoil : list with the background (soil) reflectance. 
-            The size must be equal to the size of wls
-        wls : list with wavebands used in the inversion
-        Bounds : minimum and maximum tuple [min,max] for each objective parameter, used to unscale the 
-            values
-            
+        Additional arguments to be parsed in the inversion.
+        
+            * 'ObjParam': list of the PROSAIL parameters to be retrieved during the inversion, sorted in the same order as in the param list. ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot'].
+            * 'FixedValues' : dictionary with the values of the parameters that are fixedduring the inversion. The dictionary must complement the list from ObjParam.
+            * 'N_obs' : integer with the total number of observations used for the inversion. N_Obs=1.
+            * 'rho_canopy': list with the observed surface reflectances. The size of this list be wls*N_obs.
+            * 'vza' : list with the View Zenith Angle for each one of the observations. The size must be equal to N_obs.
+            * 'sza' : list with the Sun Zenith Angle for each one of the observations. The size must be equal to N_obs.
+            * 'psi' : list with the Relative View-Sun Angle for each one of the observations. The size must be equal to N_obs.
+            * 'skyl' : list with the ratio of diffuse radiation for each one of the observations. The size must be equal to N_obs.
+            * 'rsoil' : list with the background (soil) reflectance. The size must be equal to the size of wls.
+            * 'wls' : list with wavebands used in the inversion.
+            * Bounds : minimum and maximum tuple [min,max] for each objective parameter.
+    
     Returns
     -------
     rmse : float
-        Root Mean Square Error of observed vs. modelled surface reflectance.
-        This is the function to be minimized'''
+        Root Mean Square Error of observed vs. modelled surface reflectance
+        This is the function to be minimized.'''
     
     import numpy as np
     param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
@@ -214,32 +189,27 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
 
 def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
     ''' Cost Function for inverting PROSPECT5  the Root MeanSquare Error of 
-    observed vs. modeled reflectances and scaled [0,1] parameters
+    observed vs. modeled reflectances and scaled [0,1] parameters.
         
     Parameters
     ----------
     x0 : list
-        a priori PROSAIL values to be retrieved during the inversion
+        a priori PROSAIL values to be retrieved during the inversion.
     args : list 
-        additional arguments to be parsed in the inversion:
-        ObjParam': list of the PROSPECT5 parameters to be retrieved during the inversion, 
-            sorted in the same order as in the param list
-            ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
-        FixedValues : dictionary with the values of the parameters that are fixed
-            during the inversion. The dictionary must complement the list from ObjParam
-        n_obs : integer with the total number of observations used for the inversion
-            N_Obs=1
-        rho_leaf: list with the observed surface reflectances. 
-            The size of this list be wls*N_obs
-        wls : list with wavebands used in the inversion
-        Bounds : minimum and maximum tuple [min,max] for each objective parameter, used to unscale the 
-            values
+        additional arguments to be parsed in the inversion.
+        
+            * ObjParam': list of the PROSPECT5 parameters to be retrieved during the inversion, sorted in the same order as in the param list. ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm'].
+            * FixedValues : dictionary with the values of the parameters that are fixed during the inversion. The dictionary must complement the list from ObjParam.
+            * n_obs : integer with the total number of observations used for the inversion. N_Obs=1.
+            * rho_leaf: list with the observed surface reflectances. The size of this list be wls*N_obs.
+            * wls : list with wavebands used in the inversion.
+            * Bounds : minimum and maximum tuple [min,max] for each objective parameter, used to unscale the values.
             
     Returns
     -------
     rmse : float
-        Root Mean Square Error of observed vs. modelled surface reflectance.
-        This is the function to be minimized'''
+        Root Mean Square Error of observed vs. modelled surface reflectance
+        This is the function to be minimized.'''
     
     import numpy as np
     param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
@@ -275,32 +245,27 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
 
 def FCostScaled_RRMSE_PROSPECT5_wl(x0,*args):
     ''' Cost Function for inverting PROSPECT5  the Relative Root MeanSquare Error of 
-    observed vs. modeled reflectances and scaled [0,1] parameters
+    observed vs. modeled reflectances and scaled [0,1] parameters.
         
     Parameters
     ----------
     x0 : list 
-        a priori PROSAIL values to be retrieved during the inversion
+        a priori PROSAIL values to be retrieved during the inversion.
     args : list 
-        additional arguments to be parsed in the inversion:
-        ObjParam': list of the PROSPECT5 parameters to be retrieved during the inversion, 
-            sorted in the same order as in the param list
-            ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
-        FixedValues : dictionary with the values of the parameters that are fixed
-            during the inversion. The dictionary must complement the list from ObjParam
-        n_obs : integer with the total number of observations used for the inversion
-            N_Obs=1
-        rho_leaf: list with the observed surface reflectances. 
-            The size of this list be wls*N_obs
-        wls : list with wavebands used in the inversion
-        Bounds : minimum and maximum tuple [min,max] for each objective parameter, used to unscale the 
-            values
+        additional arguments to be parsed in the inversion.
+        
+            * ObjParam': list of the PROSPECT5 parameters to be retrieved during the inversion, sorted in the same order as in the param list. ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm'].
+            * FixedValues : dictionary with the values of the parameters that are fixed during the inversion. The dictionary must complement the list from ObjParam.
+            * n_obs : integer with the total number of observations used for the inversion. N_Obs=1.
+            * rho_leaf: list with the observed surface reflectances. The size of this list be wls*N_obs.
+            * wls : list with wavebands used in the inversion.
+            * Bounds : minimum and maximum tuple [min,max] for each objective parameter, used to unscale the values.
             
     Returns
     -------
     rmse : float
         Root Mean Square Error of observed vs. modelled surface reflectance.
-        This is the function to be minimized'''
+        This is the function to be minimized.'''
     
     import numpy as np
     param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']

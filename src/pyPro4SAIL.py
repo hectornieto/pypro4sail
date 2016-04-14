@@ -9,7 +9,7 @@ Modified on Apr 14 2016
 DESCRIPTION
 ===========
 This package contains the main functions to run the coupled leaf-canopy model 
-PROSPECT5+4SAIL. It requires to import both radiative transfer models:
+PROSPECT5+4SAIL. It requires to import both radiative transfer models.
 
 * :doc:`FourSAIL` for simulating the canopy reflectance and transmittance factors.
 * :doc:`Prospect5` for simulating the lambertian reflectance and transmittance of a leaf.
@@ -19,15 +19,17 @@ PACKAGE CONTENTS
 
 * :func:`run` run Pro4SAIL based on originial PyProSAIL interface at http://pyprosail.readthedocs.org/en/latest/.
 * :func:`run_TIR` runs the thermal component of 4SAIL to estimate the broadband at-sensor thermal radiance.
-* :func:`CalcStephanBoltzmann` Blackbody Broadband radiation emission 
+* :func:`CalcStephanBoltzmann` Blackbody Broadband radiation emission. 
 
 EXAMPLE
 =======
 
 .. code-block:: python
+
     [N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF]=[1.5,40,8,0.0,0,01,0,009,3,0.01,30,180,10,180,(-0.35,-0.15)]
     import pyPro4SAIL
     wl,rho=pyPro4SAIL.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=pyPro4SAIL.DEFAULT_SOIL)
+
 '''
 
 import FourSAIL
@@ -49,56 +51,57 @@ UNIFORM = (0, 0)
 
 def run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, 
         view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=DEFAULT_SOIL):
-    
-    ''' Runs Prospect5+SAIL model to estimate canopy directional reflectance factor
+    ''' Runs Prospect5 4SAIL model to estimate canopy directional reflectance factor.
     
     Parameters
     ----------
     N : float
-        Leaf structural parameter
+        Leaf structural parameter.
     chloro : float
-        chlorophyll a+b content (mug cm-2)
+        chlorophyll a+b content (mug cm-2).
     caroten : float
-        carotenoids content (mug cm-2)
+        carotenoids content (mug cm-2).
     brown : float
-        brown pigments concentration (unitless)
+        brown pigments concentration (unitless).
     EWT  : float
-        equivalent water thickness (g cm-2 or cm)
+        equivalent water thickness (g cm-2 or cm).
     LMA  : float
-        dry matter content (g cm-2)
+        dry matter content (g cm-2).
     LAI : float
-        Leaf Area Index
+        Leaf Area Index.
     hot_spot : float
-        Hotspot parameter
+        Hotspot parameter.
     solar_zenith : float
-        Sun Zenith Angle (degrees)
+        Sun Zenith Angle (degrees).
     solar_azimuth : float
-        Sun Azimuth Angle (degrees)
+        Sun Azimuth Angle (degrees).
     view_zenith : float
-        View(sensor) Zenith Angle (degrees)
+        View(sensor) Zenith Angle (degrees).
     view_azimuth : float
-        View(sensor) Zenith Angle (degrees)
+        View(sensor) Zenith Angle (degrees).
     LIDF : float or tuple(float,float)
-        Leaf Inclination Distribution Function parameter
-            * if float, mean leaf angle for the Cambpell Spherical LIDF
-            * if tuple, (a,b) parameters of the Verhoef's bimodal LIDF
-                |LIDF[0]| + |LIDF[1]|<=1
-   skyl : float, optional
-       Fraction of diffuse shortwave radiation, default=0.2
-   soilType : str, optional
+        Leaf Inclination Distribution Function parameter.
+        
+            * if float, mean leaf angle for the Cambpell Spherical LIDF.
+            * if tuple, (a,b) parameters of the Verhoef's bimodal LIDF |LIDF[0]| + |LIDF[1]|<=1.
+    skyl : float, optional
+       Fraction of diffuse shortwave radiation, default=0.2.
+    soilType : str, optional
         filename of the soil type, defautl use inceptisol soil type,
-        see SoilSpectralLibrary folder
+        see SoilSpectralLibrary folder.
     
     Returns
     -------
-    wl, rho_canopy : array_like
-        wavelenghts and canopy reflectance factors
-
+    wl : array_like
+        wavelenghts.
+    rho_canopy : array_like
+        canopy reflectance factors.
+    
     References
     ----------
     .. [Feret08] Feret et al. (2008), PROSPECT-4 and 5: Advances in the Leaf Optical
         Properties Model Separating Photosynthetic Pigments, Remote Sensing of
-        Environment
+        Environment.
     .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
         Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
@@ -137,53 +140,53 @@ def run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_
     return wl,rho_canopy
 
 def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_azimuth, view_zenith, view_azimuth, LIDF,T_VegSunlit=None, T_SoilSunlit=None, T_atm=-273.15):
-    ''' Estimates the broadband at-sensor thermal radiance using 4SAIL model
+    ''' Estimates the broadband at-sensor thermal radiance using 4SAIL model.
     
     Parameters
     ----------
     emisVeg : float
-        Leaf hemispherical emissivity
+        Leaf hemispherical emissivity.
     emisSoil : float
-        Soil hemispherical emissivity
+        Soil hemispherical emissivity.
     T_Veg : float
-        Leaf temperature (Celsius)
+        Leaf temperature (Celsius).
     T_Soil : float
-        Soil temperature (Celsius)
+        Soil temperature (Celsius).
     LAI : float
-        Leaf Area Index
+        Leaf Area Index.
     hot_spot : float
-        Hotspot parameter
+        Hotspot parameter.
     solar_zenith : float
-        Sun Zenith Angle (degrees)
+        Sun Zenith Angle (degrees).
     solar_azimuth : float
-        Sun Azimuth Angle (degrees)
+        Sun Azimuth Angle (degrees).
     view_zenith : float
-        View(sensor) Zenith Angle (degrees)
+        View(sensor) Zenith Angle (degrees).
     view_azimuth : float
-        View(sensor) Zenith Angle (degrees)
+        View(sensor) Zenith Angle (degrees).
     LIDF : float or tuple(float,float)
-        Leaf Inclination Distribution Function parameter
-            * if float, mean leaf angle for the Cambpell Spherical LIDF
-            * if tuple, (a,b) parameters of the Verhoef's bimodal LIDF
-                |LIDF[0]| + |LIDF[1]|<=1
+        Leaf Inclination Distribution Function parameter.
+        
+            * if float, mean leaf angle for the Cambpell Spherical LIDF.
+            * if tuple, (a,b) parameters of the Verhoef's bimodal LIDF |LIDF[0]| + |LIDF[1]|<=1.
     T_VegSunlit : float, optional
         Sunlit leaf temperature accounting for the thermal hotspot effect,
-        default T_VegSunlit=T_Veg
+        default T_VegSunlit=T_Veg.
     T_SoilSunlit : float, optional
         Sunlit soil temperature accounting for the thermal hotspot effect
-        default T_SoilSunlit=T_Soil
+        default T_SoilSunlit=T_Soil.
     T_atm : float, optional
         Apparent sky brightness temperature (degrees), 
-        default T_atm =0K (no downwellig radiance)
+        default T_atm =0K (no downwellig radiance).
     
     Returns
     -------
     Lw : float
-        At sensor broadband radiance (W m-2)
+        At sensor broadband radiance (W m-2).
     TB_obs : float
-        At sensor brightness temperature (Celsius)
+        At sensor brightness temperature (Celsius).
     emiss : float
-        Surface directional emissivity
+        Surface directional emissivity.
 
     References
     ----------
@@ -256,12 +259,12 @@ def CalcStephanBoltzmann(T_K):
     Parameters
     ----------
     T_K : float
-        body temperature (Kelvin)
+        body temperature (Kelvin).
     
     Returns
     -------
     M : float
-        Emitted radiance (W m-2)'''
+        Emitted radiance (W m-2).'''
     import numpy as np
     
     M=SB*T_K**4
