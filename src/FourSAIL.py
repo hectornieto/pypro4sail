@@ -2,7 +2,48 @@
 """
 Created on Mon Mar 2 11:32:19 2015
 
-@author: hector
+@author: Hector Nieto (hnieto@ias.csic.es)
+
+Modified on Apr 14 2016
+@author: Hector Nieto (hnieto@ias.csic.es)
+
+DESCRIPTION
+===========
+This package contains the main functions to run the canopy radiative transfer model 
+4SAIL.
+
+PACKAGE CONTENTS
+================
+* :func:`FourSAIL` Runs 4SAIL canopy radiative transfer model.
+* :func:`FourSAIL_wl` Runs 4SAIL canopy radiative transfer model for a specific 
+wavelenght, aimed for computing speed.
+
+Ancillary functions
+-------------------
+* :func:`CalcLIDF_Verhoef` Calculate the Leaf Inclination Distribution Function 
+based on the [Verhoef1998] bimodal LIDF distribution.
+* :func:`CalcLIDF_Campbell` Calculate the Leaf Inclination Distribution Function 
+based on the [Campbell1990] ellipsoidal LIDF distribution.
+* :func:`volscatt` Colume scattering functions and interception coefficients.
+* :func:`Jfunc1` J1 function with avoidance of singularity problem.
+* :func:`Jfunc1_wl` J1 function with avoidance of singularity problem for :func:`FourSAIL_wl`.
+* :func:`Jfunc2` J2 function with avoidance of singularity problem.
+* :func:`Jfunc2_wl` J2 function with avoidance of singularity problem for :func:`FourSAIL_wl`.
+* :func;`Get_SunAngles` Calculate the Sun Zenith and Azimuth Angles.
+
+EXAMPLE
+=======
+.. code-block:: python
+    # Running the coupled Prospect and 4SAIL
+    import Prospect5, FourSAIL
+    # Simulate leaf full optical spectrum (400-2500nm) 
+    wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+    # Estimate the Leaf Inclination Distribution Function of a canopy
+    lidf = CalcLIDF_Campbell(alpha)
+    # Simulate leaf reflectance and transmittance factors of a canopy 
+    tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammasowl = FourSAIL.FourSAIL(lai,hotspot,lidf,SZA,VZA,PSI,rho_leaf,tau_leaf,rho_soil)
+    # Simulate the canopy reflectance factor for a given difuse/total radiation condition (skyl)
+    rho_canopy = rdot*skyl+rsot*(1-skyl)
 """
 
 def CalcLIDF_Verhoef(a,b,n_elements=18):
@@ -29,7 +70,14 @@ def CalcLIDF_Verhoef(a,b,n_elements=18):
     Returns
     -------
     lidf : list
-        Leaf Inclination Distribution Function at equally spaced angles'''
+        Leaf Inclination Distribution Function at equally spaced angles
+    
+    References
+    ----------
+    .. [Verhoef1998] Verhoef, Wout. Theory of radiative transfer models applied 
+        in optical remote sensing of vegetation canopies. 
+        Nationaal Lucht en Ruimtevaartlaboratorium, 1998.
+        http://library.wur.nl/WebQuery/clc/945481'''
 
     import math as m
     freq=1.0
@@ -59,7 +107,7 @@ def CalcLIDF_Verhoef(a,b,n_elements=18):
     
 def CalcLIDF_Campbell(alpha,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
-        mean angle of Cambpbell's ellipsoidal LIDF distribution
+        mean angle of [Campbell1990] ellipsoidal LIDF distribution
 
     Parameters
     ----------
@@ -71,7 +119,19 @@ def CalcLIDF_Campbell(alpha,n_elements=18):
     Returns
     -------
     lidf : list
-        Leaf Inclination Distribution Function for 18 equally spaced angles'''
+        Leaf Inclination Distribution Function for 18 equally spaced angles
+        
+    References
+    ----------
+    .. [Campbell1986] G.S. Campbell, Extinction coefficients for radiation in 
+        plant canopies calculated using an ellipsoidal inclination angle distribution, 
+        Agricultural and Forest Meteorology, Volume 36, Issue 4, 1986, Pages 317-321, 
+        ISSN 0168-1923, http://dx.doi.org/10.1016/0168-1923(86)90010-9.
+    .. [Campbell1990] G.S Campbell, Derivation of an angle density function for 
+        canopies with ellipsoidal leaf angle distributions, 
+        Agricultural and Forest Meteorology, Volume 49, Issue 3, 1990, Pages 173-176, 
+        ISSN 0168-1923, http://dx.doi.org/10.1016/0168-1923(90)90030-A.
+    '''
     
     from math import cos, asin,tan, log, exp, sqrt, radians
     
@@ -110,7 +170,82 @@ def CalcLIDF_Campbell(alpha,n_elements=18):
     return lidf
 
 def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
+    ''' Runs 4SAIL canopy radiative transfer model
     
+    Parameters
+    ----------
+    lai : float
+        Leaf Area Index
+    hotspot : float
+        Hotspot parameter
+    lidf : list
+        Leaf Inclination Distribution at regular angle steps
+    tts : float
+        Sun Zenith Angle (degrees)
+    tto : float
+        View(sensor) Zenith Angle (degrees)
+    psi : float
+        Relative Sensor-Sun Azimuth Angle (degrees)
+    rho : array_like
+        leaf lambertian reflectance
+    tau : array_like
+        leaf transmittance
+    rsoil : array_like
+        soil lambertian reflectance
+    
+    Returns
+    -------
+    tss : array_like
+        beam transmittance in the sun-target path
+    too : array_like
+        beam transmittance in the target-view path
+    tsstoo : array_like
+        beam tranmittance in the sur-target-view path
+    rdd : array_like
+        canopy bihemisperical reflectance factor
+    tdd : array_like
+        canopy bihemishperical transmittance factor
+    rsd : array_like 
+        canopy directional-hemispherical reflectance factor
+    tsd : array_like
+        canopy directional-hemispherical transmittance factor
+    rdo : array_like
+        canopy hemispherical-directional reflectance factor
+    tdo : array_like
+        canopy hemispherical-directional transmittance factor
+    rso : array_like
+        canopy bidirectional reflectance factor
+    rsos : array_like
+        single scattering contribution to rso
+    rsod : array_like
+        multiple scattering contribution to rso
+    rddt : array_like
+        surface bihemispherical reflectance factor
+    rsdt : array_like
+        surface directional-hemispherical reflectance factor
+    rdot : array_like
+        surface hemispherical-directional reflectance factor
+    rsodt : array_like
+        reflectance factor
+    rsost : array_like
+        reflectance factor
+    rsot : array_like
+        surface bidirectional reflectance factor
+    gammasdf : 
+        'Thermal gamma factor'
+    gammasdb : 
+        'Thermal gamma factor'
+    gammaso : 
+        'Thermal gamma factor'
+    
+    References
+    ----------
+    .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
+        Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
+        IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007)
+    '''
+
     from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size
     cts   = cos(radians(tts))
     cto   = cos(radians(tto))
@@ -295,7 +430,81 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
           rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
 
 def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
-
+    ''' Runs 4SAIL canopy radiative transfer model for a single wavelenght
+    
+    Parameters
+    ----------
+    lai : float
+        Leaf Area Index
+    hotspot : float
+        Hotspot parameter
+    lidf : list
+        Leaf Inclination Distribution at regular angle steps
+    tts : float
+        Sun Zenith Angle (degrees)
+    tto : float
+        View(sensor) Zenith Angle (degrees)
+    psi : float
+        Relative Sensor-Sun Azimuth Angle (degrees)
+    rho : float
+        leaf lambertian reflectance
+    tau : float
+        leaf transmittance
+    rsoil : float
+        soil lambertian reflectance
+    
+    Returns
+    -------
+    tss : float
+        beam transmittance in the sun-target path
+    too : float
+        beam transmittance in the target-view path
+    tsstoo : float
+        beam tranmittance in the sur-target-view path
+    rdd : float
+        canopy bihemisperical reflectance factor
+    tdd : float
+        canopy bihemishperical transmittance factor
+    rsd : float 
+        canopy directional-hemispherical reflectance factor
+    tsd : float
+        canopy directional-hemispherical transmittance factor
+    rdo : float
+        canopy hemispherical-directional reflectance factor
+    tdo : float
+        canopy hemispherical-directional transmittance factor
+    rso : float
+        canopy bidirectional reflectance factor
+    rsos : float
+        single scattering contribution to rso
+    rsod : float
+        multiple scattering contribution to rso
+    rddt : float
+        surface bihemispherical reflectance factor
+    rsdt : float
+        surface directional-hemispherical reflectance factor
+    rdot : float
+        surface hemispherical-directional reflectance factor
+    rsodt : float
+        reflectance factor
+    rsost : float
+        reflectance factor
+    rsot : float
+        surface bidirectional reflectance factor
+    gammasdf : 
+        'Thermal gamma factor'
+    gammasdb : 
+        'Thermal gamma factor'
+    gammaso : 
+        'Thermal gamma factor'
+    
+    References
+    ----------
+    .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
+        Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
+        IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007)
+    '''
     from math import cos, tan, radians, pi, sqrt, log, exp, isnan
     cts   = cos(radians(tts))
     cto   = cos(radians(tto))
@@ -502,7 +711,9 @@ def volscatt(tts,tto,psi,ttl) :
     ftau : float
         Function to be multiplied by leaf transmittance to obtain the volume scattering
         leaf transmittance tau, respectively, in order to obtain the volume scattering
-
+    
+    References
+    ----------
     Wout Verhoef, april 2001, for CROMA'''
 
     from math import sin, cos, acos, radians, pi 

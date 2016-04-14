@@ -2,10 +2,36 @@
 """
 Created on Tue Apr 14 13:36:24 2015
 
-@author: hector
+@author: ector Nieto (hnieto@ias.csic.es)
+
+Modified on Apr 14 2016
+@author: Hector Nieto (hnieto@ias.csic.es)
+
+DESCRIPTION
+===========
+This package contains several cost/merit functions for inverting :doc:`Prospect5`
+and :doc:`FourSAIL`. It requires the import of the following modules
+
+* :doc:`FourSAIL` for simulating the canopy reflectance and transmittance factors.
+* :doc:`Prospect5` for simulating the lambertian reflectance and transmittance of a leaf.
+
+PACKAGE CONTENTS
+================
+
+* :func:`FCost_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
+Square Error of observed vs. modeled reflectances.
+* :func:`FCostScaled_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
+Square Error of observed vs. modeled reflectances and scaled [0,1] parameters 
+(recommended over :func:`FCost_RMSE_ProSail_wl`).
+FCostScaled_RMSE_PROSPECT5_wl
+* :func:`FCostScaled_RMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root Mean
+Square Error of observed vs. modeled reflectances and scaled [0,1] parameters.
+* :func:`FCostScaled_RRMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root Mean
+Square Error of observed vs. modeled reflectances and scaled [0,1] parameters.
+
 """    
-from FourSAIL import FourSAIL_wl, CalcLIDF_Campbell
-from Prospect5 import Prospect5_wl
+from FourSAIL import *
+from Prospect5 import *
 
 def FCost_RMSE_ProSail_wl(x0,*args):
     ''' Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
@@ -13,8 +39,10 @@ def FCost_RMSE_ProSail_wl(x0,*args):
         
     Parameters
     ----------
-    x0 : list with the a priori PROSAIL values to be retrieved during the inversion
-    args : Dictionary with the additional arguments to be parsed in the inversion:
+    x0 : list
+        a priori PROSAIL values to be retrieved during the inversion
+    args : list
+        Additional arguments to be parsed in the inversion:
         'ObjParam': list of the PROSAIL parameters to be retrieved during the inversion, 
             sorted in the same order as in the param list
             ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
@@ -39,7 +67,8 @@ def FCost_RMSE_ProSail_wl(x0,*args):
     
     Returns
     -------
-    rmse : Root Mean Square Error of observed vs. modelled surface reflectance.
+    rmse : float
+        Root Mean Square Error of observed vs. modelled surface reflectance.
         This is the function to be minimized'''
     
 
@@ -100,8 +129,10 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
         
     Parameters
     ----------
-    x0 : list with the a priori PROSAIL values to be retrieved during the inversion
-    args : List with the additional arguments to be parsed in the inversion:
+    x0 : list 
+        a priori PROSAIL values to be retrieved during the inversion
+    args : list
+        Additional arguments to be parsed in the inversion:
         ObjParam': list of the PROSAIL parameters to be retrieved during the inversion, 
             sorted in the same order as in the param list
             ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
@@ -127,7 +158,8 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
             
     Returns
     -------
-    rmse : Root Mean Square Error of observed vs. modelled surface reflectance.
+    rmse : float
+        Root Mean Square Error of observed vs. modelled surface reflectance.
         This is the function to be minimized'''
     
     import numpy as np
@@ -186,8 +218,10 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
         
     Parameters
     ----------
-    x0 : list with the a priori PROSAIL values to be retrieved during the inversion
-    args : List with the additional arguments to be parsed in the inversion:
+    x0 : list
+        a priori PROSAIL values to be retrieved during the inversion
+    args : list 
+        additional arguments to be parsed in the inversion:
         ObjParam': list of the PROSPECT5 parameters to be retrieved during the inversion, 
             sorted in the same order as in the param list
             ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
@@ -203,7 +237,8 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
             
     Returns
     -------
-    rmse : Root Mean Square Error of observed vs. modelled surface reflectance.
+    rmse : float
+        Root Mean Square Error of observed vs. modelled surface reflectance.
         This is the function to be minimized'''
     
     import numpy as np
@@ -244,8 +279,10 @@ def FCostScaled_RRMSE_PROSPECT5_wl(x0,*args):
         
     Parameters
     ----------
-    x0 : list with the a priori PROSAIL values to be retrieved during the inversion
-    args : List with the additional arguments to be parsed in the inversion:
+    x0 : list 
+        a priori PROSAIL values to be retrieved during the inversion
+    args : list 
+        additional arguments to be parsed in the inversion:
         ObjParam': list of the PROSPECT5 parameters to be retrieved during the inversion, 
             sorted in the same order as in the param list
             ObjParam'=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
@@ -261,7 +298,8 @@ def FCostScaled_RRMSE_PROSPECT5_wl(x0,*args):
             
     Returns
     -------
-    rmse : Root Mean Square Error of observed vs. modelled surface reflectance.
+    rmse : float
+        Root Mean Square Error of observed vs. modelled surface reflectance.
         This is the function to be minimized'''
     
     import numpy as np

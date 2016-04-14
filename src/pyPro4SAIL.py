@@ -1,9 +1,34 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri May 22 16:02:20 2015
+'''
+Created on Apr 6 2015
+@author: Hector Nieto (hnieto@ias.csic.es)
 
-@author: hectorn
-"""
+Modified on Apr 14 2016
+@author: Hector Nieto (hnieto@ias.csic.es)
+
+DESCRIPTION
+===========
+This package contains the main functions to run the coupled leaf-canopy model 
+PROSPECT5+4SAIL. It requires to import both radiative transfer models:
+
+* :doc:`FourSAIL` for simulating the canopy reflectance and transmittance factors.
+* :doc:`Prospect5` for simulating the lambertian reflectance and transmittance of a leaf.
+
+PACKAGE CONTENTS
+================
+
+* :func:`run` run Pro4SAIL based on originial PyProSAIL interface at http://pyprosail.readthedocs.org/en/latest/.
+* :func:`run_TIR` runs the thermal component of 4SAIL to estimate the broadband at-sensor thermal radiance.
+* :func:`CalcStephanBoltzmann` Blackbody Broadband radiation emission 
+
+EXAMPLE
+=======
+
+.. code-block:: python
+    [N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF]=[1.5,40,8,0.0,0,01,0,009,3,0.01,30,180,10,180,(-0.35,-0.15)]
+    import pyPro4SAIL
+    wl,rho=pyPro4SAIL.run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=pyPro4SAIL.DEFAULT_SOIL)
+'''
 
 import FourSAIL
 import Prospect5
