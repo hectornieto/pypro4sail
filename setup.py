@@ -37,8 +37,7 @@ LONG_DESCRIPTION = read_file("README.md")
 SHORT_DESCRIPTION = "Prospect5 and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies"
 REQS = [
     'numpy>=1.10',
-    'scipy',
-    'cma'
+    'scipy'
 ]
 
 setup(
