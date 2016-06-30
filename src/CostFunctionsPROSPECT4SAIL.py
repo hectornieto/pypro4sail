@@ -103,9 +103,9 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
             error[i]=(rho_canopy[i]-r2)**2
             i+=1
             j+=1
-    rmse=np.sqrt(np.mean(error,dtype=np.float64))
+    mse=0.5*(np.mean(error,dtype=np.float64))
 
-    return rmse
+    return mse
 
 def FCostScaled_RMSE_ProSail(x0,*args):
     ''' Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean
@@ -180,9 +180,9 @@ def FCostScaled_RMSE_ProSail(x0,*args):
             float(psi[obs]),r,t,rsoil)
         r2=rdot*skyl[obs]+rsot*(1.-skyl[obs])
         error[obs*n_wl:(obs+1)*n_wl]=(rho_canopy[obs*n_wl:(obs+1)*n_wl]-r2)**2
-    rmse=np.sqrt(np.mean(error,dtype=np.float64))
+    mse=0.5*(np.mean(error,dtype=np.float64))
 
-    return rmse
+    return mse
 
 def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
     ''' Cost Function for inverting PROSPECT5  the Root MeanSquare Error of 
@@ -236,6 +236,6 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
             input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
             input_parameters['Cw'],input_parameters['Cm'])
         error[i]=(rho_leaf[i]-r)**2
-    rmse=np.sqrt(np.mean(error,dtype=np.float64))
+    mse=0.5*(np.mean(error,dtype=np.float64))
 
-    return rmse
+    return mse
