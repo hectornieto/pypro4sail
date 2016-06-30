@@ -78,7 +78,7 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
     for param in param_list:
         if param in ObjParam:
             #Transform the random variables (0-1) into biophysical variables 
-            input_parameters[param]=x0[i]*float(scale[i][1])+float(scale[i][0])
+            input_parameters[param]=x0[i]*float(scale[1][i])+float(scale[0][i])
             i=i+1
         else:
             input_parameters[param]=FixedValues[j]
@@ -104,7 +104,6 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
             i+=1
             j+=1
     mse=0.5*(np.mean(error,dtype=np.float64))
-
     return mse
 
 def FCostScaled_RMSE_ProSail(x0,*args):
@@ -146,7 +145,7 @@ def FCostScaled_RMSE_ProSail(x0,*args):
     vza=args[4]
     sza=args[5]
     psi=args[6]
-    skyl=args[7]
+    skyl=np.asarray(args[7])
     rsoil=np.asarray(args[8])
     wls=np.asarray(args[9])
     scale=args[10]
@@ -157,7 +156,7 @@ def FCostScaled_RMSE_ProSail(x0,*args):
     for param in param_list:
         if param in ObjParam:
             #Transform the random variables (0-1) into biophysical variables 
-            input_parameters[param]=x0[i]*float(scale[i][1])+float(scale[i][0])
+            input_parameters[param]=x0[i]*float(scale[1][i])+float(scale[0][i])
             i=i+1
         else:
             input_parameters[param]=FixedValues[j]
@@ -223,7 +222,7 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
     for param in param_list:
         if param in ObjParam:
             #Transform the random variables (0-1) into biophysical variables 
-            input_parameters[param]=x0[i]*float(scale[i][1])+float(scale[i][0])
+            input_parameters[param]=x0[i]*float(scale[1][i])+float(scale[0][i])
             i=i+1
         else:
             input_parameters[param]=FixedValues[j]
