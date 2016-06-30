@@ -97,71 +97,82 @@ def JacProspect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
         np.array(Cw_k)/float(Nleaf),np.array(Cm_k)/float(Nleaf)])
         
     trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
-    delta_trans_1=-np.exp(-k)*Delta_k
-    #Delta_trans=((1.-Delta_k)*np.exp(-k)+(1.-k)*np.exp(-k)*(-Delta_k)+2*k*Delta_k*expn(1.,k)-k**2*(np.exp(-k)/k)*Delta_k)*Delta_k
     Delta_trans=(-np.exp(-k)-(1.-k)*np.exp(-k)+2*k*expn(1.,k)-k**2*expn(0,k))*Delta_k
-    #Delta_trans=((1.-Delta_k)*np.exp(-k)+(1.-k)*np.exp(-k)+2*k*expn(1.,k)-k**2*(expn(0,k)))*Delta_k
     
-#==============================================================================
-#     #==============================================================================
-#     # reflectance and transmittance of one layer
-#     # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
-#     # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
-#     # Soc. Am., 59(10):1376-1379.
-#     #==============================================================================
-#     #reflectivity and transmissivity at the interface
-#     alpha=40.;
-#     n=np.array(refr_index)
-#     t12=tav(alpha,n)
-#     t21=tav(90.,n)/n**2.
-#     r12=1.-t12
-#     r21=1.-t21
-#     x=tav(alpha,n)/tav(90.,n)
-#     y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
-#     #reflectance and transmittance of the elementary layer N = 1
-#     ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
-#     Delta_ra=((t12*t21*r21*2.*trans*Delta_trans-r21**2.*2.*trans*Delta_trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans
-# 
-#     ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
-#     Delta_ta=((t12*t21*Delta_trans-r21**2.*2.*trans*Delta_trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans 
-# 
-#     r90=(ra-y)/x
-#     Delta_r90=(Delta_ra/x)*Delta_ra
-# 
-#     t90=ta/x
-#     Delta_t90=(Delta_ta/x)*Delta_ta
-#==============================================================================
-    return Delta_k,Delta_trans
-#==============================================================================
-#     #==============================================================================
-#     # reflectance and transmittance of N layers
-#     # Stokes G.G. (1862), On the intensity of the light reflected from
-#     # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
-#     # 11:545-556.
-#     #==============================================================================
-#     delta=sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
-#     Delta_delta=(0.5*(delta)**(-0.5)*(2*(t90**2.-r90**2.-1.)*(2*t90*Delta_t90-2*r90*Delta_r90)-8*r90*Delta_r90))*Delta_t90*Delta_r90
-#     
-#     beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
-#     Delta_beta=(((2*r90*Delta_r90-2*t90*Delta_t90-Delta_delta)*(2.*r90)-
-#                 (1.+r90**2.-t90**2.-delta)*2*Delta_r90)/(2.*r90))*Delta_r90*Delta_t90*Delta_delta
-#     
-#     va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
-#     denominator=zeros(va.shape[0])+1e-14
-#     denominator[va*(beta-r90)> 1e-14]=va[va*(beta-r90)> 1e-14]*(beta[va*(beta-r90)> 1e-14]-r90[va*(beta-r90)> 1e-14])
-#     vb=sqrt(beta*(va-r90)/(denominator))
-#     vbNN = vb**(float(Nleaf)-1.)
-#     vbNNinv = 1./vbNN
-#     vainv = 1./va
-#     s1=ta*t90*(vbNN-vbNNinv)
-#     s2=ta*(va-vainv)
-#     s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
-#     rho=ra+s1/s3
-#     tau=s2/s3
-#     
-#     return l,rho,tau
-# 
-#==============================================================================
+    #==============================================================================
+    # reflectance and transmittance of one layer
+    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
+    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
+    # Soc. Am., 59(10):1376-1379.
+    #==============================================================================
+    #reflectivity and transmissivity at the interface
+    alpha=40.;
+    n=np.array(refr_index)
+    t12=tav(alpha,n)
+    t21=tav(90.,n)/n**2.
+    r12=1.-t12
+    r21=1.-t21
+    x=tav(alpha,n)/tav(90.,n)
+    y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
+    #reflectance and transmittance of the elementary layer N = 1
+    ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
+    Delta_ra=((2.*t12*t21*r21*trans*(1.-r21**2.*trans**2.)+2.*t12*t21*r21*trans**2.*r21**2.*trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans
+
+    ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
+    Delta_ta=((t12*t21*(1.-r21**2.*trans**2.)+2.*t12*t21*trans*r21**2.*trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans 
+
+    r90=(ra-y)/x
+    Delta_r90=Delta_ra/x
+
+    t90=ta/x
+    Delta_t90=Delta_ta/x
+    #==============================================================================
+    # reflectance and transmittance of N layers
+    # Stokes G.G. (1862), On the intensity of the light reflected from
+    # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
+    # 11:545-556.
+    #==============================================================================
+    delta=np.sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
+    Delta_delta=(0.5*((t90**2.-r90**2.-1.)**2.-4.*r90**2.)**-0.5)*(2*(t90**2.-r90**2.-1.)
+                *(2*t90*Delta_t90-2*r90*Delta_r90)-8*r90*Delta_r90)
+
+    beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
+    Delta_beta=((2*r90*Delta_r90-2*t90*Delta_t90-Delta_delta)*(2.*r90)-(1.+r90**2.-t90**2.-delta)*2*Delta_r90)/(2.*r90)**2
+    
+    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
+    Delta_va=((2*r90*Delta_r90-2*t90*Delta_t90+Delta_delta)*(2.*r90)-(1.+r90**2.-t90**2.+delta)*2*Delta_r90)/(2.*r90)**2
+
+    vb=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+    Delta_vb=0.5*(beta*(va-r90)/(va*(beta-r90)))**-.5*(((Delta_beta*(va-r90)+
+        beta*(Delta_va-Delta_r90))*va*(beta-r90))-(beta*(va-r90)*(Delta_va*(beta-r90)+va*(Delta_beta-Delta_r90))))/(va*(beta-r90))**2
+
+    vbNN = vb**(float(Nleaf)-1.)
+    Delta_vbNN=np.zeros(Delta_vb.shape)
+    Delta_vbNN[0,:]=np.exp((float(Nleaf)-1.)*np.log(vb))*(np.log(vb)+(float(Nleaf)-1.)*(1./vb)*Delta_vb[0,:])
+    Delta_vbNN[1:,:]=np.exp((float(Nleaf)-1.)*np.log(vb))*((float(Nleaf)-1.)*(1./vb)*Delta_vb[1:,:])
+
+    vbNNinv = 1./vbNN
+    Delta_vbNNinv=-Delta_vbNN/vbNN**2
+
+    vainv = 1./va
+    Delta_vainv=-Delta_va/va**2
+
+    s1=ta*t90*(vbNN-vbNNinv)
+    Delta_s1=(Delta_ta*t90+ta*Delta_t90)*(vbNN-vbNNinv)+ta*t90*(Delta_vbNN-Delta_vbNNinv)
+    
+    s2=ta*(va-vainv)
+    Delta_s2=Delta_ta*(va-vainv)+ta*(Delta_va-Delta_vainv)
+    
+    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
+    Delta_s3=(Delta_va*vbNN+va*Delta_vbNN)-(Delta_vainv*vbNNinv+vainv*Delta_vbNNinv)-(Delta_r90*(vbNN-vbNNinv)+r90*(Delta_vbNN-Delta_vbNNinv))
+
+    rho=ra+s1/s3
+    Delta_rho=Delta_ra+(Delta_s1*s3-s1*Delta_s3)/s3**2    
+
+    tau=s2/s3
+    Delta_tau=(Delta_s2*s3-s2*Delta_s3)/s3**2            
+    return Delta_rho,Delta_tau
+
 def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
     from 400 nm to 2500 nm (1 nm step).
@@ -209,35 +220,48 @@ def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     k=(float(Cab)*array(Cab_k)+float(Car)*array(Car_k)
         +float(Cbrown)*array(Cbrown_k)+float(Cw)*array(Cw_k)
         +float(Cm)*array(Cm_k))/float(Nleaf)
-    k[k<=0]=1e-6
-    
+   
     trans=(1.-k)*exp(-k)+k**2.*expn(1.,k)
-    #trans[k<=0.0]=1.0
-    trans1=exp(-k)
-#==============================================================================
-#     #==============================================================================
-#     # reflectance and transmittance of one layer
-#     # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
-#     # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
-#     # Soc. Am., 59(10):1376-1379.
-#     #==============================================================================
-#     #reflectivity and transmissivity at the interface
-#     alpha=40.;
-#     n=array(refr_index)
-#     t12=tav(alpha,n)
-#     t21=tav(90.,n)/n**2.
-#     r12=1.-t12
-#     r21=1.-t21
-#     x=tav(alpha,n)/tav(90.,n)
-#     y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
-#     #reflectance and transmittance of the elementary layer N = 1
-#     ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
-#     ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
-#     r90=(ra-y)/x
-#     t90=ta/x
-#==============================================================================
-    
-    return l,k,trans
+    #==============================================================================
+    # reflectance and transmittance of one layer
+    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
+    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
+    # Soc. Am., 59(10):1376-1379.
+    #==============================================================================
+    #reflectivity and transmissivity at the interface
+    alpha=40.;
+    n=array(refr_index)
+    t12=tav(alpha,n)
+    t21=tav(90.,n)/n**2.
+    r12=1.-t12
+    r21=1.-t21
+    x=tav(alpha,n)/tav(90.,n)
+    y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
+    #reflectance and transmittance of the elementary layer N = 1
+    ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
+    ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
+    r90=(ra-y)/x
+    t90=ta/x
+     #==============================================================================
+    # reflectance and transmittance of N layers
+    # Stokes G.G. (1862), On the intensity of the light reflected from
+    # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
+    # 11:545-556.
+    #==============================================================================
+    delta=sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
+    beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
+    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
+    vb=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+    vbNN = vb**(float(Nleaf)-1.)
+    vbNNinv = 1./vbNN
+    vainv = 1./va
+    s1=ta*t90*(vbNN-vbNNinv)
+    s2=ta*(va-vainv)
+    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
+    rho=ra+s1/s3
+    tau=s2/s3
+   
+    return l,rho,tau
 
 def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
