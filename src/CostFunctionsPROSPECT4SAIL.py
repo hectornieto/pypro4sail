@@ -49,12 +49,12 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
             * 'skyl' : list with the ratio of diffuse radiation for each one of the observations. The size must be equal to N_obs.
             * 'rsoil' : list with the background (soil) reflectance. The size must be equal to the size of wls.
             * 'wls' : list with wavebands used in the inversion.
-            * Bounds : minimum and maximum tuple [min,max] for each objective parameter.
+            * scale : minimum and scale tuple [min,scale] for each objective parameter.
     
     Returns
     -------
-    rmse : float
-        Root Mean Square Error of observed vs. modelled surface reflectance
+    mse : float
+        Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
     import numpy as np
@@ -70,7 +70,7 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
     skyl=args[7]
     rsoil=args[8]
     wls=args[9]
-    bounds=args[10]
+    scale=args[10]
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -78,7 +78,7 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
     for param in param_list:
         if param in ObjParam:
             #Transform the random variables (0-1) into biophysical variables 
-            input_parameters[param]=x0[i]*float((bounds[i][1]-bounds[i][0]))+float(bounds[i][0])
+            input_parameters[param]=x0[i]*float(scale[i][1])+float(scale[i][0])
             i=i+1
         else:
             input_parameters[param]=FixedValues[j]
@@ -128,7 +128,7 @@ def FCostScaled_RMSE_ProSail(x0,*args):
             * 'skyl' : list with the ratio of diffuse radiation for each one of the observations. The size must be equal to N_obs.
             * 'rsoil' : list with the background (soil) reflectance. The size must be equal to the size of wls.
             * 'wls' : list with wavebands used in the inversion.
-            * Bounds : minimum and maximum tuple [min,max] for each objective parameter.
+            * scale : minimum and scale tuple [min,scale] for each objective parameter.
     
     Returns
     -------
@@ -149,7 +149,7 @@ def FCostScaled_RMSE_ProSail(x0,*args):
     skyl=args[7]
     rsoil=np.asarray(args[8])
     wls=np.asarray(args[9])
-    bounds=args[10]
+    scale=args[10]
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -157,7 +157,7 @@ def FCostScaled_RMSE_ProSail(x0,*args):
     for param in param_list:
         if param in ObjParam:
             #Transform the random variables (0-1) into biophysical variables 
-            input_parameters[param]=x0[i]*float((bounds[i][1]-bounds[i][0]))+float(bounds[i][0])
+            input_parameters[param]=x0[i]*float(scale[i][1])+float(scale[i][0])
             i=i+1
         else:
             input_parameters[param]=FixedValues[j]
@@ -200,7 +200,7 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
             * n_obs : integer with the total number of observations used for the inversion. N_Obs=1.
             * rho_leaf: list with the observed surface reflectances. The size of this list be wls*N_obs.
             * wls : list with wavebands used in the inversion.
-            * Bounds : minimum and maximum tuple [min,max] for each objective parameter, used to unscale the values.
+            * scale : minimum and scale tuple [min,scale] for each objective parameter, used to unscale the values.
             
     Returns
     -------
@@ -215,7 +215,7 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
     FixedValues=args[1]
     rho_leaf=args[2]
     wls=args[3]
-    bounds=args[4]
+    scale=args[4]
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -223,7 +223,7 @@ def FCostScaled_RMSE_PROSPECT5_wl(x0,*args):
     for param in param_list:
         if param in ObjParam:
             #Transform the random variables (0-1) into biophysical variables 
-            input_parameters[param]=x0[i]*float((bounds[i][1]-bounds[i][0]))+float(bounds[i][0])
+            input_parameters[param]=x0[i]*float(scale[i][1])+float(scale[i][0])
             i=i+1
         else:
             input_parameters[param]=FixedValues[j]
