@@ -99,7 +99,7 @@ def FCostScaled_RMSE_ProSail_wl(x0,*args):
                  rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]=FourSAIL_wl(input_parameters['LAI'],
                  input_parameters['hotspot'],lidf,float(sza[obs]),float(vza[obs]),
                 float(psi[obs]),r,t,float(rsoil[j]))
-            r2=rdot*float(skyl[obs])+rsot*(1-float(skyl[obs]))
+            r2=rdot*float(skyl[i])+rsot*(1-float(skyl[i]))
             error[i]=(rho_canopy[i]-r2)**2
             i+=1
             j+=1
