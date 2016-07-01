@@ -171,99 +171,10 @@ def JacProspect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
 
     tau=s2/s3
     Delta_tau=(Delta_s2*s3-s2*Delta_s3)/s3**2            
-    return Delta_rho,Delta_tau
+    return Delta_rho,Delta_tau, rho, tau
 
-def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
-    '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
-    from 400 nm to 2500 nm (1 nm step).
 
-    Parameters
-    ----------    
-    N   : float
-        leaf structure parameter.
-    Cab : float
-        chlorophyll a+b content (mug cm-2).
-    Car : float
-        carotenoids content (mug cm-2).
-    Cbrown : float
-        brown pigments concentration (unitless).
-    Cw  : float
-        equivalent water thickness (g cm-2 or cm).
-    Cm  : float
-        dry matter content (g cm-2).
-
-    Returns
-    -------
-    l : array_like
-        wavelenght (nm).
-    rho : array_like
-        leaf reflectance .
-    tau : array_like
-        leaf transmittance .
-    
-    References
-    ----------
-    .. [Jacquemoud96] Jacquemoud S., Ustin S.L., Verdebout J., Schmuck G., Andreoli G.,
-        Hosgood B. (1996), Estimating leaf biochemistry using the PROSPECT
-        leaf optical properties model, Remote Sensing of Environment, 56:194-202
-        http://dx.doi.org/10.1016/0034-4257(95)00238-3.
-    .. [Jacquemoud90] Jacquemoud S., Baret F. (1990), PROSPECT: a model of leaf optical
-        properties spectra, Remote Sensing of Environment, 34:75-91
-        http://dx.doi.org/10.1016/0034-4257(90)90100-Z.
-    .. [Feret08] Feret et al. (2008), PROSPECT-4 and 5: Advances in the Leaf Optical
-        Properties Model Separating Photosynthetic Pigments, Remote Sensing of
-        Environment. http://dx.doi.org/10.1016/j.rse.2008.02.012.
-    '''
-    from scipy.special import expn
-    from numpy import array,exp, sqrt,zeros
-    l=array(wls)
-    k=(float(Cab)*array(Cab_k)+float(Car)*array(Car_k)
-        +float(Cbrown)*array(Cbrown_k)+float(Cw)*array(Cw_k)
-        +float(Cm)*array(Cm_k))/float(Nleaf)
-   
-    trans=(1.-k)*exp(-k)+k**2.*expn(1.,k)
-    #==============================================================================
-    # reflectance and transmittance of one layer
-    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
-    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
-    # Soc. Am., 59(10):1376-1379.
-    #==============================================================================
-    #reflectivity and transmissivity at the interface
-    alpha=40.;
-    n=array(refr_index)
-    t12=tav(alpha,n)
-    t21=tav(90.,n)/n**2.
-    r12=1.-t12
-    r21=1.-t21
-    x=tav(alpha,n)/tav(90.,n)
-    y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
-    #reflectance and transmittance of the elementary layer N = 1
-    ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
-    ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
-    r90=(ra-y)/x
-    t90=ta/x
-     #==============================================================================
-    # reflectance and transmittance of N layers
-    # Stokes G.G. (1862), On the intensity of the light reflected from
-    # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
-    # 11:545-556.
-    #==============================================================================
-    delta=sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
-    beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
-    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
-    vb=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
-    vbNN = vb**(float(Nleaf)-1.)
-    vbNNinv = 1./vbNN
-    vainv = 1./va
-    s1=ta*t90*(vbNN-vbNNinv)
-    s2=ta*(va-vainv)
-    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
-    rho=ra+s1/s3
-    tau=s2/s3
-   
-    return l,rho,tau
-
-def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
+def JacProspect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
     from a single given wavelenght. Aimed for computation speed.
 
@@ -328,7 +239,7 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
 
-    from math import exp, sqrt
+    import numpy as np
     from scipy.special import expn
 
     wl_index=wls.index(wl)
@@ -338,13 +249,19 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     Cw_abs=float(Cw_k[wl_index])
     Cm_abs=float(Cm_k[wl_index])
     n=float(refr_index[wl_index])
-    k=(float(Cab)*Cab_abs+float(Car)*Car_abs+float(Cbrown)*Cbrown_abs
-        +float(Cw)*Cw_abs+float(Cm)*Cm_abs)/float(Nleaf)
-    if k<=0.: 
-        trans=1.0
-    else:
-        trans=(1.-k)*exp(-k)+(k**2)*expn(1.,k)
-        if trans <0.0:trans=0.0
+
+    k=(float(Cab)*Cab_abs+float(Car)*Car_abs
+        +float(Cbrown)*Cbrown_abs+float(Cw)*Cw_abs
+        +float(Cm)*Cm_abs)/float(Nleaf)
+    Delta_k=np.array([-(float(Cab)*Cab_abs+float(Car)*Car_abs
+        +float(Cbrown)*Cbrown_abs+float(Cw)*Cw_abs
+        +float(Cm)*Cm_abs)/float(Nleaf)**2,Cab_abs/float(Nleaf),
+        Car_abs/float(Nleaf),Cbrown_abs/float(Nleaf),
+        Cw_abs/float(Nleaf),Cm_abs/float(Nleaf)])
+        
+    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    Delta_trans=(-np.exp(-k)-(1.-k)*np.exp(-k)+2*k*expn(1.,k)-k**2*expn(0,k))*Delta_k
+    
     #==============================================================================
     # reflectance and transmittance of one layer
     # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
@@ -352,7 +269,7 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # Soc. Am., 59(10):1376-1379.
     #==============================================================================
     #reflectivity and transmissivity at the interface
-    alpha=40.
+    alpha=40.;
     t12=tav_wl(alpha,n)
     t21=tav_wl(90.,n)/n**2.
     r12=1.-t12
@@ -361,36 +278,63 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     y=x*(tav_wl(90.,n)-1.)+1.-tav_wl(alpha,n)
     #reflectance and transmittance of the elementary layer N = 1
     ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
+    Delta_ra=((2.*t12*t21*r21*trans*(1.-r21**2.*trans**2.)+2.*t12*t21*r21*trans**2.*r21**2.*trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans
+
     ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
+    Delta_ta=((t12*t21*(1.-r21**2.*trans**2.)+2.*t12*t21*trans*r21**2.*trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans 
+
     r90=(ra-y)/x
+    Delta_r90=Delta_ra/x
+
     t90=ta/x
+    Delta_t90=Delta_ta/x
     #==============================================================================
     # reflectance and transmittance of N layers
     # Stokes G.G. (1862), On the intensity of the light reflected from
     # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
     # 11:545-556.
     #==============================================================================
-    if ((t90**2.-r90**2.-1.)**2.-4.*r90**2.) > 0:
-        delta=sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
-    else:
-        delta = 0
+    delta=np.sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
+    Delta_delta=(0.5*((t90**2.-r90**2.-1.)**2.-4.*r90**2.)**-0.5)*(2*(t90**2.-r90**2.-1.)
+                *(2*t90*Delta_t90-2*r90*Delta_r90)-8*r90*Delta_r90)
+
     beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
-    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
-    if va*(beta-r90)> 1e-14:
-        denominator=va*(beta-r90)
-    else:
-        denominator=1e-36
-    vb=sqrt(beta*(va-r90)/(denominator))
-    vbNN = vb**(float(Nleaf)-1.)
-    vbNNinv = 1./vbNN
-    vainv = 1./va
-    s1=ta*t90*(vbNN-vbNNinv)
-    s2=ta*(va-vainv)
-    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
-    rho=ra+s1/s3
-    tau=s2/s3
+    Delta_beta=((2*r90*Delta_r90-2*t90*Delta_t90-Delta_delta)*(2.*r90)-(1.+r90**2.-t90**2.-delta)*2*Delta_r90)/(2.*r90)**2
     
-    return wl,rho,tau
+    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
+    Delta_va=((2*r90*Delta_r90-2*t90*Delta_t90+Delta_delta)*(2.*r90)-(1.+r90**2.-t90**2.+delta)*2*Delta_r90)/(2.*r90)**2
+
+    vb=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+    Delta_vb=0.5*(beta*(va-r90)/(va*(beta-r90)))**-.5*(((Delta_beta*(va-r90)+
+        beta*(Delta_va-Delta_r90))*va*(beta-r90))-(beta*(va-r90)*(Delta_va*(beta-r90)+va*(Delta_beta-Delta_r90))))/(va*(beta-r90))**2
+
+    vbNN = vb**(float(Nleaf)-1.)
+    Delta_vbNN=np.zeros(Delta_vb.shape)
+    Delta_vbNN[0]=np.exp((float(Nleaf)-1.)*np.log(vb))*(np.log(vb)+(float(Nleaf)-1.)*(1./vb)*Delta_vb[0])
+    Delta_vbNN[1:]=np.exp((float(Nleaf)-1.)*np.log(vb))*((float(Nleaf)-1.)*(1./vb)*Delta_vb[1:])
+
+    vbNNinv = 1./vbNN
+    Delta_vbNNinv=-Delta_vbNN/vbNN**2
+
+    vainv = 1./va
+    Delta_vainv=-Delta_va/va**2
+
+    s1=ta*t90*(vbNN-vbNNinv)
+    Delta_s1=(Delta_ta*t90+ta*Delta_t90)*(vbNN-vbNNinv)+ta*t90*(Delta_vbNN-Delta_vbNNinv)
+    
+    s2=ta*(va-vainv)
+    Delta_s2=Delta_ta*(va-vainv)+ta*(Delta_va-Delta_vainv)
+    
+    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
+    Delta_s3=(Delta_va*vbNN+va*Delta_vbNN)-(Delta_vainv*vbNNinv+vainv*Delta_vbNNinv)-(Delta_r90*(vbNN-vbNNinv)+r90*(Delta_vbNN-Delta_vbNNinv))
+
+    rho=ra+s1/s3
+    Delta_rho=Delta_ra+(Delta_s1*s3-s1*Delta_s3)/s3**2    
+
+    tau=s2/s3
+    Delta_tau=(Delta_s2*s3-s2*Delta_s3)/s3**2            
+    return Delta_rho,Delta_tau, rho, tau
+
 
 def tav(theta,ref):
     '''
