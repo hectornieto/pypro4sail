@@ -140,7 +140,6 @@ def JacCalcLIDF_Campbell(alpha,n_elements=18):
     excent=np.exp(-1.6184e-5*alpha**3.+2.1145e-3*alpha**2.-1.2390e-1*alpha+3.2491)
     Delta_excent=np.exp(-1.6184e-5*alpha**3.+2.1145e-3*alpha**2.-1.2390e-1*alpha+3.2491)*(3*-1.6184e-5*alpha**2+
                     2.*2.1145e-3*alpha-1.2390e-1)
-    print(excent)
     sum0 = 0.
     freq=[]
     Delta_freq=[]
@@ -205,7 +204,7 @@ def JacCalcLIDF_Campbell(alpha,n_elements=18):
         Delta_lidf.append(float(Delta_freq[i]*sum0-freq[i]*Delta_sum0)/sum0**2)
     return Delta_lidf,lidf
 
-def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
+def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_tau=None):
     ''' Runs 4SAIL canopy radiative transfer model.
     
     Parameters
@@ -281,445 +280,334 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
-
-    from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size
-    cts   = cos(radians(tts))
-    cto   = cos(radians(tto))
+    SAIL_params=3
+    import numpy as np
+   # Get the leaf spectra parameters
+    if not type(Delta_rho)==type(None):
+        Delta_rho=np.asarray(Delta_rho)
+        leaf_params=Delta_rho.shape[0]
+    else:
+        leaf_params=0
+    n_params=leaf_params+SAIL_params
+    rho_array=np.zeros((n_params,rho.shape[0]))
+    tau_array=np.zeros((n_params,tau.shape[0]))
+    for i in range(n_params):
+        rho_array[i]=rho
+        tau_array[i]=tau
+    Delta_tau_array=np.zeros((n_params,tau.shape[0]))
+    Delta_rho_array=np.zeros((n_params,rho.shape[0]))
+    if not type(Delta_rho)==type(None):
+        Delta_rho_array[:leaf_params]=Delta_rho
+        Delta_tau_array[:leaf_params]=Delta_tau
+        
+        
+    # Here the LIDF comes in
+    Delta_lidf,lidf=lidf[0],lidf[1]
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
     ctscto  = cts*cto
     #sts   = sin(radians(tts))
     #sto   = sin(radians(tto))
-    tants = tan(radians(tts))
-    tanto = tan(radians(tto))
-    cospsi  = cos(radians(psi))
-    dso = sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    tants = np.tan(np.radians(tts))
+    tanto = np.tan(np.radians(tto))
+    cospsi  = np.cos(np.radians(psi))
+    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
     #Calculate geometric factors associated with extinction and scattering 
     #Initialise sums
     ks=0.
+    Delta_ks=np.zeros(n_params)
     ko=0.
+    Delta_ko=np.zeros(n_params)
     bf=0.
+    Delta_bf=np.zeros(n_params)    
     sob=0.
+    Delta_sob=np.zeros(n_params)
     sof=0.
+    Delta_sof=np.zeros(n_params)
     # Weighted sums over LIDF
     n_angles=len(lidf)
     angle_step=float(90.0/n_angles)
     litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    i=0
-    for ili in litab:
+    for i,ili in enumerate(litab):
         ttl=float(ili)
-        cttl=cos(radians(ttl))
+        cttl=np.cos(np.radians(ttl))
         # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
         [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
         # Extinction coefficients
         ksli=chi_s/cts
         koli=chi_o/cto
         # Area scattering coefficient fractions
-        sobli=frho*pi/ctscto
-        sofli=ftau*pi/ctscto
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
         bfli=cttl**2.
-        ks=ks+ksli*float(lidf[i])
-        ko=ko+koli*float(lidf[i])
-        bf=bf+bfli*float(lidf[i])
-        sob=sob+sobli*float(lidf[i])
-        sof=sof+sofli*float(lidf[i])
-        i=i+1
+        ks+=ksli*float(lidf[i])
+        Delta_ks[leaf_params+2]+=ksli*float(Delta_lidf[i])
+        ko+=koli*float(lidf[i])
+        Delta_ko[leaf_params+2]+=koli*float(Delta_lidf[i])
+        bf+=bfli*float(lidf[i])
+        Delta_bf[leaf_params+2]+=bfli*float(Delta_lidf[i])
+        sob+=sobli*float(lidf[i])
+        Delta_sob[leaf_params+2]+=sobli*float(Delta_lidf[i])
+        sof+=sofli*float(lidf[i])
+        Delta_sof[leaf_params+2]+=sofli*float(Delta_lidf[i])
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
+    Delta_sdb=0.5*(Delta_ks+Delta_bf)
     sdf=0.5*(ks-bf)
+    Delta_sdf=0.5*(Delta_ks-Delta_bf)
     dob=0.5*(ko+bf)
+    Delta_dob=0.5*(Delta_ko+Delta_bf)
     dof=0.5*(ko-bf)
+    Delta_dof=0.5*(Delta_ko-Delta_bf)
     ddb=0.5*(1.+bf)
+    Delta_ddb=0.5*Delta_bf
     ddf=0.5*(1.-bf)
+    Delta_ddf=-0.5*Delta_bf
     # Here rho and tau come in
+    Delta_sigb=np.zeros((n_params,2101))
+    Delta_sigf=np.zeros((n_params,2101))
     sigb=ddb*rho+ddf*tau
+    Delta_sigb=np.asarray(Delta_ddb.reshape(-1,1)*rho_array+ddb*Delta_rho_array+Delta_ddf.reshape(-1,1)*tau_array+ddf*Delta_tau_array)
     sigf=ddf*rho+ddb*tau
-    if size(sigf)>1:
+    Delta_sigf=np.asarray(Delta_ddf.reshape(-1,1)*rho_array+ddf*Delta_rho_array+Delta_ddb.reshape(-1,1)*tau_array+ddb*Delta_tau_array)
+    if np.size(sigf)>1:
         sigf[sigf == 0.0]=1e-36
         sigb[sigb == 0.0]=1e-36
     else:
         sigf=max(1e-36,sigf)
         sigb=max(1e-36,sigb)
     att=1.-sigf
-    m=sqrt(att**2.-sigb**2.)
+    Delta_att=-Delta_sigf
+    m=np.sqrt(att**2.-sigb**2.)
+    Delta_m=(0.5*(att**2.-sigb**2.)**-0.5)*(2*att*Delta_att-2*sigb*Delta_sigb)
     sb=sdb*rho+sdf*tau
+    Delta_sb=np.asarray(Delta_sdb.reshape(-1,1)*rho_array+sdb*Delta_rho_array+Delta_sdf.reshape(-1,1)*tau_array+sdf*Delta_tau_array)
     sf=sdf*rho+sdb*tau
+    Delta_sf=np.asarray(Delta_sdf.reshape(-1,1)*rho_array+sdf*Delta_rho_array+Delta_sdb.reshape(-1,1)*tau_array+sdb*Delta_tau_array)
     vb=dob*rho+dof*tau
+    Delta_vb=np.asarray(Delta_dob.reshape(-1,1)*rho_array+dob*Delta_rho_array+Delta_dof.reshape(-1,1)*tau_array+dof*Delta_tau_array)
     vf=dof*rho+dob*tau
+    Delta_vf=np.asarray(Delta_dof.reshape(-1,1)*rho_array+dof*Delta_rho_array+Delta_dob.reshape(-1,1)*tau_array+dob*Delta_tau_array)
     w =sob*rho+sof*tau
+    Delta_w=np.asarray(Delta_sob.reshape(-1,1)*rho_array+sob*Delta_rho_array+Delta_sof.reshape(-1,1)*tau_array+sof*Delta_tau_array)
     # Here the LAI comes in
     if lai<=0:
-        tss = 1
-        too= 1
-        tsstoo= 1
-        rdd= 0
-        tdd=1
-        rsd=0
-        tsd=0
-        rdo=0
-        tdo=0
-        rso=0
-        rsos=0
-        rsod=0
-        rddt= rsoil
-        rsdt= rsoil
-        rdot= rsoil
-        rsodt= 0
-        rsost= rsoil
-        rsot= rsoil
-        gammasdf=0
-        gammaso=0
-        gammasdb=0
+        tss,Delta_tss = 1,0
+        too,Delta_too = 1,0
+        tsstoo,Delta_tsstoo= 1,0
+        rdd,Delta_rdd= 0,0
+        tdd,Delta_tdd=1,0
+        rsd,Delta_rsd=0,0
+        tsd,Delta_tsd=0,0
+        rdo,Delta_rdo=0,0
+        tdo,Delta_tdo=0,0
+        rso,Delta_rso=0,0
+        rsos,Delta_rsos=0,0
+        rsod,Delta_rsod=0,0
+        rddt,Delta_rddt= rsoil,np.zeros(rsoil.shape)
+        rsdt,Delta_rsdt= rsoil,np.zeros(rsoil.shape)
+        rdot,Delta_rdot= rsoil,np.zeros(rsoil.shape)
+        rsodt,Delta_rsodt= 0,0
+        rsost,Delta_rsost= rsoil,np.zeros(rsoil.shape)
+        rsot,Delta_rsot= rsoil,np.zeros(rsoil.shape)
+        gammasdf,Delta_gammasdf=0,0
+        gammaso,Delta_gammaso=0,0
+        gammasdb,Delta_gammasdb=0,0
         
-        return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+        return [Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
+            Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso,
+            tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
             rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
-            
-    e1=exp(-m*lai)
+           
+    e1=np.exp(-m*lai)
+    Delta_e1= np.zeros((n_params,tau.shape[0]))
+    Delta_e1[leaf_params]=np.exp(-m*lai)*(-m)
+    Delta_e1[0:leaf_params]=np.exp(-m*lai)*(-lai*Delta_m[0:leaf_params])
+    Delta_e1[leaf_params+1:]=np.exp(-m*lai)*(-lai*Delta_m[leaf_params+1:])
     e2=e1**2.
+    Delta_e2=2*e1*Delta_e1
     rinf=(att-m)/sigb
+    Delta_rinf=((Delta_att-Delta_m)*sigb-(att-m)*Delta_sigb)/sigb**2
     rinf2=rinf**2.
+    Delta_rinf2=2*rinf*Delta_rinf
     re=rinf*e1
+    Delta_re=Delta_rinf*e1+rinf*Delta_e1
     denom=1.-rinf2*e2
-    J1ks=Jfunc1(ks,m,lai)
-    J2ks=Jfunc2(ks,m,lai)
-    J1ko=Jfunc1(ko,m,lai)
-    J2ko=Jfunc2(ko,m,lai)
+    Delta_denom=-(Delta_rinf2*e2+rinf2*Delta_e2)
+    Delta_J1ks,J1ks=JacJfunc1(ks,m,lai,Delta_ks,Delta_m)
+    Delta_J2ks,J2ks=JacJfunc2(ks,m,lai,Delta_ks,Delta_m)
+    Delta_J1ko,J1ko=JacJfunc1(ko,m,lai,Delta_ko,Delta_m)
+    Delta_J2ko,J2ko=JacJfunc2(ko,m,lai,Delta_ko,Delta_m)
     Pss=(sf+sb*rinf)*J1ks
+    Delta_Pss=(Delta_sf+Delta_sb*rinf+sb*Delta_rinf)*J1ks+(sf+sb*rinf)*Delta_J1ks
     Qss=(sf*rinf+sb)*J2ks
+    Delta_Qss=((Delta_sf*rinf+sf*Delta_rinf)+Delta_sb)*J2ks+(sf*rinf+sb)*Delta_J2ks
     Pv=(vf+vb*rinf)*J1ko
+    Delta_Pv=(Delta_vf+Delta_vb*rinf+vb*Delta_rinf)*J1ko+(vf+vb*rinf)*Delta_J1ko
     Qv=(vf*rinf+vb)*J2ko
+    Delta_Qv=(Delta_vf*rinf+vf*Delta_rinf+Delta_vb)*J2ko+(vf*rinf+vb)*Delta_J2ko
     tdd=(1.-rinf2)*e1/denom
+    Delta_tdd=((-Delta_rinf2*e1+(1.-rinf2)*Delta_e1)*denom-(1.-rinf2)*e1*Delta_denom)/denom**2
     rdd=rinf*(1.-e2)/denom
+    Delta_rdd=((Delta_rinf*(1.-e2)-rinf*Delta_e2)*denom-rinf*(1.-e2)*Delta_denom)/denom**2
     tsd=(Pss-re*Qss)/denom
+    Delta_tsd=((Delta_Pss-(Delta_re*Qss+re*Delta_Qss))*denom-(Pss-re*Qss)*Delta_denom)/denom**2
     rsd=(Qss-re*Pss)/denom
+    Delta_rsd=((Delta_Qss-(Delta_re*Pss+re*Delta_Pss))*denom-(Qss-re*Pss)*Delta_denom)/denom**2
     tdo=(Pv-re*Qv)/denom
+    Delta_tdo=((Delta_Pv-(Delta_re*Qv+re*Delta_Qv))*denom-(Pv-re*Qv)*Delta_denom)/denom**2
     rdo=(Qv-re*Pv)/denom
+    Delta_rdo=((Delta_Qv-(Delta_re*Pv+re*Delta_Pv))*denom-(Qv-re*Pv)*Delta_denom)/denom**2
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
+    Delta_gammasdf=((Delta_rinf*(J1ks-re*J2ks)+(1.+rinf)*(Delta_J1ks-(Delta_re*J2ks+re*Delta_J2ks)))*denom-(1.+rinf)*(J1ks-re*J2ks)*Delta_denom)/denom**2
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
-    tss=exp(-ks*lai)
-    too=exp(-ko*lai)
-    z=Jfunc2(ks,ko,lai)
+    Delta_gammasdb=((Delta_rinf*(-re*J1ks+J2ks)+(1.+rinf)*(-Delta_re*J1ks-re*Delta_J1ks+Delta_J2ks))*denom-(1.+rinf)*(-re*J1ks+J2ks)*Delta_denom)/denom**2
+    tss=np.exp(-ks*lai)
+    Delta_tss=np.zeros(Delta_ks.shape)
+    Delta_tss[0:leaf_params]=np.exp(-ks*lai)*(-Delta_ks[0:leaf_params]*lai)
+    Delta_tss[leaf_params]=np.exp(-ks*lai)*(-ks)    
+    Delta_tss[leaf_params+1:]=np.exp(-ks*lai)*(-Delta_ks[leaf_params+1:]*lai)
+    too=np.exp(-ko*lai)
+    Delta_too=np.zeros(Delta_ko.shape)
+    Delta_too[0:leaf_params]=np.exp(-ko*lai)*(-Delta_ko[0:leaf_params]*lai)
+    Delta_too[leaf_params]=np.exp(-ko*lai)*(-ko)    
+    Delta_too[leaf_params+1:]=np.exp(-ko*lai)*(-Delta_ko[leaf_params+1:]*lai)
+    Delta_z,z=JacJfunc2(ks,ko,lai,Delta_ks,Delta_ko)
     g1=(z-J1ks*too)/(ko+m)
+    Delta_g1=((Delta_z.reshape(-1,1)-(Delta_J1ks*too+J1ks*Delta_too.reshape(-1,1)))*(ko+m)-(z-J1ks*too)*(Delta_ko.reshape(-1,1)+Delta_m))/(ko+m)**2
     g2=(z-J1ko*tss)/(ks+m)
+    Delta_g2=((Delta_z.reshape(-1,1)-(Delta_J1ko*tss+J1ko*Delta_tss.reshape(-1,1)))*(ks+m)-(z-J1ko*tss)*(Delta_ks.reshape(-1,1)+Delta_m))/(ks+m)**2
     Tv1=(vf*rinf+vb)*g1
+    Delta_Tv1=(Delta_vf*rinf+vf*Delta_rinf+Delta_vb)*g1+(vf*rinf+vb)*Delta_g1
     Tv2=(vf+vb*rinf)*g2
+    Delta_Tv2=(Delta_vf+Delta_vb*rinf+vb*Delta_rinf)*g2+(vf+vb*rinf)*Delta_g2
     T1=Tv1*(sf+sb*rinf)
+    Delta_T1=Delta_Tv1*(sf+sb*rinf)+Tv1*(Delta_sf+Delta_sb*rinf+sb*Delta_rinf)
     T2=Tv2*(sf*rinf+sb)
+    Delta_T2=Delta_Tv2*(sf*rinf+sb)+Tv2*(Delta_sf*rinf+sf*Delta_rinf+Delta_sb)
     T3=(rdo*Qss+tdo*Pss)*rinf
+    Delta_T3=(Delta_rdo*Qss+rdo*Delta_Qss+Delta_tdo*Pss+tdo*Delta_Pss)*rinf+(rdo*Qss+tdo*Pss)*Delta_rinf
     # Multiple scattering contribution to bidirectional canopy reflectance
     rsod=(T1+T2-T3)/(1.-rinf2)
+    Delta_rsod=((Delta_T1+Delta_T2-Delta_T3)*(1.-rinf2)+(T1+T2-T3)*Delta_rinf2)/(1.-rinf2)**2
     # Thermal "sod" quantity
     T4=Tv1*(1.+rinf)
+    Delta_T4=Delta_Tv1*(1.+rinf)+Tv1*Delta_rinf
     T5=Tv2*(1.+rinf)
+    Delta_T5=Delta_Tv2*(1.+rinf)+Tv2*Delta_rinf
     T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
+    Delta_T6=(Delta_rdo*J2ks+rdo*Delta_J2ks+Delta_tdo*J1ks+tdo*Delta_J1ks)*(1.+rinf)*rinf+(rdo*J2ks+tdo*J1ks)*(Delta_rinf*rinf+(1.+rinf)*Delta_rinf)
     gammasod=(T4+T5-T6)/(1.-rinf2)
+    Delta_gammasod=((Delta_T4+Delta_T5-Delta_T6)*(1.-rinf2)+(T4+T5-T6)*Delta_rinf2)/(1.-rinf2)**2
     #Treatment of the hotspot-effect
     alf=1e36
+    Delta_alf=np.zeros(n_params)
+    Delta_sumint=np.zeros(n_params)
     # Apply correction 2/(K+k) suggested by F.-M. Breon
-    if hotspot > 0. : alf=(dso/hotspot)*2./(ks+ko)
+    if hotspot > 0. : 
+        alf=(dso/hotspot)*2./(ks+ko)
+        Delta_alf[:leaf_params+1]=-2*(dso/hotspot)*(Delta_ks[:leaf_params+1]+Delta_ko[:leaf_params+1])/(ks+ko)**2
+        Delta_alf[leaf_params+1]=-(2*dso/(ks+ko))/hotspot**2
+        Delta_alf[leaf_params+2:]=-2*(dso/hotspot)*(Delta_ks[leaf_params+2:]+Delta_ko[leaf_params+2:])/(ks+ko)**2
+        
     if alf == 0. : 
         # The pure hotspot
         tsstoo=tss
+        Delta_tsstoo=np.array(Delta_tss)
         sumint=(1.-tss)/(ks*lai)
+        Delta_sumint[leaf_params]=(-Delta_tss[leaf_params]*(ks*lai)-(1.-tss)*ks)/(ks*lai)**2
+        Delta_sumint[leaf_params+2]=(-Delta_tss[leaf_params+2]*(ks*lai)-(1.-tss)*(lai*Delta_ks[leaf_params+2]))/(ks*lai)**2
+        
     else :
         # Outside the hotspot
-        fhot=lai*sqrt(ko*ks)
+        fhot=lai*np.sqrt(ko*ks)
+        Delta_fhot=np.zeros(n_params)
+        Delta_fhot[leaf_params]=np.sqrt(ko*ks)
+        Delta_fhot[leaf_params+2]=lai*0.5*(ko*ks)**-0.5*(Delta_ko[leaf_params+2]*ks+ko*Delta_ks[leaf_params+2])
         # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
         x1=0.
+        Delta_x1=np.zeros(n_params)
         y1=0.
+        Delta_y1=np.zeros(n_params)
         f1=1.
-        fint=(1.-exp(-alf))*.05
+        Delta_f1=np.zeros(n_params)
+        fint=(1.-np.exp(-alf))*.05
+        Delta_fint=0.05*np.exp(-alf)*Delta_alf
         sumint=0.
+        Delta_sumint=0.
         for istep in range(1,21):
             if istep < 20 :
-                x2=-log(1.-istep*fint)/alf
+                x2=-np.log(1.-istep*fint)/alf
+                Delta_x2=-(((1./(1.-istep*fint))*(-istep*Delta_fint))*alf-np.log(1.-istep*fint)*Delta_alf)/alf**2
             else :
                 x2=1.
-            y2=-(ko+ks)*lai*x2+fhot*(1.-exp(-alf*x2))/alf
-            f2=exp(y2)
-            sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=x2
-            y1=y2
-            f1=f2
-        tsstoo=f1
-    if isnan(sumint) : sumint=0.
+                Delta_x2=np.zeros(n_params)
+            y2=-(ko+ks)*lai*x2+fhot*(1.-np.exp(-alf*x2))/alf
+            Delta_y2=np.zeros(n_params)
+            Delta_y2[leaf_params]=-(ko+ks)*x2+Delta_fhot[leaf_params]*(1.-np.exp(-alf*x2))/alf
+            Delta_y2[leaf_params+1:]=-lai*((Delta_ko[leaf_params+1:]+Delta_ks[leaf_params+1:])
+                *x2+(ko+ks)*Delta_x2[leaf_params+1:])+((Delta_fhot[leaf_params+1:]*(1.-np.exp(-alf*x2))
+                -fhot*np.exp(-alf*x2)*(-Delta_alf[leaf_params+1:]*x2-alf*Delta_x2[leaf_params+1:]))
+                *alf-fhot*(1.-np.exp(-alf*x2))*Delta_alf[leaf_params+1:])/alf**2
+            f2=np.exp(y2)
+            Delta_f2=np.exp(y2)*Delta_y2
+            sumint+=(f2-f1)*(x2-x1)/(y2-y1)
+            Delta_sumint+=(((Delta_f2-Delta_f1)*(x2-x1)+(f2-f1)*(Delta_x2-Delta_x1))*(y2-y1)-(f2-f1)*(x2-x1)*(Delta_y2-Delta_y1))/(y2-y1)**2
+            x1=float(x2)
+            Delta_x1=np.array(Delta_x2)
+            y1=float(y2)
+            Delta_y1=np.array(Delta_y2)
+            f1=float(f2)
+            Delta_f1=np.array(Delta_f2)
+
+        tsstoo=float(f1)
+        Delta_tsstoo=np.array(Delta_f1)
+    if np.isnan(sumint) : sumint=0.
     # Bidirectional reflectance
     # Single scattering contribution
     rsos=w*lai*sumint
+    Delta_rsos=np.zeros(Delta_w.shape)
+    Delta_rsos[:leaf_params]=lai*(Delta_w[:leaf_params]*sumint+w*Delta_sumint[:leaf_params].reshape(-1,1))
+    Delta_rsos[leaf_params]=(Delta_w[leaf_params]*sumint+w*Delta_sumint[leaf_params].reshape(-1,1))*lai+(w*sumint)
+    Delta_rsos[leaf_params+1:]=lai*(Delta_w[leaf_params+1:]*sumint+w*Delta_sumint[leaf_params+1:].reshape(-1,1))
     gammasos=ko*lai*sumint
+    Delta_gammasos=np.zeros(Delta_ko.shape)
+    Delta_gammasos[leaf_params]=(Delta_ko[leaf_params]*sumint+ko*Delta_sumint[leaf_params])*lai+(ko*sumint)
+    Delta_gammasos[leaf_params+1:]=lai*(Delta_ko[leaf_params+1:]*sumint+ko*Delta_sumint[leaf_params+1:])
     # Total canopy contribution
     rso=rsos+rsod
+    Delta_rso=Delta_rsos+Delta_rsod
     gammaso=gammasos+gammasod
+    Delta_gammaso=Delta_gammasos.reshape(-1,1)+Delta_gammasod
     #Interaction with the soil
     dn=1.-rsoil*rdd
-    if size(dn)>1:
+    Delta_dn=-rsoil*Delta_rdd
+    if np.size(dn)>1:
         dn[dn < 1e-36]=1e-36
     else:
         dn=max(1e-36,dn)
     rddt=rdd+tdd*rsoil*tdd/dn
+    Delta_rddt=Delta_rdd+(rsoil*2*tdd*Delta_tdd*dn-tdd*rsoil*tdd*Delta_dn)/dn**2
     rsdt=rsd+(tsd+tss)*rsoil*tdd/dn
+    Delta_rsdt=Delta_rsd+rsoil*((Delta_tdd*(tsd+tss)+tdd*(Delta_tsd+Delta_tss.reshape(-1,1)))*dn-tdd*(tsd+tss)*Delta_dn)/dn**2
     rdot=rdo+tdd*rsoil*(tdo+too)/dn
+    Delta_rdot=Delta_rdo+rsoil*((Delta_tdd*(tdo+too)+tdd*(Delta_tdo+Delta_too.reshape(-1,1)))*dn-tdd*(tdo+too)*Delta_dn)/dn**2
     rsodt=((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*rsoil/dn
+    Delta_rsodt=rsoil*(((Delta_tss.reshape(-1,1)+Delta_tsd)*tdo+(tss+tsd)
+        *Delta_tdo+(Delta_tsd+rsoil*(Delta_tss.reshape(-1,1)*rdd+tss*Delta_rdd))
+        *too+(tsd+tss*rsoil*rdd)*Delta_too.reshape(-1,1))*dn
+        -((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*Delta_dn)/dn**2
     rsost=rso+tsstoo*rsoil
+    Delta_rsost=Delta_rso+rsoil*Delta_tsstoo.reshape(-1,1)
     rsot=rsost+rsodt
-    
-    return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
-          rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
+    Delta_rsot=Delta_rsost+Delta_rsodt
 
-def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
-    '''Runs 4SAIL canopy radiative transfer model for a single wavelenght.
-    
-    Parameters
-    ----------
-    lai : float
-        Leaf Area Index.
-    hotspot : float
-        Hotspot parameter.
-    lidf : list
-        Leaf Inclination Distribution at regular angle steps.
-    tts : float
-        Sun Zenith Angle (degrees).
-    tto : float
-        View(sensor) Zenith Angle (degrees).
-    psi : float
-        Relative Sensor-Sun Azimuth Angle (degrees).
-    rho : float
-        leaf lambertian reflectance.
-    tau : float
-        leaf transmittance.
-    rsoil : float
-        soil lambertian reflectance.
-    
-    Returns
-    -------
-    tss : float
-        beam transmittance in the sun-target path.
-    too : float
-        beam transmittance in the target-view path.
-    tsstoo : float
-        beam tranmittance in the sur-target-view path.
-    rdd : float
-        canopy bihemisperical reflectance factor.
-    tdd : float
-        canopy bihemishperical transmittance factor.
-    rsd : float 
-        canopy directional-hemispherical reflectance factor.
-    tsd : float
-        canopy directional-hemispherical transmittance factor.
-    rdo : float
-        canopy hemispherical-directional reflectance factor.
-    tdo : float
-        canopy hemispherical-directional transmittance factor.
-    rso : float
-        canopy bidirectional reflectance factor.
-    rsos : float
-        single scattering contribution to rso.
-    rsod : float
-        multiple scattering contribution to rso.
-    rddt : float
-        surface bihemispherical reflectance factor.
-    rsdt : float
-        surface directional-hemispherical reflectance factor.
-    rdot : float
-        surface hemispherical-directional reflectance factor.
-    rsodt : float
-        reflectance factor.
-    rsost : float
-        reflectance factor.
-    rsot : float
-        surface bidirectional reflectance factor.
-    gammasdf : float
-        'Thermal gamma factor'.
-    gammasdb : float
-        'Thermal gamma factor'.
-    gammaso : float
-        'Thermal gamma factor'.
-    
-    References
-    ----------
-    .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
-        Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
-        IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
-        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
-    '''
-    from math import cos, tan, radians, pi, sqrt, log, exp, isnan
-    cts   = cos(radians(tts))
-    cto   = cos(radians(tto))
-    ctscto  = cts*cto
-    tants = tan(radians(tts))
-    tanto = tan(radians(tto))
-    cospsi  = cos(radians(psi))
-    dso = sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
-    #Calculate geometric factors associated with extinction and scattering 
-    #Initialise sums
-    ks=0.
-    ko=0.
-    bf=0.
-    sob=0.
-    sof=0.
-    # Weighted sums over LIDF
-    n_angles=len(lidf)
-    angle_step=float(90.0/n_angles)
-    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    i=0
-    for ili in litab:
-        ttl=float(ili)
-        cttl=cos(radians(ttl))
-        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
-        [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
-        # Extinction coefficients
-        ksli=chi_s/cts
-        koli=chi_o/cto
-        # Area scattering coefficient fractions
-        sobli=frho*pi/ctscto
-        sofli=ftau*pi/ctscto
-        bfli=cttl**2.
-        ks=ks+ksli*float(lidf[i])
-        ko=ko+koli*float(lidf[i])
-        bf=bf+bfli*float(lidf[i])
-        sob=sob+sobli*float(lidf[i])
-        sof=sof+sofli*float(lidf[i])
-        i=i+1
-    # Geometric factors to be used later with rho and tau
-    sdb=0.5*(ks+bf)
-    sdf=0.5*(ks-bf)
-    dob=0.5*(ko+bf)
-    dof=0.5*(ko-bf)
-    ddb=0.5*(1.+bf)
-    ddf=0.5*(1.-bf)
-    # Here rho and tau come in
-    sigb=ddb*rho+ddf*tau
-    sigf=ddf*rho+ddb*tau
-    att=1.-sigf
-    try:
-        m=sqrt(att**2-sigb**2)
-    except:
-        m=0.0
-    sb=sdb*rho+sdf*tau
-    sf=sdf*rho+sdb*tau
-    vb=dob*rho+dof*tau
-    vf=dof*rho+dob*tau
-    w =sob*rho+sof*tau
-    # Here the LAI comes in
-    if lai<=0:
-        tss = 1
-        too= 1
-        tsstoo= 1
-        rdd= 0
-        tdd=1
-        rsd=0
-        tsd=0
-        rdo=0
-        tdo=0
-        rso=0
-        rsos=0
-        rsod=0
-        rddt= rsoil
-        rsdt= rsoil
-        rdot= rsoil
-        rsodt= 0
-        rsost= rsoil
-        rsot= rsoil
-        gammasdf=0
-        gammaso=0
-        gammasdb=0
-        
-        return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+    return [Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
+            Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso,
+            tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
             rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
 
-    e1=exp(-m*lai)
-    e2=e1**2.
-    try:
-        rinf=(att-m)/sigb
-    except:
-        rinf=1e36
-    rinf2=rinf**2.
-    re=rinf*e1
-    denom=1.-rinf2*e2
-    if denom < 1e-36: denom=1e-36
-    J1ks=Jfunc1_wl(ks,m,lai)
-    J2ks=Jfunc2_wl(ks,m,lai)
-    J1ko=Jfunc1_wl(ko,m,lai)
-    J2ko=Jfunc2_wl(ko,m,lai)
-    Pss=(sf+sb*rinf)*J1ks
-    Qss=(sf*rinf+sb)*J2ks
-    Pv=(vf+vb*rinf)*J1ko
-    Qv=(vf*rinf+vb)*J2ko
-    tdd=(1.-rinf2)*e1/denom
-    rdd=rinf*(1.-e2)/denom
-    tsd=(Pss-re*Qss)/denom
-    rsd=(Qss-re*Pss)/denom
-    tdo=(Pv-re*Qv)/denom
-    rdo=(Qv-re*Pv)/denom
-    # Thermal "sd" quantities
-    gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
-    gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
-    tss=exp(-ks*lai)
-    too=exp(-ko*lai)
-    z=Jfunc2_wl(ks,ko,lai)
-    g1=(z-J1ks*too)/(ko+m)
-    g2=(z-J1ko*tss)/(ks+m)
-    Tv1=(vf*rinf+vb)*g1
-    Tv2=(vf+vb*rinf)*g2
-    T1=Tv1*(sf+sb*rinf)
-    T2=Tv2*(sf*rinf+sb)
-    T3=(rdo*Qss+tdo*Pss)*rinf
-    # Multiple scattering contribution to bidirectional canopy reflectance
-    if rinf2>=1:rinf2=1-1e-16
-    rsod=(T1+T2-T3)/(1.-rinf2)
-    # Thermal "sod" quantity
-    T4=Tv1*(1.+rinf)
-    T5=Tv2*(1.+rinf)
-    T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
-    gammasod=(T4+T5-T6)/(1.-rinf2)
-    #Treatment of the hotspot-effect
-    alf=1e36
-    # Apply correction 2/(K+k) suggested by F.-M. Breon
-    if hotspot > 0. : alf=(dso/hotspot)*2./(ks+ko)
-    if alf == 0. : 
-        # The pure hotspot
-        tsstoo=tss
-        sumint=(1.-tss)/(ks*lai)
-    else :
-        # Outside the hotspot
-        fhot=lai*sqrt(ko*ks)
-        # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
-        x1=0.
-        y1=0.
-        f1=1.
-        fint=(1.-exp(-alf))*.05
-        sumint=0.
-        for istep in range(1,21):
-            if istep < 20 :
-                x2=-log(1.-istep*fint)/alf
-            else :
-                x2=1.
-            y2=-(ko+ks)*lai*x2+fhot*(1.-exp(-alf*x2))/alf
-            f2=exp(y2)
-            sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=x2
-            y1=y2
-            f1=f2
-        tsstoo=f1
-    if isnan(sumint) : sumint=0.
-    # Bidirectional reflectance
-    # Single scattering contribution
-    rsos=w*lai*sumint
-    gammasos=ko*lai*sumint
-    # Total canopy contribution
-    rso=rsos+rsod
-    gammaso=gammasos+gammasod
-    #Interaction with the soil
-    dn=1.-rsoil*rdd
-    if dn == 0.0 : dn=1e-36
-    rddt=rdd+tdd*rsoil*tdd/dn
-    rsdt=rsd+(tsd+tss)*rsoil*tdd/dn
-    rdot=rdo+tdd*rsoil*(tdo+too)/dn
-    rsodt=((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*rsoil/dn
-    rsost=rso+tsstoo*rsoil
-    rsot=rsost+rsodt
-
-    return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
-            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
 
 def volscatt(tts,tto,psi,ttl) :
     '''Compute volume scattering functions and interception coefficients
@@ -828,70 +716,61 @@ def Jfunc1(k,l,t) :
             result=0.5*t*(exp(-k*t)+exp(-l*t))*(1.-(del_**2.)/12.)
     return result
 
+def JacJfunc1(k,l,t,Delta_k,Delta_l):
+    ''' J1 function with avoidance of singularity problem.'''
+    import numpy as np
+    nb=np.size(l)
+    del_=(k-l)*t
+    Delta_del_=np.zeros(Delta_l.shape)
+    if len(Delta_del_.shape)==2:
+        Delta_k=Delta_k.reshape(-1,1)
+
+    Delta_del_[0:-3]=(Delta_k[0:-3]-Delta_l[0:-3])*t
+    Delta_del_[-3]=(k-l)+(Delta_k[-3]-Delta_l[-3])*t
+    Delta_del_[-2:]=(Delta_k[-2:]-Delta_l[-2:])*t
+    
+    result=np.zeros(nb)
+    index=abs(del_)>= 1e-1
+    Delta_result=np.zeros(Delta_l.shape)
+    result[index]=(np.exp(-l[index]*t)-np.exp(-k*t))/(k-l[index])
+
+    Delta_result[0:-3]=((np.exp(-l*t)*(-t
+        *Delta_l[0:-3])-np.exp(-k*t)*(-t*Delta_k[0:-3]))
+        *(k-l)-(np.exp(-l*t)-np.exp(-k*t))*(Delta_k[0:-3]
+        -Delta_l[0:-3]))/(k-l)**2
+    Delta_result[-3]=(np.exp(-l*t)*(-l)-np.exp(-k*t)*(-k))/(k-l)
+    Delta_result[-3+1:]=((np.exp(-l*t)*(-t
+        *Delta_l[-3+1:])-np.exp(-k*t)*(-t*Delta_k[-3+1:]))
+        *(k-l)-(np.exp(-l*t)-np.exp(-k*t))*(Delta_k[-3+1:]
+        -Delta_l[-3+1:]))/(k-l)**2
+#==============================================================================
+    result[~index]=0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*(1.-(del_[~index]**2.)/12.)
+#==============================================================================
+#     Delta_result[0:leaf_params,~index]=(0.5*t*(np.exp(-k*t)*(-t*Delta_k[0:leaf_params].reshape(-1,1))+np.exp(-l[~index]*t)*(-t*Delta_l[0:leaf_params,~index])))*(1.-(del_[~index]**2.)/12.)+0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*(2.*del_[~index]*Delta_del_[0:leaf_params,~index]/12.)
+# #     Delta_result[leaf_params,~index]=(0.5*(np.exp(-k*t)+np.exp(-l[~index]*t))+0.5*t*(np.exp(-k*t)*(-k*Delta_k[leaf_params])+np.exp(-l[~index]*t)*(-l[~index]*Delta_l[leaf_params,~index])))*(1.-(del_[~index]**2.)/12.)+0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*-2*del_[~index]*Delta_del_[leaf_params,~index]/12
+#     Delta_result[leaf_params+1:,~index]=(0.5*t*(np.exp(-k*t)*(-t*Delta_k[leaf_params+1:].reshape(-1,1))+np.exp(-l[~index]*t)*(-t*Delta_l[leaf_params+1:,~index])))*(1.-(del_[~index]**2.)/12.)+0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*(2.*del_[~index]*Delta_del_[leaf_params+1:,~index]/12.)
+# # 
+#==============================================================================
+#==============================================================================
+    return Delta_result,result
+
+def JacJfunc2(k,l,t,Delta_k,Delta_l) :
+    '''J2 function.'''
+    import numpy as np
+    result=(1.-np.exp(-(k+l)*t))/(k+l)
+    Delta_result=np.zeros(Delta_l.shape)
+    if len(Delta_result.shape)==2:
+        Delta_k=Delta_k.reshape(-1,1)
+    Delta_result[0:-3]=(-np.exp(-(k+l)*t)*-t*(Delta_k[0:-3]+Delta_l[0:-3])*(k+l)-(1.-np.exp(-(k+l)*t))*(Delta_k[0:-3]+Delta_l[0:-3]))/(k+l)**2
+    Delta_result[-3]=np.exp(-(k+l)*t)*(k+l)/(k+l)
+    Delta_result[-2:]=(-np.exp(-(k+l)*t)*-t*(Delta_k[-2:]+Delta_l[-2:])*(k+l)-(1.-np.exp(-(k+l)*t))*(Delta_k[-2:]+Delta_l[-2:]))/(k+l)**2
+    return Delta_result,result
+
+
 def Jfunc2(k,l,t) :
     '''J2 function.'''
     from numpy import exp
-    return (1.-exp(-(k+l)*t))/(k+l)
-
-def Jfunc1_wl(k,l,t) :
-    '''J1 function with avoidance of singularity problem.'''
-    from math import exp
-    del_=(k-l)*t
-    if abs(del_) > 1e-3 :
-      result=(exp(-l*t)-exp(-k*t))/(k-l)
-    else:
-      result=0.5*t*(exp(-k*t)+exp(-l*t))*(1.-(del_**2.)/12.)
+    result=(1.-exp(-(k+l)*t))/(k+l)
+    
     return result
 
-def Jfunc2_wl(k,l,t) :
-    '''J2 function.'''
-    from math import exp
-    return (1.-exp(-(k+l)*t))/(k+l)
-
-def Get_SunAngles(lat,lon,doy,hour,stdlon):
-    '''Calculates the Sun Zenith and Azimuth Angles (SZA & SAA).
-    
-    Parameters
-    ----------
-    lat : float
-        latitude of the site (degrees).
-    long : float
-        longitude of the site (degrees).
-    stdlng : float
-        central longitude of the time zone of the site (degrees).
-    doy : float
-        day of year of measurement (1-366).
-    ftime : float
-        time of measurement (decimal hours).
-    
-    Returns
-    -------
-    sza : float
-        Sun Zenith Angle (degrees).
-    saa : float
-        Sun Azimuth Angle (degrees).
-     
-    '''
-    from math import pi, sin, cos, asin, acos, radians, degrees
-    # Calculate declination
-    declination=0.409*sin((2.0*pi*doy/365.0)-1.39)
-    EOT=0.258*cos(declination)-7.416*sin(declination)-3.648*cos(2.0*declination)-9.228*sin(2.0*declination)
-    LC=(stdlon-lon)/15.
-    time_corr=(-EOT/60.)+LC
-    solar_time=hour-time_corr
-    # Get the hour angle
-    w=(solar_time-12.0)*15.
-    # Get solar elevation angle
-    sin_thetha=cos(radians(w))*cos(declination)*cos(radians(lat))+sin(declination)*sin(radians(lat))
-    sun_elev=asin(sin_thetha)
-    # Get solar zenith angle
-    sza=pi/2.0-sun_elev
-    sza=degrees(sza)
-    # Get solar azimuth angle
-    cos_phi=(sin(declination)*cos(radians(lat))-cos(radians(w))*cos(declination)*sin(radians(lat)))/cos(sun_elev)
-    if w <= 0.0:
-        saa=degrees(acos(cos_phi))
-    else:
-        saa=360.-degrees(acos(cos_phi))
-
-    return sza,saa
