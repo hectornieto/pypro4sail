@@ -232,16 +232,19 @@ def FCostJac_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
             j=j+1
     # Start processing    
     n_wl=len(wls)
-    error= np.zeros(n_obs*n_wl)
+    error= []
+    Delta_error=[]
     #Calculate LIDF
     Jac_lidf,lidf=FourSAILJacobian.JacCalcLIDF_Campbell(float(input_parameters['leaf_angle']))
     for obs in range(n_obs):
-        l,Jac_r,Jac_t,r,t=Prospect5Jacobian.Prospect5(input_parameters['N_leaf'],
+        l,Jac_r,Jac_t,r,t=Prospect5Jacobian.JacProspect5(input_parameters['N_leaf'],
                 input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
                 input_parameters['Cw'],input_parameters['Cm'])
         k=[k for k,wl in enumerate(l) if float(wl) in wls]
         r=r[k]
         t=t[k]
+        Jac_r=Jac_r[:,k]
+        Jac_t=Jac_t[:,k]
         [_,_,_,_,_,_,_,_,_,
             _,_,_,_,_,Delta_rdot,_,_,Delta_rsot,_,_,_,
             _,_,_,_,_,_,_,_,_,
@@ -250,10 +253,10 @@ def FCostJac_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
             float(psi[obs]),r,t,rsoil,Jac_r,Jac_t)
         r2=rdot*np.array(skyl[obs])+rsot*(1.-np.array(skyl[obs]))
         Delta_r2=Delta_rdot[param_index]*np.array(skyl[obs])+Delta_rsot[param_index]*(1.-np.array(skyl[obs]))
-        error[obs*n_wl:(obs+1)*n_wl]=(r2-rho_canopy[obs])**2
-        Delta_error=2*(r2-rho_canopy[obs])*Delta_r2
-    mse=0.5*np.mean(error)
-    Jac_mse=0.5*np.mean(Delta_error,axis=1)
+        error.append((r2-rho_canopy[obs])**2)
+        Delta_error.append(2*(r2-rho_canopy[obs])*Delta_r2)
+    mse=0.5*np.mean(np.asarray(error))
+    Jac_mse=0.5*np.mean(np.asarray(Delta_error),axis=(0,2))
     return mse,Jac_mse
 
 
