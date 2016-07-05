@@ -67,7 +67,7 @@ def FCost_ProSail_wl(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
         This is the function to be minimized.'''
     
     import numpy as np
-    param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
+    param_list=('N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'hotspot','leaf_angle')
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -141,7 +141,7 @@ def FCost_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,rsoi
         This is the function to be minimized.'''
     
     import numpy as np
-    param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
+    param_list=('N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'hotspot','leaf_angle')
 
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
@@ -215,7 +215,7 @@ def FCostJac_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
         This is the function to be minimized.'''
     
     import numpy as np
-    param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'leaf_angle','hotspot']
+    param_list=('N_leaf','Cab','Car','Cbrown', 'Cw','Cm', 'LAI', 'hotspot','leaf_angle')
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -286,7 +286,7 @@ def FCost_PROSPECT5_wl(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
         This is the function to be minimized.'''
     
     import numpy as np
-    param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
+    param_list=('N_leaf','Cab','Car','Cbrown', 'Cw','Cm')
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -337,7 +337,7 @@ def FCost_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
         This is the function to be minimized.'''
     
     import numpy as np
-    param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
+    param_list=('N_leaf','Cab','Car','Cbrown', 'Cw','Cm')
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -385,7 +385,7 @@ def FCostJac_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
         This is the function to be minimized.'''
     
     import numpy as np
-    param_list=['N_leaf','Cab','Car','Cbrown', 'Cw','Cm']
+    param_list=('N_leaf','Cab','Car','Cbrown', 'Cw','Cm')
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
