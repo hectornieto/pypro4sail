@@ -45,67 +45,7 @@ EXAMPLE
     
 """
 
-def CalcLIDF_Verhoef(a,b,n_elements=18):
-    '''Calculate the Leaf Inclination Distribution Function based on the 
-    Verhoef's bimodal LIDF distribution.
-
-    Parameters
-    ----------
-    a : float
-        controls the average leaf slope.
-    b : float
-        controls the distribution's bimodality.
-        
-            * LIDF type     [a,b].
-            * Planophile    [1,0].
-            * Erectophile   [-1,0].
-            * Plagiophile   [0,-1].
-            * Extremophile  [0,1].
-            * Spherical     [-0.35,-0.15].
-            * Uniform       [0,0].
-            * requirement: |LIDFa| + |LIDFb| < 1.	
-    n_elements : int
-        Total number of equally spaced inclination angles.
-    
-    Returns
-    -------
-    lidf : list
-        Leaf Inclination Distribution Function at equally spaced angles.
-    
-    References
-    ----------
-    .. [Verhoef1998] Verhoef, Wout. Theory of radiative transfer models applied 
-        in optical remote sensing of vegetation canopies. 
-        Nationaal Lucht en Ruimtevaartlaboratorium, 1998.
-        http://library.wur.nl/WebQuery/clc/945481.
-        '''
-
-    import math as m
-    freq=1.0
-    step=90.0/n_elements
-    lidf=[]
-    angles=[i*step for i in reversed(range(n_elements))]
-    for angle in angles:
-        tl1=m.radians(angle)
-        if a>1.0:
-            f = 1.0-m.cos(tl1)
-        else:
-            eps=1e-8
-            delx=1.0
-            x=2.0*tl1
-            p=float(x)
-            while delx >= eps:
-                y = a*m.sin(x)+.5*b*m.sin(2.*x)
-                dx=.5*(y-x+p)
-                x=x+dx
-                delx=abs(dx)
-            f = (2.*y+p)/m.pi
-        freq=freq-f
-        lidf.append(freq)
-        freq=float(f)
-    lidf=list(reversed(lidf))
-    return  lidf
-    
+   
 def JacCalcLIDF_Campbell(alpha,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
     mean angle of [Campbell1990] ellipsoidal LIDF distribution.
