@@ -221,6 +221,7 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
     SAIL_params=3
+    n_wl=rho.shape[0]
     import numpy as np
    # Get the leaf spectra parameters
     if not type(Delta_rho)==type(None):
@@ -304,8 +305,8 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     ddf=0.5*(1.-bf)
     Delta_ddf=-0.5*Delta_bf
     # Here rho and tau come in
-    Delta_sigb=np.zeros((n_params,2101))
-    Delta_sigf=np.zeros((n_params,2101))
+    Delta_sigb=np.zeros((n_params,n_wl))
+    Delta_sigf=np.zeros((n_params,n_wl))
     sigb=ddb*rho+ddf*tau
     Delta_sigb=np.asarray(Delta_ddb.reshape(-1,1)*rho_array+ddb*Delta_rho_array+Delta_ddf.reshape(-1,1)*tau_array+ddf*Delta_tau_array)
     sigf=ddf*rho+ddb*tau
@@ -332,27 +333,27 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_w=np.asarray(Delta_sob.reshape(-1,1)*rho_array+sob*Delta_rho_array+Delta_sof.reshape(-1,1)*tau_array+sof*Delta_tau_array)
     # Here the LAI comes in
     if lai<=0:
-        tss,Delta_tss = 1,0
-        too,Delta_too = 1,0
-        tsstoo,Delta_tsstoo= 1,0
-        rdd,Delta_rdd= 0,0
-        tdd,Delta_tdd=1,0
-        rsd,Delta_rsd=0,0
-        tsd,Delta_tsd=0,0
-        rdo,Delta_rdo=0,0
-        tdo,Delta_tdo=0,0
-        rso,Delta_rso=0,0
-        rsos,Delta_rsos=0,0
-        rsod,Delta_rsod=0,0
-        rddt,Delta_rddt= rsoil,np.zeros(rsoil.shape)
-        rsdt,Delta_rsdt= rsoil,np.zeros(rsoil.shape)
-        rdot,Delta_rdot= rsoil,np.zeros(rsoil.shape)
-        rsodt,Delta_rsodt= 0,0
-        rsost,Delta_rsost= rsoil,np.zeros(rsoil.shape)
-        rsot,Delta_rsot= rsoil,np.zeros(rsoil.shape)
-        gammasdf,Delta_gammasdf=0,0
-        gammaso,Delta_gammaso=0,0
-        gammasdb,Delta_gammasdb=0,0
+        tss,Delta_tss = 1,np.zeros(n_params)
+        too,Delta_too = 1,np.zeros(n_params)
+        tsstoo,Delta_tsstoo= 1,np.zeros(n_params)
+        rdd,Delta_rdd= 0,np.zeros(n_params)
+        tdd,Delta_tdd=1,np.zeros(n_params)
+        rsd,Delta_rsd=0,np.zeros(n_params)
+        tsd,Delta_tsd=0,np.zeros(n_params)
+        rdo,Delta_rdo=0,np.zeros(n_params)
+        tdo,Delta_tdo=0,np.zeros(n_params)
+        rso,Delta_rso=0,np.zeros(n_params)
+        rsos,Delta_rsos=0,np.zeros(n_params)
+        rsod,Delta_rsod=0,np.zeros(n_params)
+        rddt,Delta_rddt= rsoil,np.zeros((n_params,n_wl))
+        rsdt,Delta_rsdt= rsoil,np.zeros((n_params,n_wl))
+        rdot,Delta_rdot= rsoil,np.zeros((n_params,n_wl))
+        rsodt,Delta_rsodt= 0,np.zeros(n_params)
+        rsost,Delta_rsost= rsoil,np.zeros((n_params,n_wl))
+        rsot,Delta_rsot= rsoil,np.zeros((n_params,n_wl))
+        gammasdf,Delta_gammasdf=0,np.zeros(n_params)
+        gammaso,Delta_gammaso=0,np.zeros(n_params)
+        gammasdb,Delta_gammasdb=0,np.zeros(n_params)
         
         return [Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
             Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso,
