@@ -171,7 +171,7 @@ def JacProspect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
 
     tau=s2/s3
     Delta_tau=(Delta_s2*s3-s2*Delta_s3)/s3**2            
-    return Delta_rho,Delta_tau, rho, tau
+    return l,Delta_rho,Delta_tau, rho, tau
 
 
 def JacProspect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
@@ -333,7 +333,7 @@ def JacProspect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
 
     tau=s2/s3
     Delta_tau=(Delta_s2*s3-s2*Delta_s3)/s3**2            
-    return Delta_rho,Delta_tau, rho, tau
+    return wl, Delta_rho,Delta_tau, rho, tau
 
 
 def tav(theta,ref):
