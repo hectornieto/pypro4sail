@@ -700,22 +700,6 @@ def volscatt(tts,tto,psi,ttl) :
    
     return [chi_s,chi_o,frho,ftau]    
 
-def Jfunc1(k,l,t) :
-    ''' J1 function with avoidance of singularity problem.'''
-    from numpy import exp,zeros,size
-    nb=size(l)
-    del_=(k-l)*t
-    if nb > 1:
-        result=zeros(nb)
-        result[abs(del_) > 1e-3]=(exp(-l[abs(del_)> 1e-3]*t)-exp(-k*t))/(k-l[abs(del_)> 1e-3])
-        result[abs(del_)<= 1e-3]=0.5*t*(exp(-k*t)+exp(-l[abs(del_)<= 1e-3]*t))*(1.-(del_[abs(del_)<= 1e-3]**2.)/12.)
-    else:
-        if abs(del_) > 1e-3 :
-            result=(exp(-l*t)-exp(-k*t))/(k-l)
-        else:
-            result=0.5*t*(exp(-k*t)+exp(-l*t))*(1.-(del_**2.)/12.)
-    return result
-
 def JacJfunc1(k,l,t,Delta_k,Delta_l):
     ''' J1 function with avoidance of singularity problem.'''
     import numpy as np
@@ -766,11 +750,4 @@ def JacJfunc2(k,l,t,Delta_k,Delta_l) :
     Delta_result[-2:]=(-np.exp(-(k+l)*t)*-t*(Delta_k[-2:]+Delta_l[-2:])*(k+l)-(1.-np.exp(-(k+l)*t))*(Delta_k[-2:]+Delta_l[-2:]))/(k+l)**2
     return Delta_result,result
 
-
-def Jfunc2(k,l,t) :
-    '''J2 function.'''
-    from numpy import exp
-    result=(1.-exp(-(k+l)*t))/(k+l)
-    
-    return result
 
