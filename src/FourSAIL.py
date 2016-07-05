@@ -247,7 +247,7 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
 
-    from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size
+    from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size,array
     cts   = cos(radians(tts))
     cto   = cos(radians(tto))
     ctscto  = cts*cto
@@ -268,8 +268,7 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     n_angles=len(lidf)
     angle_step=float(90.0/n_angles)
     litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    i=0
-    for ili in litab:
+    for i,ili in enumerate(litab):
         ttl=float(ili)
         cttl=cos(radians(ttl))
         # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
@@ -281,12 +280,12 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         sobli=frho*pi/ctscto
         sofli=ftau*pi/ctscto
         bfli=cttl**2.
-        ks=ks+ksli*float(lidf[i])
-        ko=ko+koli*float(lidf[i])
-        bf=bf+bfli*float(lidf[i])
-        sob=sob+sobli*float(lidf[i])
-        sof=sof+sofli*float(lidf[i])
-        i=i+1
+        ks+=ksli*float(lidf[i])
+        ko+=koli*float(lidf[i])
+        bf+=bfli*float(lidf[i])
+        sob+=sobli*float(lidf[i])
+        sof+=sofli*float(lidf[i])
+
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
     sdf=0.5*(ks-bf)
@@ -402,10 +401,10 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
             y2=-(ko+ks)*lai*x2+fhot*(1.-exp(-alf*x2))/alf
             f2=exp(y2)
             sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=x2
-            y1=y2
-            f1=f2
-        tsstoo=f1
+            x1=array(x2)
+            y1=array(y2)
+            f1=array(f2)
+        tsstoo=array(f1)
     if isnan(sumint) : sumint=0.
     # Bidirectional reflectance
     # Single scattering contribution
@@ -525,8 +524,7 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     n_angles=len(lidf)
     angle_step=float(90.0/n_angles)
     litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    i=0
-    for ili in litab:
+    for i,ili in enumerate(litab):
         ttl=float(ili)
         cttl=cos(radians(ttl))
         # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
@@ -538,12 +536,11 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         sobli=frho*pi/ctscto
         sofli=ftau*pi/ctscto
         bfli=cttl**2.
-        ks=ks+ksli*float(lidf[i])
-        ko=ko+koli*float(lidf[i])
-        bf=bf+bfli*float(lidf[i])
-        sob=sob+sobli*float(lidf[i])
-        sof=sof+sofli*float(lidf[i])
-        i=i+1
+        ks+=ksli*float(lidf[i])
+        ko+=koli*float(lidf[i])
+        bf+=bfli*float(lidf[i])
+        sob+=sobli*float(lidf[i])
+        sof+=sofli*float(lidf[i])
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
     sdf=0.5*(ks-bf)
@@ -555,9 +552,9 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     sigb=ddb*rho+ddf*tau
     sigf=ddf*rho+ddb*tau
     att=1.-sigf
-    try:
+    if att**2-sigb**2>0:
         m=sqrt(att**2-sigb**2)
-    except:
+    else:
         m=0.0
     sb=sdb*rho+sdf*tau
     sf=sdf*rho+sdb*tau
@@ -593,9 +590,9 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
 
     e1=exp(-m*lai)
     e2=e1**2.
-    try:
+    if abs(sigb)>=1e-36:
         rinf=(att-m)/sigb
-    except:
+    else:
         rinf=1e36
     rinf2=rinf**2.
     re=rinf*e1
@@ -661,10 +658,10 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
             y2=-(ko+ks)*lai*x2+fhot*(1.-exp(-alf*x2))/alf
             f2=exp(y2)
             sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=x2
-            y1=y2
-            f1=f2
-        tsstoo=f1
+            x1=float(x2)
+            y1=float(y2)
+            f1=float(f2)
+        tsstoo=float(f1)
     if isnan(sumint) : sumint=0.
     # Bidirectional reflectance
     # Single scattering contribution
