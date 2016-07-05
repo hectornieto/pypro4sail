@@ -95,7 +95,7 @@ def JacProspect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
         +float(Cm)*np.array(Cm_k))/float(Nleaf)**2,np.array(Cab_k)/float(Nleaf),
         np.array(Car_k)/float(Nleaf),np.array(Cbrown_k)/float(Nleaf),
         np.array(Cw_k)/float(Nleaf),np.array(Cm_k)/float(Nleaf)])
-        
+    k[k<=0]=1e-6    
     trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
     Delta_trans=(-np.exp(-k)-(1.-k)*np.exp(-k)+2*k*expn(1.,k)-k**2*expn(0,k))*Delta_k
     
