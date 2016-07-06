@@ -45,7 +45,9 @@ EXAMPLE
     
 """
 
-   
+params4SAIL=('LAI','hotspot','leaf_angle')
+paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','LAI','hotspot','leaf_angle') 
+
 def JacCalcLIDF_Campbell(alpha,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
     mean angle of [Campbell1990] ellipsoidal LIDF distribution.
