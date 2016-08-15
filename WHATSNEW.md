@@ -6,6 +6,7 @@
 * `PyPro4Sail.run_TIR` allows simulating the thermal component of 4SAIL.
 
 # What is new from the Fortran version of PROSPECT_5B and PROSAIL_5B at http://teledetection.ipgp.jussieu.fr/prosail/.
+* include the computation of Jacobians for `Prospect5` and `FourSAIL`.
 * use of the exponential integral `expn` of `scipy` in `Prospect5`.
 * Allow the simulation of a full spectrum using `numpy` of single wavelengths. The later might be used in inversion problems enhancing the computation speed in observations with few bands.
 
