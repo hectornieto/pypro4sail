@@ -14,15 +14,18 @@ and :doc:`FourSAIL`. It requires the import of the following modules.
 
 * :doc:`FourSAIL` for simulating the canopy reflectance and transmittance factors.
 * :doc:`Prospect5` for simulating the lambertian reflectance and transmittance of a leaf.
+* :doc:`FourSAILJacobian` for simulating the canopy reflectance and transmittance factors and the Prospect+SAIL parameter jacobians.
+* :doc:`Prospect5Jacobian` for simulating the lambertian reflectance and transmittance of a leaf and the Prospect5 parameter jacobians.
 
 PACKAGE CONTENTS
 ================
 
-* :func:`FCost_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean Square Error of observed vs. modeled reflectances.
-* :func:`FCostScaled_RMSE_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Root Mean Square Error of observed vs. modeled reflectances and scaled [0,1] parameters (recommended over :func:`FCost_RMSE_ProSail_wl`).
-* :func:`FCostScaled_RMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root MeanSquare Error of observed vs. modeled reflectances and scaled [0,1] parameters.
-* :func:`FCostScaled_RRMSE_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Relative Root MeanSquare Error of observed vs. modeled reflectances and scaled [0,1] parameters.
-
+* :func:`FCost_ProSail_wl` Cost Function for inverting PROSPEC5 + 4SAIL based on the Mean Squared Error of observed vs. modeled reflectances, only run for specific wavelenghts.
+* :func:`FCost_ProSail` Cost Function for inverting PROSPEC5 + 4SAIL based on the Mean Squared Error of observed vs. modeled reflectances.
+* :func:`FCostJac_ProSail` Cost Function and Jacobian for inverting PROSPEC5 + 4SAIL based on the Mean Squared Error of observed vs. modeled reflectances.
+* :func:`FCost_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances, only run for specific wavelenghts.
+* :func:`FCost_PROSPECT` Cost Function for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances.
+* :func:`FCostJac_PROSPECT` Cost Function and Jacobian for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances.
 '''   
 import FourSAIL
 import Prospect5
