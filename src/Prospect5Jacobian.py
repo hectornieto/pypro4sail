@@ -14,8 +14,8 @@ PROSPECT5.
 
 PACKAGE CONTENTS
 ================
-* :func:`Prospect5` Runs PROSPECT5 leaf radiative transfer model.
-* :func:`Prospect5_wl` Runs PROSPECT5 leaf radiative transfer model for a specific wavelenght, aimed for computing speed.
+* :func:`JacProspect5` Computes the PROSPECT5 Jacobian.
+* :func:`JacProspect5_wl` Computes the PROSPECT5 Jacobian for a specific wavelenght, aimed for computing speed.
 
 Ancillary functions
 -------------------

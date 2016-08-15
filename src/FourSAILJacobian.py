@@ -14,19 +14,14 @@ This package contains the main functions to run the canopy radiative transfer mo
 
 PACKAGE CONTENTS
 ================
-* :func:`FourSAIL` Runs 4SAIL canopy radiative transfer model.
-* :func:`FourSAIL_wl` Runs 4SAIL canopy radiative transfer model for a specific wavelenght, aimed for computing speed.
+* :func:`JacFourSAIL` Computes the 4SAIL Jacobian.
 
 Ancillary functions
 -------------------
-* :func:`CalcLIDF_Verhoef` Calculate the Leaf Inclination Distribution Function based on the [Verhoef1998] bimodal LIDF distribution.
-* :func:`CalcLIDF_Campbell` Calculate the Leaf Inclination Distribution Function based on the [Campbell1990] ellipsoidal LIDF distribution.
+* :func:`JacCalcLIDF_Campbell` Calculates the Jacobian of the Leaf Inclination Distribution Function based on the [Campbell1990] ellipsoidal LIDF distribution.
 * :func:`volscatt` Colume scattering functions and interception coefficients.
-* :func:`Jfunc1` J1 function with avoidance of singularity problem.
-* :func:`Jfunc1_wl` J1 function with avoidance of singularity problem for :func:`FourSAIL_wl`.
-* :func:`Jfunc2` J2 function with avoidance of singularity problem.
-* :func:`Jfunc2_wl` J2 function with avoidance of singularity problem for :func:`FourSAIL_wl`.
-* :func;`Get_SunAngles` Calculate the Sun Zenith and Azimuth Angles.
+* :func:`JacJfunc1` Jacobian  of the J1 function.
+* :func:`JacJfunc2` Jacobian of the J2 function.
 
 EXAMPLE
 =======
