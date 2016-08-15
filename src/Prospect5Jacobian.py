@@ -65,11 +65,15 @@ def JacProspect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
 
     Returns
     -------
-    l : array_like
+    l : 1D_array_like
         wavelenght (nm).
-    rho : array_like
+    Delta_rho : 2D_array_like
+        Jacobian, leaf reflectance .
+    Delta_tau : 2D_array_like
+        Jacobian, leaf transmittance .
+    rho : 1D_array_like
         leaf reflectance .
-    tau : array_like
+    tau : 1D_array_like
         leaf transmittance .
     
     References
@@ -201,10 +205,14 @@ def JacProspect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     -------
     l : float
         wavelenght (nm).
+    Delta_rho : 1D_array_like
+        Jacobian, leaf reflectance .
+    Delta_tau : 1D_array_like
+        Jacobian, leaf transmittance .
     rho : float
         leaf reflectance .
     tau : float
-        leaf transmittance. 
+        leaf transmittance .
     
     References
     ----------

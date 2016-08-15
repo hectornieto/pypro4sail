@@ -56,8 +56,10 @@ def JacCalcLIDF_Campbell(alpha,n_elements=18):
     
     Returns
     -------
+    Delta_lidf : list
+        Jacobian of the Leaf Inclination Distribution Function for n_elements equally spaced angles.
     lidf : list
-        Leaf Inclination Distribution Function for 18 equally spaced angles.
+        Leaf Inclination Distribution Function for n_elements equally spaced angles.
         
     References
     ----------
@@ -167,47 +169,89 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     
     Returns
     -------
-    tss : array_like
+    Delta_tss : 2D_array_like
+        Jacobian, beam transmittance in the sun-target path.
+    Delta_too : 2D_array_like
+        Jacobian, beam transmittance in the target-view path.
+    Delta_tsstoo : 2D_array_like
+        Jacobian, beam tranmittance in the sur-target-view path.
+    Delta_rdd : 2D_array_like
+        Jacobian, canopy bihemisperical reflectance factor.
+    Delta_tdd : 2D_array_like
+        Jacobian, canopy bihemishperical transmittance factor.
+    Delta_rsd : 2D_array_like 
+        Jacobian, canopy directional-hemispherical reflectance factor.
+    Delta_tsd : 2D_array_like
+        Jacobian, canopy directional-hemispherical transmittance factor.
+    Delta_rdo : 2D_array_like
+        Jacobian, canopy hemispherical-directional reflectance factor.
+    Delta_tdo : 2D_array_like
+        Jacobian, canopy hemispherical-directional transmittance factor.
+    Delta_rso : 2D_array_like
+        Jacobian, canopy bidirectional reflectance factor.
+    Delta_rsos : 2D_array_like
+        Jacobian, single scattering contribution to rso.
+    Delta_rsod : 2D_array_like
+        Jacobian, multiple scattering contribution to rso.
+    Delta_rddt : 2D_array_like
+        Jacobian, surface bihemispherical reflectance factor.
+    Delta_rsdt : 2D_array_like
+        Jacobian, surface directional-hemispherical reflectance factor.
+    Delta_rdot : 2D_array_like
+        Jacobian, surface hemispherical-directional reflectance factor.
+    Delta_rsodt : 2D_array_like
+        Jacobian, reflectance factor.
+    Delta_rsost : 2D_array_like
+        Jacobian, reflectance factor.
+    Delta_rsot : 2D_array_like
+        Jacobian, surface bidirectional reflectance factor.
+    Delta_gammasdf : 2D_array_like
+        Jacobian, 'Thermal gamma factor'.
+    Delta_gammasdb : 2D_array_like
+        Jacobian, 'Thermal gamma factor'.
+    Delta_gammaso : 2D_array_like
+        Jacobian, 'Thermal gamma factor'.
+    tss : 1D_array_like
         beam transmittance in the sun-target path.
-    too : array_like
+    too : 1D_array_like
         beam transmittance in the target-view path.
-    tsstoo : array_like
+    tsstoo : 1D_array_like
         beam tranmittance in the sur-target-view path.
-    rdd : array_like
+    rdd : 1D_array_like
         canopy bihemisperical reflectance factor.
-    tdd : array_like
+    tdd : 1D_array_like
         canopy bihemishperical transmittance factor.
-    rsd : array_like 
+    rsd : 1D_array_like 
         canopy directional-hemispherical reflectance factor.
-    tsd : array_like
+    tsd : 1D_array_like
         canopy directional-hemispherical transmittance factor.
-    rdo : array_like
+    rdo : 1D_array_like
         canopy hemispherical-directional reflectance factor.
-    tdo : array_like
+    tdo : 1D_array_like
         canopy hemispherical-directional transmittance factor.
-    rso : array_like
+    rso : 1D_array_like
         canopy bidirectional reflectance factor.
-    rsos : array_like
+    rsos : 1D_array_like
         single scattering contribution to rso.
-    rsod : array_like
+    rsod : 1D_array_like
         multiple scattering contribution to rso.
-    rddt : array_like
+    rddt : 1D_array_like
         surface bihemispherical reflectance factor.
-    rsdt : array_like
+    rsdt : 1D_array_like
         surface directional-hemispherical reflectance factor.
-    rdot : array_like
+    rdot : 1D_array_like
         surface hemispherical-directional reflectance factor.
-    rsodt : array_like
+    rsodt : 1D_array_like
         reflectance factor.
-    rsost : array_like
+    rsost : 1D_array_like
         reflectance factor.
-    rsot : array_like
+    rsot : 1D_array_like
         surface bidirectional reflectance factor.
-    gammasdf : array_like
+    gammasdf : 1D_array_like
         'Thermal gamma factor'.
-    gammasdb : array_like
+    gammasdb : 1D_array_like
         'Thermal gamma factor'.
-    gammaso : array_like
+    gammaso : 1D_array_like
         'Thermal gamma factor'.
     
     References
