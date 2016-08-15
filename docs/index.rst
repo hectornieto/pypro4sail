@@ -21,6 +21,8 @@ Contents
 	pyPro4SAIL
 	Prospect5
 	FourSAIL
+	Prospect5Jacobian
+	FourSAILJacobian
 	CostFunctionsPROSPECT4SAIL
 
 
