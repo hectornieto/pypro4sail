@@ -54,7 +54,7 @@ the leaf reflectance and transmittance for a given wavelength.
 # Running Prospect5
 import Prospect5
 # Simulate leaf full optical spectrum (400-2500nm) 
-wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+wl, rho_leaf, tau_leaf = Prospect5.Prospect5(N, chloro, caroten, brown, EWT, LMA)
 
 ```
 
@@ -72,11 +72,11 @@ factor of a given canopy at for a single wavelenght.
 # Running the coupled Prospect and 4SAIL
 import Prospect5, FourSAIL
 # Simulate leaf full optical spectrum (400-2500nm) 
-wl, rho_leaf, tau_leaf = Prospect5.Prospect5(Nleaf, Cab, Car, Cbrown, Cw, Cm)
+wl, rho_leaf, tau_leaf = Prospect5.Prospect5(N, chloro, caroten, brown, EWT, LMA)
 # Estimate the Leaf Inclination Distribution Function of a canopy
-lidf = CalcLIDF_Campbell(alpha)
+LIDF = FourSAIL.CalcLIDF_Campbell(alpha)
 # Simulate leaf reflectance and transmittance factors of a canopy 
-tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammasowl = FourSAIL.FourSAIL(lai,hotspot,lidf,SZA,VZA,PSI,rho_leaf,tau_leaf,rho_soil)
+tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammasowl = FourSAIL.FourSAIL(LAI,hot_spot,LIDF,solar_zenith,view_zenith,solar_azimuth-view_azimuth,rho_leaf,tau_leaf,rho_soil)
 # Simulate the canopy reflectance factor for a given difuse/total radiation condition (skyl)
 rho_canopy = rdot*skyl+rsot*(1-skyl)
 ``` 
@@ -97,8 +97,14 @@ The following modules are included.
 - *.src/Prospect5.py*
 > core functions for running Prospect5 Leaf Radiative Transfer Model. 
 
+- *.src/Prospect5Jacobian.py*
+> core functions for computing the Jacobian of Prospect5 Leaf Radiative Transfer Model. 
+
 - *.src/FourSAIL.py*
 > core functions for running 4SAIL Canopy Radiative Transfer Model.
+
+- *.src/FourSAILJacobian.py*
+> core functions for computing the Jacobian of 4SAIL Canopy Radiative Transfer Model.
 
 - *.src/CostFunctionsPROSPECT4SAIL.py*
 > merit functions used to invert Prospect and/or 4SAIL from a given spectrum
