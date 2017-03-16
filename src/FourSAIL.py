@@ -46,6 +46,7 @@ EXAMPLE
 """
 params4SAIL=('LAI','hotspot','leaf_angle')
 paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','LAI','hotspot','leaf_angle') 
+import numpy as np
 
 def CalcLIDF_Verhoef(a,b,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
@@ -169,6 +170,64 @@ def CalcLIDF_Campbell(alpha,n_elements=18):
     lidf=[]
     for i in range(n_elements):
         lidf.append(float(freq[i])/sum0)
+    
+    return lidf
+
+def CalcLIDF_Campbell_vec(alpha,n_elements=18):
+    '''Calculate the Leaf Inclination Distribution Function based on the 
+    mean angle of [Campbell1990] ellipsoidal LIDF distribution.
+
+    Parameters
+    ----------
+    alpha : float
+        Mean leaf angle (degrees) use 57 for a spherical LIDF.
+    n_elements : int
+        Total number of equally spaced inclination angles .
+    
+    Returns
+    -------
+    lidf : list
+        Leaf Inclination Distribution Function for 18 equally spaced angles.
+        
+    References
+    ----------
+    .. [Campbell1986] G.S. Campbell, Extinction coefficients for radiation in 
+        plant canopies calculated using an ellipsoidal inclination angle distribution, 
+        Agricultural and Forest Meteorology, Volume 36, Issue 4, 1986, Pages 317-321, 
+        ISSN 0168-1923, http://dx.doi.org/10.1016/0168-1923(86)90010-9.
+    .. [Campbell1990] G.S Campbell, Derivation of an angle density function for 
+        canopies with ellipsoidal leaf angle distributions, 
+        Agricultural and Forest Meteorology, Volume 49, Issue 3, 1990, Pages 173-176, 
+        ISSN 0168-1923, http://dx.doi.org/10.1016/0168-1923(90)90030-A.
+    '''
+    
+    alpha=np.asarray(alpha).reshape(-1)
+    excent=np.exp(-1.6184e-5*alpha**3.+2.1145e-3*alpha**2.-1.2390e-1*alpha+3.2491)
+    freq=np.zeros((n_elements,alpha.shape[0]))
+    step=90.0/n_elements
+    for  i in range (n_elements):
+        tl1=np.radians(i*step)
+        tl2=np.radians((i+1.)*step)
+        index=excent == 1.
+        freq[i,index]=np.abs(np.cos(tl1)-np.cos(tl2))
+        x1  = excent/(np.sqrt(1.+excent**2.*np.tan(tl1)**2.))
+        x2  = excent/(np.sqrt(1.+excent**2.*np.tan(tl2)**2.))
+        alph  = excent/np.sqrt(np.abs(1.-excent**2.))
+        alph2 = alph**2.
+        x12 = x1**2.
+        x22 = x2**2.
+        alpx1 = np.sqrt(alph2+x12)
+        alpx2 = np.sqrt(alph2+x22)
+        index=excent > 1.
+        dum   = x1[index]*alpx1[index]+alph2[index]*np.log(x1[index]+alpx1[index])
+        freq[i,index]=np.abs(dum-(x2[index]*alpx2[index]+alph2[index]*np.log(x2[index]+alpx2[index])))
+        index=excent < 1.
+        almx1 = np.sqrt(alph2[index]-x12[index])
+        almx2 = np.sqrt(alph2[index]-x22[index])
+        dum   = x1[index]*almx1+alph2[index]*np.arcsin(x1[index]/alph[index])
+        freq[i,index]=np.abs(dum-(x2[index]*almx2+alph2[index]*np.arcsin(x2[index]/alph[index])))
+    sum0 = np.sum(freq,axis=0)
+    lidf=freq/sum0
     
     return lidf
 
@@ -427,6 +486,263 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     rsodt=((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*rsoil/dn
     rsost=rso+tsstoo*rsoil
     rsot=rsost+rsodt
+    
+    return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+          rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
+
+
+def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
+    ''' Runs 4SAIL canopy radiative transfer model.
+    
+    Parameters
+    ----------
+    lai : float
+        Leaf Area Index.
+    hotspot : float
+        Hotspot parameter.
+    lidf : list
+        Leaf Inclination Distribution at regular angle steps.
+    tts : float
+        Sun Zenith Angle (degrees).
+    tto : float
+        View(sensor) Zenith Angle (degrees).
+    psi : float
+        Relative Sensor-Sun Azimuth Angle (degrees).
+    rho : array_like
+        leaf lambertian reflectance.
+    tau : array_like
+        leaf transmittance.
+    rsoil : array_like
+        soil lambertian reflectance.
+    
+    Returns
+    -------
+    tss : array_like
+        beam transmittance in the sun-target path.
+    too : array_like
+        beam transmittance in the target-view path.
+    tsstoo : array_like
+        beam tranmittance in the sur-target-view path.
+    rdd : array_like
+        canopy bihemisperical reflectance factor.
+    tdd : array_like
+        canopy bihemishperical transmittance factor.
+    rsd : array_like 
+        canopy directional-hemispherical reflectance factor.
+    tsd : array_like
+        canopy directional-hemispherical transmittance factor.
+    rdo : array_like
+        canopy hemispherical-directional reflectance factor.
+    tdo : array_like
+        canopy hemispherical-directional transmittance factor.
+    rso : array_like
+        canopy bidirectional reflectance factor.
+    rsos : array_like
+        single scattering contribution to rso.
+    rsod : array_like
+        multiple scattering contribution to rso.
+    rddt : array_like
+        surface bihemispherical reflectance factor.
+    rsdt : array_like
+        surface directional-hemispherical reflectance factor.
+    rdot : array_like
+        surface hemispherical-directional reflectance factor.
+    rsodt : array_like
+        reflectance factor.
+    rsost : array_like
+        reflectance factor.
+    rsot : array_like
+        surface bidirectional reflectance factor.
+    gammasdf : array_like
+        'Thermal gamma factor'.
+    gammasdb : array_like
+        'Thermal gamma factor'.
+    gammaso : array_like
+        'Thermal gamma factor'.
+    
+    References
+    ----------
+    .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
+        Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
+        IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
+    '''
+
+    from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size,array
+    cts   = cos(radians(tts))
+    cto   = cos(radians(tto))
+    ctscto  = cts*cto
+    #sts   = sin(radians(tts))
+    #sto   = sin(radians(tto))
+    tants = tan(radians(tts))
+    tanto = tan(radians(tto))
+    cospsi  = cos(radians(psi))
+    dso = sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    #Calculate geometric factors associated with extinction and scattering 
+    #Initialise sums
+    ks=np.zeros(lai.shape)
+    ko=np.zeros(lai.shape)
+    bf=np.zeros(lai.shape)
+    sob=np.zeros(lai.shape)
+    sof=np.zeros(lai.shape)
+    # Weighted sums over LIDF
+    n_angles=len(lidf)
+    angle_step=float(90.0/n_angles)
+    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
+    for i,ili in enumerate(litab):
+        ttl=float(ili)
+        cttl=cos(radians(ttl))
+        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
+        [chi_s,chi_o,frho,ftau]=volscatt_vec(tts,tto,psi,ttl)
+        # Extinction coefficients
+        ksli=chi_s/cts
+        koli=chi_o/cto
+        # Area scattering coefficient fractions
+        sobli=frho*pi/ctscto
+        sofli=ftau*pi/ctscto
+        bfli=cttl**2.
+        ks+=ksli*lidf[i]
+        ko+=koli*lidf[i]    
+        bf+=bfli*lidf[i]
+        sob+=sobli*lidf[i]
+        sof+=sofli*lidf[i]
+
+    # Geometric factors to be used later with rho and tau
+    sdb=0.5*(ks+bf)
+    sdf=0.5*(ks-bf)
+    dob=0.5*(ko+bf)
+    dof=0.5*(ko-bf)
+    ddb=0.5*(1.+bf)
+    ddf=0.5*(1.-bf)
+    # Here rho and tau come in
+    sigb=ddb*rho+ddf*tau
+    sigf=ddf*rho+ddb*tau
+    if size(sigf)>1:
+        sigf[sigf == 0.0]=1e-36
+        sigb[sigb == 0.0]=1e-36
+    else:
+        sigf=max(1e-36,sigf)
+        sigb=max(1e-36,sigb)
+    att=1.-sigf
+    m=sqrt(att**2.-sigb**2.)
+    sb=sdb*rho+sdf*tau
+    sf=sdf*rho+sdb*tau
+    vb=dob*rho+dof*tau
+    vf=dof*rho+dob*tau
+    w =sob*rho+sof*tau
+    # Here the LAI comes in
+    tss = np.ones(lai.shape)
+    too= np.ones(lai.shape)
+    tsstoo= np.ones(lai.shape)
+    rdd= np.zeros(lai.shape)
+    tdd=np.ones(lai.shape)
+    rsd=np.zeros(lai.shape)
+    tsd=np.zeros(lai.shape)
+    rdo=np.zeros(lai.shape)
+    tdo=np.zeros(lai.shape)
+    rso=np.zeros(lai.shape)
+    rsos=np.zeros(lai.shape)
+    rsod=np.zeros(lai.shape)
+    rddt= np.ones(lai.shape)*rsoil
+    rsdt= np.ones(lai.shape)*rsoil
+    rdot= np.ones(lai.shape)*rsoil
+    rsodt= np.zeros(lai.shape)
+    rsost= np.ones(lai.shape)*rsoil
+    rsot= np.ones(lai.shape)*rsoil
+    gammasdf=np.zeros(lai.shape)
+    gammaso=np.zeros(lai.shape)
+    gammasdb=np.zeros(lai.shape)
+          
+    e1=exp(-lai*m)
+    e2=e1**2.
+    rinf=(att-m)/sigb
+    rinf2=rinf**2.
+    re=rinf*e1
+    denom=1.-rinf2*e2
+    J1ks=Jfunc1_vec(ks,m,lai)
+    J2ks=Jfunc2(ks,m,lai)
+    J1ko=Jfunc1_vec(ko,m,lai)
+    J2ko=Jfunc2(ko,m,lai)
+    Pss=(sf+sb*rinf)*J1ks
+    Qss=(sf*rinf+sb)*J2ks
+    Pv=(vf+vb*rinf)*J1ko
+    Qv=(vf*rinf+vb)*J2ko
+    tdd[lai>0]=(1.-rinf2[lai>0])*e1[lai>0]/denom[lai>0]
+    rdd[lai>0]=rinf[lai>0]*(1.-e2[lai>0])/denom[lai>0]
+    tsd[lai>0]=(Pss[lai>0]-re[lai>0]*Qss[lai>0])/denom[lai>0]
+    rsd[lai>0]=(Qss[lai>0]-re[lai>0]*Pss[lai>0])/denom[lai>0]
+    tdo[lai>0]=(Pv[lai>0]-re[lai>0]*Qv[lai>0])/denom[lai>0]
+    rdo[lai>0]=(Qv[lai>0]-re[lai>0]*Pv[lai>0])/denom[lai>0]
+    # Thermal "sd" quantities
+    gammasdf[lai>0]=(1.+rinf[lai>0])*(J1ks[lai>0]-re[lai>0]*J2ks[lai>0])/denom[lai>0]
+    gammasdb[lai>0]=(1.+rinf[lai>0])*(-re[lai>0]*J1ks[lai>0]+J2ks[lai>0])/denom[lai>0]
+    tss[lai>0]=exp(-ks[lai>0]*lai[lai>0])
+    too[lai>0]=exp(-ko[lai>0]*lai[lai>0])
+    z=Jfunc2(ks,ko,lai)
+    g1=(z-J1ks*too)/(ko+m)
+    g2=(z-J1ko*tss)/(ks+m)
+    Tv1=(vf*rinf+vb)*g1
+    Tv2=(vf+vb*rinf)*g2
+    T1=Tv1*(sf+sb*rinf)
+    T2=Tv2*(sf*rinf+sb)
+    T3=(rdo*Qss+tdo*Pss)*rinf
+    # Multiple scattering contribution to bidirectional canopy reflectance
+    rsod[lai>0]=(T1[lai>0]+T2[lai>0]-T3[lai>0])/(1.-rinf2[lai>0])
+    # Thermal "sod" quantity
+    T4=Tv1*(1.+rinf)
+    T5=Tv2*(1.+rinf)
+    T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
+    gammasod=(T4+T5-T6)/(1.-rinf2)
+    #Treatment of the hotspot-effect
+    alf=np.ones(lai.shape)*1e36
+    
+    # Apply correction 2/(K+k) suggested by F.-M. Breon
+    alf[hotspot > 0]=(dso[hotspot > 0]/hotspot[hotspot > 0])*2./(ks[hotspot > 0]+ko[hotspot > 0])
+    sumint=np.zeros(lai.shape)
+    index=np.logical_and(lai>0,alf == 0)
+    # The pure hotspot
+    tsstoo[index]=tss[index]
+    sumint[index]=(1.-tss[index])/(ks[index]*lai[index])
+    # Outside the hotspot
+    index=np.logical_and(lai>0,alf != 0)
+    fhot=lai[index]*sqrt(ko[index]*ks[index])
+    # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
+    x1=np.zeros(fhot.shape)
+    y1=np.zeros(fhot.shape)
+    f1=np.ones(fhot.shape)
+    fint=(1.-exp(-alf[index]))*.05
+    for istep in range(1,21):
+        if istep < 20 :
+            x2=-log(1.-istep*fint)/alf[index]
+        else :
+            x2=np.ones(fhot.shape)
+        y2=-(ko[index]+ks[index])*lai[index]*x2+fhot*(1.-exp(-alf[index]*x2))/alf[index]
+        f2=exp(y2)
+        sumint[index]=sumint[index]+(f2-f1)*(x2-x1)/(y2-y1)
+        x1=array(x2)
+        y1=array(y2)
+        f1=array(f2)
+    tsstoo[lai>0]=f1
+    sumint[isnan(sumint)] =0.
+    # Bidirectional reflectance
+    # Single scattering contribution
+    rsos[lai>0]=w[lai>0]*lai[lai>0]*sumint[lai>0]
+    gammasos=ko[lai>0]*lai[lai>0]*sumint[lai>0]
+    # Total canopy contribution
+    rso[lai>0]=rsos[lai>0]+rsod[lai>0]
+    gammaso[lai>0]=gammasos+gammasod[lai>0]
+    #Interaction with the soil
+    dn=1.-rsoil*rdd
+    if size(dn)>1:
+        dn[dn < 1e-36]=1e-36
+    else:
+        dn=max(1e-36,dn)
+    rddt[lai>0]=rdd[lai>0]+tdd[lai>0]*rsoil*tdd[lai>0]/dn[lai>0]
+    rsdt[lai>0]=rsd[lai>0]+(tsd[lai>0]+tss[lai>0])*rsoil*tdd[lai>0]/dn[lai>0]
+    rdot[lai>0]=rdo[lai>0]+tdd[lai>0]*rsoil*(tdo[lai>0]+too[lai>0])/dn[lai>0]
+    rsodt[lai>0]=((tss[lai>0]+tsd[lai>0])*tdo[lai>0]+(tsd[lai>0]+tss[lai>0]*rsoil*rdd[lai>0])*too[lai>0])*rsoil/dn[lai>0]
+    rsost[lai>0]=rso[lai>0]+tsstoo[lai>0]*rsoil
+    rsot[lai>0]=rsost[lai>0]+rsodt[lai>0]
     
     return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
           rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
@@ -776,6 +1092,93 @@ def volscatt(tts,tto,psi,ttl) :
    
     return [chi_s,chi_o,frho,ftau]    
 
+def volscatt_vec(tts,tto,psi,ttl) :
+    '''Compute volume scattering functions and interception coefficients
+    for given solar zenith, viewing zenith, azimuth and leaf inclination angle.
+    
+    Parameters
+    ----------
+    tts : float
+        Solar Zenith Angle (degrees).
+    tto : float
+        View Zenight Angle (degrees).
+    psi : float
+        View-Sun reliative azimuth angle (degrees).
+    ttl : float
+        leaf inclination angle (degrees).
+    
+    Returns
+    -------    
+    chi_s : float
+        Interception function  in the solar path.
+    chi_o : float
+        Interception function  in the view path.
+    frho : float
+        Function to be multiplied by leaf reflectance to obtain the volume scattering.
+    ftau : float
+        Function to be multiplied by leaf transmittance to obtain the volume scattering.
+    
+    References
+    ----------
+    Wout Verhoef, april 2001, for CROMA.
+    '''
+    tts,tto,psi=map(np.asarray,(tts,tto,psi))
+    cts=np.cos(np.radians(tts))
+    cto=np.cos(np.radians(tto))
+    sts=np.sin(np.radians(tts))
+    sto=np.sin(np.radians(tto))
+    cospsi=np.cos(np.radians(psi))
+    psir=np.radians(psi)
+    cttl=np.cos(np.radians(ttl))
+    sttl=np.sin(np.radians(ttl))
+    cs=cttl*cts
+    co=cttl*cto
+    ss=sttl*sts
+    so=sttl*sto  
+    cosbts=np.ones(cs.shape)*5.
+    cosbto=np.ones(co.shape)*5.
+    cosbts[np.abs(ss)> 1e-6]=-cs[np.abs(ss)> 1e-6]/ss[np.abs(ss)> 1e-6]
+    cosbto[np.abs(so)> 1e-6]=-co[np.abs(so)> 1e-6]/so[np.abs(so)> 1e-6]
+
+    bts=np.ones(cosbts.shape)*np.pi
+    ds=np.array(cs)
+    bts[np.abs(cosbts) < 1.0]=np.arccos(cosbts[np.abs(cosbts) < 1.0])
+    ds[np.abs(cosbts) < 1.0]=ss[np.abs(cosbts) < 1.0]
+    chi_s=2./np.pi*((bts-np.pi*0.5)*cs+np.sin(bts)*ss)
+    
+    bto=np.zeros(cosbto.shape)
+    do_=np.zeros(cosbto.shape)
+    bto[np.abs(cosbto) < 1.0]=np.arccos(cosbto[np.abs(cosbto) < 1.0])
+    do_[np.abs(cosbto) < 1.0]=so[np.abs(cosbto) < 1.0]
+    bto[np.logical_and(np.abs(cosbto) > 1.0,tto < 90.)]=np.pi
+    do_[np.logical_and(np.abs(cosbto) > 1.0,tto < 90.)]=co[np.logical_and(np.abs(cosbto) > 1.0,tto < 90.)]
+    bto[np.logical_and(np.abs(cosbto) > 1.0,tto > 90.)]=0
+    do_[np.logical_and(np.abs(cosbto) > 1.0,tto > 90.)]=-co[np.logical_and(np.abs(cosbto) > 1.0,tto > 90.)]
+
+    chi_o=2.0/np.pi*((bto-np.pi*0.5)*co+np.sin(bto)*so)
+    btran1=np.abs(bts-bto)
+    btran2=np.pi-np.abs(bts+bto-np.pi)
+    bt1=np.array(psir)
+    bt2=np.array(btran1)
+    bt3=np.array(btran2)
+    bt1[psir > btran1]=btran1[psir > btran1]
+    bt2[np.logical_and(psir > btran1,psir <= btran2)]=psir[np.logical_and(psir > btran1,psir <= btran2)]
+    bt3[np.logical_and(psir > btran1,psir <= btran2)]=btran2[np.logical_and(psir > btran1,psir <= btran2)]
+    bt2[np.logical_and(psir > btran1,psir > btran2)]=btran2[np.logical_and(psir > btran1,psir > btran2)]
+    bt3[np.logical_and(psir > btran1,psir > btran2)]=psir[np.logical_and(psir > btran1,psir > btran2)]
+
+    t1=2.*cs*co+ss*so*cospsi
+    t2=np.zeros(t1.shape)
+    t2[bt2 > 0.]=np.sin(bt2[bt2 > 0.])*(2.*ds[bt2 > 0.]*do_[bt2 > 0.]+ss[bt2 > 0.]*so[bt2 > 0.]*np.cos(bt1[bt2 > 0.])*np.cos(bt3[bt2 > 0.]))
+    denom=2.*np.pi**2
+    frho=((np.pi-bt2)*t1+t2)/denom
+    ftau=(-bt2*t1+t2)/denom
+    frho[frho < 0.]=0.
+    ftau[ftau < 0.]=0.
+   
+    return [chi_s,chi_o,frho,ftau]    
+
+
 def Jfunc1(k,l,t) :
     ''' J1 function with avoidance of singularity problem.'''
     from numpy import exp,zeros,size
@@ -792,10 +1195,18 @@ def Jfunc1(k,l,t) :
             result=0.5*t*(exp(-k*t)+exp(-l*t))*(1.-(del_**2.)/12.)
     return result
 
+def Jfunc1_vec(k,l,t) :
+    ''' J1 function with avoidance of singularity problem.'''
+    del_=(k-l)*t
+    result=np.zeros(t.shape)
+    index=np.abs(del_) > 1e-3 
+    result[index]=(np.exp(-l[index]*t[index])-np.exp(-k[index]*t[index]))/(k[index]-l[index])
+    result[~index]=0.5*t[~index]*(np.exp(-k[~index]*t[~index])+np.exp(-l[~index]*t[~index]))*(1.-(del_[~index]**2.)/12.)
+    return result
+
 def Jfunc2(k,l,t) :
     '''J2 function.'''
-    from numpy import exp
-    return (1.-exp(-(k+l)*t))/(k+l)
+    return (1.-np.exp(-(k+l)*t))/(k+l)
 
 def Jfunc1_wl(k,l,t) :
     '''J1 function with avoidance of singularity problem.'''
@@ -859,3 +1270,24 @@ def Get_SunAngles(lat,lon,doy,hour,stdlon):
         saa=360.-degrees(acos(cos_phi))
 
     return sza,saa
+
+if __name__=='__main__':
+    from matplotlib import pyplot as plt
+    LAI=np.random.uniform(0,10,1000)
+    hotspot=np.random.uniform(0,1,LAI.size)
+    tts=np.random.uniform(0,90,LAI.size)
+    tto=np.random.uniform(0,90,LAI.size)
+    psi=np.random.uniform(0,360,LAI.size)
+    lidf=CalcLIDF_Campbell_vec(np.random.uniform(0,90,LAI.size))
+    rho=0.05
+    tau=0.03
+    rsoil=0.15
+    [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]=FourSAIL_vec(LAI,hotspot,lidf,tts,tto,psi,rho,tau,rsoil)
+    rdot_2=np.zeros(rdot.shape)
+    rsot_2=np.zeros(rsot.shape)
+    for i,lai in enumerate(LAI):
+        [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+            rso,rsos,rsod,rddt,rsdt,rdot_2[i],rsodt,rsost,rsot_2[i],gammasdf,gammasdb,gammaso]=FourSAIL(lai,hotspot[i],lidf[:,i],tts[i],tto[i],psi[i],rho,tau,rsoil)
+
+    plt.plot(LAI,rdot-rdot_2,'r',LAI,rsot-rsot_2,'b')
