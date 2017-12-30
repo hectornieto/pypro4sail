@@ -35,9 +35,10 @@ EXAMPLE
 import FourSAIL
 import Prospect5
 import numpy as np
+import os
 
 # Define Constants
-SOIL_FOLDER='../SoilSpectralLibrary/'
+SOIL_FOLDER=os.path.join('../SoilSpectralLibrary/')
 DEFAULT_SOIL='ProSAIL_WetSoil.txt'
 SB=5.670373e-8 #Stephan Boltzmann constant (W m-2 K-4)
 
@@ -139,7 +140,7 @@ def run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_
 
     return wl,rho_canopy
 
-def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_azimuth, view_zenith, view_azimuth, LIDF,T_VegSunlit=None, T_SoilSunlit=None, T_atm=-273.15):
+def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_azimuth, view_zenith, view_azimuth, LIDF,T_VegSunlit=None, T_SoilSunlit=None, T_atm=0):
     ''' Estimates the broadband at-sensor thermal radiance using 4SAIL model.
     
     Parameters
@@ -149,9 +150,9 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_
     emisSoil : float
         Soil hemispherical emissivity.
     T_Veg : float
-        Leaf temperature (Celsius).
+        Leaf temperature (Kelvin).
     T_Soil : float
-        Soil temperature (Celsius).
+        Soil temperature (Kelvin).
     LAI : float
         Leaf Area Index.
     hot_spot : float
@@ -176,7 +177,7 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_
         Sunlit soil temperature accounting for the thermal hotspot effect
         default T_SoilSunlit=T_Soil.
     T_atm : float, optional
-        Apparent sky brightness temperature (degrees), 
+        Apparent sky brightness temperature (Kelvin), 
         default T_atm =0K (no downwellig radiance).
     
     Returns
@@ -184,7 +185,7 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_
     Lw : float
         At sensor broadband radiance (W m-2).
     TB_obs : float
-        At sensor brightness temperature (Celsius).
+        At sensor brightness temperature (Kelvin).
     emiss : float
         Surface directional emissivity.
 
@@ -231,23 +232,22 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_
     aees=ttot*emisSoil
 
     # Get the different canopy broadband emssion components
-    Hvc=CalcStephanBoltzmann(T_Veg+273.15)
-    Hgc=CalcStephanBoltzmann(T_Soil+273.15)
-    Hsky=CalcStephanBoltzmann(T_atm+273.15)
+    Hvc=CalcStephanBoltzmann(T_Veg)
+    Hgc=CalcStephanBoltzmann(T_Soil)
+    Hsky=CalcStephanBoltzmann(T_atm)
     
     if T_VegSunlit: # Accout for different suntlit shaded temperatures
-        Hvh=CalcStephanBoltzmann(T_VegSunlit+273.15)
+        Hvh=CalcStephanBoltzmann(T_VegSunlit)
     else:
         Hvh=Hvc
     if T_SoilSunlit: # Accout for different suntlit shaded temperatures
-        Hgh=CalcStephanBoltzmann(T_SoilSunlit+273.15)
+        Hgh=CalcStephanBoltzmann(T_SoilSunlit)
     else:
         Hgh=Hgc
     
     # Calculate the blackbody emission temperature
     Lw=(rdot*Hsky+(aeev*Hvc+gammasot*emisVeg*(Hvh-Hvc)+aees*Hgc+tso*emisSoil*(Hgh-Hgc)))/np.pi
     TB_obs=(np.pi*Lw/SB)**(0.25)
-    TB_obs-=273.15
     
     # Estimate the apparent surface directional emissivity
     emiss=1-rdot
