@@ -23,4 +23,4 @@ def get_spectra():
         BytesIO(prospect_d_spectraf), unpack=True)
     #prospect_d_spectra = ProspectDSpectra(wl, nr, kab, kcar, kbrown, kw, km, kant)
 
-    return wl, nr, kab, kcar, kant, kbrown, kw, km
+    return wl, nr, kab, kcar, kbrown, kw, km, kant
