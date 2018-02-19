@@ -40,7 +40,7 @@ import numpy as np
 
 wls,refr_index,Cab_k,Car_k,Cbrown_k,Cw_k,Cm_k,Ant_k=spectral_lib
 
-paramsProspect5=('N_leaf','Cab','Car','Cbrown','Cw','Cm', 'Ant')
+paramsProspectD=('N_leaf','Cab','Car','Cbrown','Cw','Cm', 'Ant')
 
 def JacProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
