@@ -1028,12 +1028,12 @@ def volscatt(tts,tto,psi,ttl) :
     Wout Verhoef, april 2001, for CROMA.
     '''
 
-    cts=np.cos(np.radians(np.tts))
-    cto=np.cos(np.radians(np.tto))
-    sts=np.sin(np.radians(np.tts))
-    sto=np.sin(np.radians(np.tto))
+    cts=np.cos(np.radians(tts))
+    cto=np.cos(np.radians(tto))
+    sts=np.sin(np.radians(tts))
+    sto=np.sin(np.radians(tto))
     cospsi=np.cos(np.radians(psi))
-    psir=np.radians(np.psi)
+    psir=np.radians(psi)
     cttl=np.cos(np.radians(ttl))
     sttl=np.sin(np.radians(ttl))
     cs=cttl*cts
