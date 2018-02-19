@@ -38,14 +38,7 @@ from pyPro4Sail import spectral_lib
 from scipy.special import expn
 import numpy as np
 
-wls=spectral_lib['wl']
-refr_index=spectral_lib['nr']
-Cab_k=spectral_lib['kab']
-Car_k=spectral_lib['kcar']
-Cbrown_k=spectral_lib['kbrowm']
-Cw_k=spectral_lib['kw']
-Cm_k=spectral_lib['km']
-Ant_k=spectral_lib['kant']
+wls,refr_index,Cab_k,Car_k,Cbrown_k,Cw_k,Cm_k,Ant_k=spectral_lib
 
 paramsProspect5=('N_leaf','Cab','Car','Cbrown','Cw','Cm', 'Ant')
 
