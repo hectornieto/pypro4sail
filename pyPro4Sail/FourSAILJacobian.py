@@ -39,9 +39,10 @@ EXAMPLE
     rho_canopy = rdot*skyl+rsot*(1-skyl)
     
 """
+import numpy as np
 
 params4SAIL=('LAI','hotspot','leaf_angle')
-paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','LAI','hotspot','leaf_angle') 
+paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','Ant','LAI','hotspot','leaf_angle') 
 
 def JacCalcLIDF_Campbell(alpha,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
@@ -72,8 +73,6 @@ def JacCalcLIDF_Campbell(alpha,n_elements=18):
         Agricultural and Forest Meteorology, Volume 49, Issue 3, 1990, Pages 173-176, 
         ISSN 0168-1923, http://dx.doi.org/10.1016/0168-1923(90)90030-A.
     '''
-    
-    import numpy as np
     
     alpha=float(alpha)
     excent=np.exp(-1.6184e-5*alpha**3.+2.1145e-3*alpha**2.-1.2390e-1*alpha+3.2491)
@@ -261,10 +260,11 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
+
     SAIL_params=3
     n_wl=rho.shape[0]
-    import numpy as np
-   # Get the leaf spectra parameters
+
+    # Get the leaf spectra parameters
     if not type(Delta_rho)==type(None):
         Delta_rho=np.asarray(Delta_rho)
         leaf_params=Delta_rho.shape[0]
@@ -622,15 +622,14 @@ def volscatt(tts,tto,psi,ttl) :
     Wout Verhoef, april 2001, for CROMA.
     '''
 
-    from math import sin, cos, acos, radians, pi 
-    cts=cos(radians(tts))
-    cto=cos(radians(tto))
-    sts=sin(radians(tts))
-    sto=sin(radians(tto))
-    cospsi=cos(radians(psi))
-    psir=radians(psi)
-    cttl=cos(radians(ttl))
-    sttl=sin(radians(ttl))
+    cts=np.cos(np.radians(tts))
+    cto=np.cos(np.radians(tto))
+    sts=np.sin(np.radians(tts))
+    sto=np.sin(np.radians(tto))
+    cospsi=np.cos(np.radians(psi))
+    psir=np.radians(psi)
+    cttl=np.cos(np.radians(ttl))
+    sttl=np.sin(np.radians(ttl))
     cs=cttl*cts
     co=cttl*cto
     ss=sttl*sts
@@ -640,25 +639,25 @@ def volscatt(tts,tto,psi,ttl) :
     cosbto=5.
     if abs(so) > 1e-6 : cosbto=-co/so
     if abs(cosbts) < 1.0:
-        bts=acos(cosbts)
+        bts=np.arccos(cosbts)
         ds=ss
     else:
-        bts=pi
+        bts=np.pi
         ds=cs
-    chi_s=2./pi*((bts-pi*0.5)*cs+sin(bts)*ss)
+    chi_s=2./np.pi*((bts-np.pi*0.5)*cs+np.sin(bts)*ss)
     if abs(cosbto) < 1.0:
-        bto=acos(cosbto)
+        bto=np.arccos(cosbto)
         do_=so
     else:
         if tto < 90.:
-            bto=pi
+            bto=np.pi
             do_=co
         else:
             bto=0.0
             do_=-co
-    chi_o=2.0/pi*((bto-pi*0.5)*co+sin(bto)*so)
+    chi_o=2.0/np.pi*((bto-np.pi*0.5)*co+np.sin(bto)*so)
     btran1=abs(bts-bto)
-    btran2=pi-abs(bts+bto-pi)
+    btran2=np.pi-abs(bts+bto-np.pi)
     if psir <= btran1:
         bt1=psir
         bt2=btran1
@@ -673,9 +672,9 @@ def volscatt(tts,tto,psi,ttl) :
             bt3=psir
     t1=2.*cs*co+ss*so*cospsi
     t2=0.
-    if bt2 > 0.: t2=sin(bt2)*(2.*ds*do_+ss*so*cos(bt1)*cos(bt3))
-    denom=2.*pi**2
-    frho=((pi-bt2)*t1+t2)/denom
+    if bt2 > 0.: t2=np.sin(bt2)*(2.*ds*do_+ss*so*np.cos(bt1)*np.cos(bt3))
+    denom=2.*np.pi**2
+    frho=((np.pi-bt2)*t1+t2)/denom
     ftau=(-bt2*t1+t2)/denom
     if frho < 0. : frho=0.
     if ftau < 0. : ftau=0.
@@ -684,7 +683,7 @@ def volscatt(tts,tto,psi,ttl) :
 
 def JacJfunc1(k,l,t,Delta_k,Delta_l):
     ''' J1 function with avoidance of singularity problem.'''
-    import numpy as np
+
     nb=np.size(l)
     del_=(k-l)*t
     Delta_del_=np.zeros(Delta_l.shape)
@@ -722,7 +721,7 @@ def JacJfunc1(k,l,t,Delta_k,Delta_l):
 
 def JacJfunc2(k,l,t,Delta_k,Delta_l) :
     '''J2 function.'''
-    import numpy as np
+
     result=(1.-np.exp(-(k+l)*t))/(k+l)
     Delta_result=np.zeros(Delta_l.shape)
     if len(Delta_result.shape)==2:
