@@ -83,26 +83,25 @@ def CalcLIDF_Verhoef(a,b,n_elements=18):
         http://library.wur.nl/WebQuery/clc/945481.
         '''
 
-    import math as m
     freq=1.0
     step=90.0/n_elements
     lidf=[]
     angles=[i*step for i in reversed(range(n_elements))]
     for angle in angles:
-        tl1=m.radians(angle)
+        tl1=np.radians(angle)
         if a>1.0:
-            f = 1.0-m.cos(tl1)
+            f = 1.0-np.cos(tl1)
         else:
             eps=1e-8
             delx=1.0
             x=2.0*tl1
             p=float(x)
             while delx >= eps:
-                y = a*m.sin(x)+.5*b*m.sin(2.*x)
+                y = a*np.sin(x)+.5*b*np.sin(2.*x)
                 dx=.5*(y-x+p)
                 x=x+dx
                 delx=abs(dx)
-            f = (2.*y+p)/m.pi
+            f = (2.*y+p)/np.pi
         freq=freq-f
         lidf.append(freq)
         freq=float(f)
@@ -137,35 +136,34 @@ def CalcLIDF_Campbell(alpha,n_elements=18):
         ISSN 0168-1923, http://dx.doi.org/10.1016/0168-1923(90)90030-A.
     '''
     
-    from math import cos, asin,tan, log, exp, sqrt, radians
     
     alpha=float(alpha)
-    excent=exp(-1.6184e-5*alpha**3.+2.1145e-3*alpha**2.-1.2390e-1*alpha+3.2491)
+    excent=np.exp(-1.6184e-5*alpha**3.+2.1145e-3*alpha**2.-1.2390e-1*alpha+3.2491)
     sum0 = 0.
     freq=[]
     step=90.0/n_elements
     for  i in range (n_elements):
-        tl1=radians(i*step)
-        tl2=radians((i+1.)*step)
-        x1  = excent/(sqrt(1.+excent**2.*tan(tl1)**2.))
-        x2  = excent/(sqrt(1.+excent**2.*tan(tl2)**2.))
+        tl1=np.radians(i*step)
+        tl2=np.radians((i+1.)*step)
+        x1  = excent/(np.sqrt(1.+excent**2.*np.tan(tl1)**2.))
+        x2  = excent/(np.sqrt(1.+excent**2.*np.tan(tl2)**2.))
         if excent == 1. :
-            freq.append(abs(cos(tl1)-cos(tl2)))
+            freq.append(abs(np.cos(tl1)-np.cos(tl2)))
         else :
-            alph  = excent/sqrt(abs(1.-excent**2.))
+            alph  = excent/np.sqrt(abs(1.-excent**2.))
             alph2 = alph**2.
             x12 = x1**2.
             x22 = x2**2.
             if excent > 1. :
-                alpx1 = sqrt(alph2+x12)
-                alpx2 = sqrt(alph2+x22)
-                dum   = x1*alpx1+alph2*log(x1+alpx1)
-                freq.append(abs(dum-(x2*alpx2+alph2*log(x2+alpx2))))
+                alpx1 = np.sqrt(alph2+x12)
+                alpx2 = np.sqrt(alph2+x22)
+                dum   = x1*alpx1+alph2*np.log(x1+alpx1)
+                freq.append(abs(dum-(x2*alpx2+alph2*np.log(x2+alpx2))))
             else :
-                almx1 = sqrt(alph2-x12)
-                almx2 = sqrt(alph2-x22)
-                dum   = x1*almx1+alph2*asin(x1/alph)
-                freq.append(abs(dum-(x2*almx2+alph2*asin(x2/alph))))
+                almx1 = np.sqrt(alph2-x12)
+                almx2 = np.sqrt(alph2-x22)
+                dum   = x1*almx1+alph2*np.arcsin(x1/alph)
+                freq.append(abs(dum-(x2*almx2+alph2*np.arcsin(x2/alph))))
     sum0 = sum(freq)
     lidf=[]
     for i in range(n_elements):
@@ -308,16 +306,15 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
 
-    from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size,array
-    cts   = cos(radians(tts))
-    cto   = cos(radians(tto))
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
     ctscto  = cts*cto
     #sts   = sin(radians(tts))
     #sto   = sin(radians(tto))
-    tants = tan(radians(tts))
-    tanto = tan(radians(tto))
-    cospsi  = cos(radians(psi))
-    dso = sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    tants = np.tan(np.radians(tts))
+    tanto = np.tan(np.radians(tto))
+    cospsi  = np.cos(np.radians(psi))
+    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
     #Calculate geometric factors associated with extinction and scattering 
     #Initialise sums
     ks=0.
@@ -331,15 +328,15 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
     for i,ili in enumerate(litab):
         ttl=float(ili)
-        cttl=cos(radians(ttl))
+        cttl=np.cos(np.radians(ttl))
         # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
         [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
         # Extinction coefficients
         ksli=chi_s/cts
         koli=chi_o/cto
         # Area scattering coefficient fractions
-        sobli=frho*pi/ctscto
-        sofli=ftau*pi/ctscto
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
         bfli=cttl**2.
         ks+=ksli*float(lidf[i])
         ko+=koli*float(lidf[i])
@@ -357,14 +354,14 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Here rho and tau come in
     sigb=ddb*rho+ddf*tau
     sigf=ddf*rho+ddb*tau
-    if size(sigf)>1:
+    if np.size(sigf)>1:
         sigf[sigf == 0.0]=1e-36
         sigb[sigb == 0.0]=1e-36
     else:
         sigf=max(1e-36,sigf)
         sigb=max(1e-36,sigb)
     att=1.-sigf
-    m=sqrt(att**2.-sigb**2.)
+    m=np.sqrt(att**2.-sigb**2.)
     sb=sdb*rho+sdf*tau
     sf=sdf*rho+sdb*tau
     vb=dob*rho+dof*tau
@@ -397,7 +394,7 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
             rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
             
-    e1=exp(-m*lai)
+    e1=np.exp(-m*lai)
     e2=e1**2.
     rinf=(att-m)/sigb
     rinf2=rinf**2.
@@ -420,8 +417,8 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
-    tss=exp(-ks*lai)
-    too=exp(-ko*lai)
+    tss=np.exp(-ks*lai)
+    too=np.exp(-ko*lai)
     z=Jfunc2(ks,ko,lai)
     g1=(z-J1ks*too)/(ko+m)
     g2=(z-J1ko*tss)/(ks+m)
@@ -447,26 +444,26 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         sumint=(1.-tss)/(ks*lai)
     else :
         # Outside the hotspot
-        fhot=lai*sqrt(ko*ks)
+        fhot=lai*np.sqrt(ko*ks)
         # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
         x1=0.
         y1=0.
         f1=1.
-        fint=(1.-exp(-alf))*.05
+        fint=(1.-np.exp(-alf))*.05
         sumint=0.
         for istep in range(1,21):
             if istep < 20 :
-                x2=-log(1.-istep*fint)/alf
+                x2=-np.log(1.-istep*fint)/alf
             else :
                 x2=1.
-            y2=-(ko+ks)*lai*x2+fhot*(1.-exp(-alf*x2))/alf
-            f2=exp(y2)
+            y2=-(ko+ks)*lai*x2+fhot*(1.-np.exp(-alf*x2))/alf
+            f2=np.exp(y2)
             sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=array(x2)
-            y1=array(y2)
-            f1=array(f2)
-        tsstoo=array(f1)
-    if isnan(sumint) : sumint=0.
+            x1=np.array(x2)
+            y1=np.array(y2)
+            f1=np.array(f2)
+        tsstoo=np.array(f1)
+    if np.isnan(sumint) : sumint=0.
     # Bidirectional reflectance
     # Single scattering contribution
     rsos=w*lai*sumint
@@ -476,7 +473,7 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     gammaso=gammasos+gammasod
     #Interaction with the soil
     dn=1.-rsoil*rdd
-    if size(dn)>1:
+    if np.size(dn)>1:
         dn[dn < 1e-36]=1e-36
     else:
         dn=max(1e-36,dn)
@@ -568,16 +565,15 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
 
-    from numpy import cos, tan, radians, pi, sqrt, log, exp, isnan, size,array
-    cts   = cos(radians(tts))
-    cto   = cos(radians(tto))
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
     ctscto  = cts*cto
     #sts   = sin(radians(tts))
     #sto   = sin(radians(tto))
-    tants = tan(radians(tts))
-    tanto = tan(radians(tto))
-    cospsi  = cos(radians(psi))
-    dso = sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    tants = np.tan(np.radians(tts))
+    tanto = np.tan(np.radians(tto))
+    cospsi  = np.cos(np.radians(psi))
+    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
     #Calculate geometric factors associated with extinction and scattering 
     #Initialise sums
     ks=np.zeros(lai.shape)
@@ -591,15 +587,15 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
     for i,ili in enumerate(litab):
         ttl=float(ili)
-        cttl=cos(radians(ttl))
+        cttl=np.cos(np.radians(ttl))
         # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
         [chi_s,chi_o,frho,ftau]=volscatt_vec(tts,tto,psi,ttl)
         # Extinction coefficients
         ksli=chi_s/cts
         koli=chi_o/cto
         # Area scattering coefficient fractions
-        sobli=frho*pi/ctscto
-        sofli=ftau*pi/ctscto
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
         bfli=cttl**2.
         ks+=ksli*lidf[i]
         ko+=koli*lidf[i]    
@@ -617,14 +613,14 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Here rho and tau come in
     sigb=ddb*rho+ddf*tau
     sigf=ddf*rho+ddb*tau
-    if size(sigf)>1:
+    if np.size(sigf)>1:
         sigf[sigf == 0.0]=1e-36
         sigb[sigb == 0.0]=1e-36
     else:
         sigf=max(1e-36,sigf)
         sigb=max(1e-36,sigb)
     att=1.-sigf
-    m=sqrt(att**2.-sigb**2.)
+    m=np.sqrt(att**2.-sigb**2.)
     sb=sdb*rho+sdf*tau
     sf=sdf*rho+sdb*tau
     vb=dob*rho+dof*tau
@@ -653,7 +649,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     gammaso=np.zeros(lai.shape)
     gammasdb=np.zeros(lai.shape)
           
-    e1=exp(-lai*m)
+    e1=np.exp(-lai*m)
     e2=e1**2.
     rinf=(att-m)/sigb
     rinf2=rinf**2.
@@ -676,8 +672,8 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Thermal "sd" quantities
     gammasdf[lai>0]=(1.+rinf[lai>0])*(J1ks[lai>0]-re[lai>0]*J2ks[lai>0])/denom[lai>0]
     gammasdb[lai>0]=(1.+rinf[lai>0])*(-re[lai>0]*J1ks[lai>0]+J2ks[lai>0])/denom[lai>0]
-    tss[lai>0]=exp(-ks[lai>0]*lai[lai>0])
-    too[lai>0]=exp(-ko[lai>0]*lai[lai>0])
+    tss[lai>0]=np.exp(-ks[lai>0]*lai[lai>0])
+    too[lai>0]=np.exp(-ko[lai>0]*lai[lai>0])
     z=Jfunc2(ks,ko,lai)
     g1=(z-J1ks*too)/(ko+m)
     g2=(z-J1ko*tss)/(ks+m)
@@ -705,25 +701,25 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     sumint[index]=(1.-tss[index])/(ks[index]*lai[index])
     # Outside the hotspot
     index=np.logical_and(lai>0,alf != 0)
-    fhot=lai[index]*sqrt(ko[index]*ks[index])
+    fhot=lai[index]*np.sqrt(ko[index]*ks[index])
     # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
     x1=np.zeros(fhot.shape)
     y1=np.zeros(fhot.shape)
     f1=np.ones(fhot.shape)
-    fint=(1.-exp(-alf[index]))*.05
+    fint=(1.-np.exp(-alf[index]))*.05
     for istep in range(1,21):
         if istep < 20 :
-            x2=-log(1.-istep*fint)/alf[index]
+            x2=-np.log(1.-istep*fint)/alf[index]
         else :
             x2=np.ones(fhot.shape)
-        y2=-(ko[index]+ks[index])*lai[index]*x2+fhot*(1.-exp(-alf[index]*x2))/alf[index]
-        f2=exp(y2)
+        y2=-(ko[index]+ks[index])*lai[index]*x2+fhot*(1.-np.exp(-alf[index]*x2))/alf[index]
+        f2=np.exp(y2)
         sumint[index]=sumint[index]+(f2-f1)*(x2-x1)/(y2-y1)
-        x1=array(x2)
-        y1=array(y2)
-        f1=array(f2)
+        x1=np.array(x2)
+        y1=np.array(y2)
+        f1=np.array(f2)
     tsstoo[lai>0]=f1
-    sumint[isnan(sumint)] =0.
+    sumint[np.isnan(sumint)] =0.
     # Bidirectional reflectance
     # Single scattering contribution
     rsos[lai>0]=w[lai>0]*lai[lai>0]*sumint[lai>0]
@@ -733,7 +729,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     gammaso[lai>0]=gammasos+gammasod[lai>0]
     #Interaction with the soil
     dn=1.-rsoil*rdd
-    if size(dn)>1:
+    if np.size(dn)>1:
         dn[dn < 1e-36]=1e-36
     else:
         dn=max(1e-36,dn)
@@ -823,14 +819,14 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
-    from math import cos, tan, radians, pi, sqrt, log, exp, isnan
-    cts   = cos(radians(tts))
-    cto   = cos(radians(tto))
+
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
     ctscto  = cts*cto
-    tants = tan(radians(tts))
-    tanto = tan(radians(tto))
-    cospsi  = cos(radians(psi))
-    dso = sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    tants = np.tan(np.radians(tts))
+    tanto = np.tan(np.radians(tto))
+    cospsi  = np.cos(np.radians(psi))
+    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
     #Calculate geometric factors associated with extinction and scattering 
     #Initialise sums
     ks=0.
@@ -844,15 +840,15 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
     for i,ili in enumerate(litab):
         ttl=float(ili)
-        cttl=cos(radians(ttl))
+        cttl=np.cos(np.radians(ttl))
         # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
         [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
         # Extinction coefficients
         ksli=chi_s/cts
         koli=chi_o/cto
         # Area scattering coefficient fractions
-        sobli=frho*pi/ctscto
-        sofli=ftau*pi/ctscto
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
         bfli=cttl**2.
         ks+=ksli*float(lidf[i])
         ko+=koli*float(lidf[i])
@@ -871,7 +867,7 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     sigf=ddf*rho+ddb*tau
     att=1.-sigf
     if att**2-sigb**2>0:
-        m=sqrt(att**2-sigb**2)
+        m=np.sqrt(att**2-sigb**2)
     else:
         m=0.0
     sb=sdb*rho+sdf*tau
@@ -906,7 +902,7 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
             rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
 
-    e1=exp(-m*lai)
+    e1=np.exp(-m*lai)
     e2=e1**2.
     if abs(sigb)>=1e-36:
         rinf=(att-m)/sigb
@@ -933,8 +929,8 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
-    tss=exp(-ks*lai)
-    too=exp(-ko*lai)
+    tss=np.exp(-ks*lai)
+    too=np.exp(-ko*lai)
     z=Jfunc2_wl(ks,ko,lai)
     g1=(z-J1ks*too)/(ko+m)
     g2=(z-J1ko*tss)/(ks+m)
@@ -961,26 +957,26 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         sumint=(1.-tss)/(ks*lai)
     else :
         # Outside the hotspot
-        fhot=lai*sqrt(ko*ks)
+        fhot=lai*np.sqrt(ko*ks)
         # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
         x1=0.
         y1=0.
         f1=1.
-        fint=(1.-exp(-alf))*.05
+        fint=(1.-np.exp(-alf))*.05
         sumint=0.
         for istep in range(1,21):
             if istep < 20 :
-                x2=-log(1.-istep*fint)/alf
+                x2=-np.log(1.-istep*fint)/alf
             else :
                 x2=1.
-            y2=-(ko+ks)*lai*x2+fhot*(1.-exp(-alf*x2))/alf
-            f2=exp(y2)
+            y2=-(ko+ks)*lai*x2+fhot*(1.-np.exp(-alf*x2))/alf
+            f2=np.exp(y2)
             sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
             x1=float(x2)
             y1=float(y2)
             f1=float(f2)
         tsstoo=float(f1)
-    if isnan(sumint) : sumint=0.
+    if np.isnan(sumint) : sumint=0.
     # Bidirectional reflectance
     # Single scattering contribution
     rsos=w*lai*sumint
@@ -1032,15 +1028,14 @@ def volscatt(tts,tto,psi,ttl) :
     Wout Verhoef, april 2001, for CROMA.
     '''
 
-    from math import sin, cos, acos, radians, pi 
-    cts=cos(radians(tts))
-    cto=cos(radians(tto))
-    sts=sin(radians(tts))
-    sto=sin(radians(tto))
-    cospsi=cos(radians(psi))
-    psir=radians(psi)
-    cttl=cos(radians(ttl))
-    sttl=sin(radians(ttl))
+    cts=np.cos(np.radians(np.tts))
+    cto=np.cos(np.radians(np.tto))
+    sts=np.sin(np.radians(np.tts))
+    sto=np.sin(np.radians(np.tto))
+    cospsi=np.cos(np.radians(psi))
+    psir=np.radians(np.psi)
+    cttl=np.cos(np.radians(ttl))
+    sttl=np.sin(np.radians(ttl))
     cs=cttl*cts
     co=cttl*cto
     ss=sttl*sts
@@ -1050,25 +1045,25 @@ def volscatt(tts,tto,psi,ttl) :
     cosbto=5.
     if abs(so) > 1e-6 : cosbto=-co/so
     if abs(cosbts) < 1.0:
-        bts=acos(cosbts)
+        bts=np.arccos(cosbts)
         ds=ss
     else:
-        bts=pi
+        bts=np.pi
         ds=cs
-    chi_s=2./pi*((bts-pi*0.5)*cs+sin(bts)*ss)
+    chi_s=2./np.pi*((bts-np.pi*0.5)*cs+np.sin(bts)*ss)
     if abs(cosbto) < 1.0:
-        bto=acos(cosbto)
+        bto=np.arccos(cosbto)
         do_=so
     else:
         if tto < 90.:
-            bto=pi
+            bto=np.pi
             do_=co
         else:
             bto=0.0
             do_=-co
-    chi_o=2.0/pi*((bto-pi*0.5)*co+sin(bto)*so)
+    chi_o=2.0/np.pi*((bto-np.pi*0.5)*co+np.sin(bto)*so)
     btran1=abs(bts-bto)
-    btran2=pi-abs(bts+bto-pi)
+    btran2=np.pi-abs(bts+bto-np.pi)
     if psir <= btran1:
         bt1=psir
         bt2=btran1
@@ -1083,9 +1078,9 @@ def volscatt(tts,tto,psi,ttl) :
             bt3=psir
     t1=2.*cs*co+ss*so*cospsi
     t2=0.
-    if bt2 > 0.: t2=sin(bt2)*(2.*ds*do_+ss*so*cos(bt1)*cos(bt3))
-    denom=2.*pi**2
-    frho=((pi-bt2)*t1+t2)/denom
+    if bt2 > 0.: t2=np.sin(bt2)*(2.*ds*do_+ss*so*np.cos(bt1)*np.cos(bt3))
+    denom=2.*np.pi**2
+    frho=((np.pi-bt2)*t1+t2)/denom
     ftau=(-bt2*t1+t2)/denom
     if frho < 0. : frho=0.
     if ftau < 0. : ftau=0.
@@ -1122,6 +1117,7 @@ def volscatt_vec(tts,tto,psi,ttl) :
     ----------
     Wout Verhoef, april 2001, for CROMA.
     '''
+    
     tts,tto,psi=map(np.asarray,(tts,tto,psi))
     cts=np.cos(np.radians(tts))
     cto=np.cos(np.radians(tto))
@@ -1181,22 +1177,23 @@ def volscatt_vec(tts,tto,psi,ttl) :
 
 def Jfunc1(k,l,t) :
     ''' J1 function with avoidance of singularity problem.'''
-    from numpy import exp,zeros,size
-    nb=size(l)
+
+    nb=np.size(l)
     del_=(k-l)*t
     if nb > 1:
-        result=zeros(nb)
-        result[abs(del_) > 1e-3]=(exp(-l[abs(del_)> 1e-3]*t)-exp(-k*t))/(k-l[abs(del_)> 1e-3])
-        result[abs(del_)<= 1e-3]=0.5*t*(exp(-k*t)+exp(-l[abs(del_)<= 1e-3]*t))*(1.-(del_[abs(del_)<= 1e-3]**2.)/12.)
+        result=np.zeros(nb)
+        result[abs(del_) > 1e-3]=(np.exp(-l[abs(del_)> 1e-3]*t)-np.exp(-k*t))/(k-l[abs(del_)> 1e-3])
+        result[abs(del_)<= 1e-3]=0.5*t*(np.exp(-k*t)+np.exp(-l[abs(del_)<= 1e-3]*t))*(1.-(del_[abs(del_)<= 1e-3]**2.)/12.)
     else:
         if abs(del_) > 1e-3 :
-            result=(exp(-l*t)-exp(-k*t))/(k-l)
+            result=(np.exp(-l*t)-np.exp(-k*t))/(k-l)
         else:
-            result=0.5*t*(exp(-k*t)+exp(-l*t))*(1.-(del_**2.)/12.)
+            result=0.5*t*(np.exp(-k*t)+np.exp(-l*t))*(1.-(del_**2.)/12.)
     return result
 
 def Jfunc1_vec(k,l,t) :
     ''' J1 function with avoidance of singularity problem.'''
+    
     del_=(k-l)*t
     result=np.zeros(t.shape)
     index=np.abs(del_) > 1e-3 
@@ -1206,22 +1203,23 @@ def Jfunc1_vec(k,l,t) :
 
 def Jfunc2(k,l,t) :
     '''J2 function.'''
+    
     return (1.-np.exp(-(k+l)*t))/(k+l)
 
 def Jfunc1_wl(k,l,t) :
     '''J1 function with avoidance of singularity problem.'''
-    from math import exp
+
     del_=(k-l)*t
     if abs(del_) > 1e-3 :
-      result=(exp(-l*t)-exp(-k*t))/(k-l)
+      result=(np.exp(-l*t)-np.exp(-k*t))/(k-l)
     else:
-      result=0.5*t*(exp(-k*t)+exp(-l*t))*(1.-(del_**2.)/12.)
+      result=0.5*t*(np.exp(-k*t)+np.exp(-l*t))*(1.-(del_**2.)/12.)
     return result
 
 def Jfunc2_wl(k,l,t) :
     '''J2 function.'''
-    from math import exp
-    return (1.-exp(-(k+l)*t))/(k+l)
+
+    return (1.-np.exp(-(k+l)*t))/(k+l)
 
 def calc_sun_angles(lat, lon, stdlon, doy, ftime):
     '''Calculates the Sun Zenith and Azimuth Angles (SZA & SAA).
