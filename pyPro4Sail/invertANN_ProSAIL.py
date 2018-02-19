@@ -4,16 +4,24 @@ Created on Fri Jun 10 16:56:25 2016
 
 @author: hector
 """
+import numpy as np
+from sknn.mlp import Regressor, Layer
+import pickle
+from sknn.platform import gpu32
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from collections import OrderedDict
+from scipy.stats import pearsonr
+import matplotlib.pyplot as plt
+import pyPro4Sail.ProspectD as ProspectD 
+import pyPro4Sail.FourSAIL as FourSAIL 
+from numpy.random import rand,randint
+from scipy.ndimage.filters import gaussian_filter1d
+
+
 def TrainANN(X_array,Y_array, dropout_rate=0.25,learning_rate=0.3, momentum=0.99,hidden_layers=['Sigmoid'],
              inputScale=True, outputScale=True,reducePCA=True,outfile=None):
 
-    import numpy as np
-    from sknn.mlp import Regressor, Layer
-    import pickle
-    from sknn.platform import gpu32
-    from sklearn.decomposition import PCA
-    from sklearn.preprocessing import StandardScaler
-    from collections import OrderedDict
 
     Y_array=np.asarray(Y_array)
     X_array=np.asarray(X_array)
@@ -89,9 +97,6 @@ def TrainANN(X_array,Y_array, dropout_rate=0.25,learning_rate=0.3, momentum=0.99
 def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=None, 
             outfile=None,ObjParamName=None):
     
-    import numpy as np 
-    from scipy.stats import pearsonr
-    import matplotlib.pyplot as plt
     
     X_array=np.asarray(X_array)
     Y_array=np.asarray(Y_array)
@@ -141,16 +146,11 @@ def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=N
     
 def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
         fwhm=None,outfile=None,
-        ObjParam=['N_leaf','Cab','Car','Cbrown','Cm','Cw', 'LAI', 'leaf_angle','hotspot','fAPAR'],
+        ObjParam=['N_leaf','Cab','Car','Cbrown','Cm','Cw', 'Ant','LAI', 'leaf_angle','hotspot','fAPAR'],
         param_bounds={'N_leaf':[1.,3.],'Cab':[0.0,100.0],'Car':[0.0,40.0],'Cbrown':[0.0,1.0],
-        'Cw':[0.001,0.04],'Cm':[0.001,0.05],'LAI':[0.0,8.0],'leaf_angle':[34.0,73.0],
+        'Cw':[0.001,0.04],'Cm':[0.001,0.05],'Ant':[0.00,100],'LAI':[0.0,8.0],'leaf_angle':[34.0,73.0],
         'hotspot':[0.0,1.0]}):
             
-    import Prospect5, FourSAIL
-    import numpy as np
-    from numpy.random import rand,randint
-    from scipy.ndimage.filters import gaussian_filter1d
-    import pickle
     
     print ('Starting Simulations... 0% done')
     progress=n_simulations/10
@@ -180,9 +180,9 @@ def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
         # Calculate the lidf
         lidf=FourSAIL.CalcLIDF_Campbell(input_param['leaf_angle'])
         #for i,wl in enumerate(wls_wim):
-        [wls,r,t]=Prospect5.Prospect5(input_param['N_leaf'],
+        [wls,r,t]=ProspectD.ProspectD(input_param['N_leaf'],
                 input_param['Cab'],input_param['Car'],input_param['Cbrown'], 
-                input_param['Cw'],input_param['Cm'])
+                input_param['Cw'],input_param['Cm'],input_param['Ant'])
         #Convolve the simulated spectra to a gaussian filter per band
         if fwhm:
             sigma=FWHM2Sigma(fwhm)
@@ -260,21 +260,18 @@ def CalcfAPAR_4SAIL (skyl,LAI,lidf,hotspot,sza,rho_leaf,tau_leaf,rsoil):
     fAPAR : float
         Fraction of Absorbed Photosynthetically Active Radiation'''
     
-    from numpy import zeros, radians, cos, sin, pi, sum
-    from FourSAIL import FourSAIL
-
     #Input the angle step to perform the hemispherical integration
     stepvza=10
     steppsi=30
     Es=1.0-skyl
     Ed=skyl
     #Initialize values
-    So_sw=zeros(len(rho_leaf))
+    So_sw=np.zeros(len(rho_leaf))
     # Start the hemispherical integration
     vzas_psis=((vza,psi) for vza in range(5,90,stepvza) for psi in range(0,360,steppsi))
     for vza,psi in vzas_psis:
         [tss, too, tsstoo, rdd, tdd, rsd, tsd, rdo, tdo, rso, rsos, rsod, rddt, 
-             rsdt, rdot, rsodt, rsost, rsot,gammasdf,gammasdb,gammaso]=FourSAIL(LAI,
+             rsdt, rdot, rsodt, rsost, rsot,gammasdf,gammasdb,gammaso]=FourSAIL.FourSAIL(LAI,
             hotspot,lidf,sza,vza,psi,rho_leaf,tau_leaf,rsoil)
         # Downwelling solar beam radiation at ground level (beam transmissnion)
         Es_1=tss*Es
@@ -285,14 +282,14 @@ def CalcfAPAR_4SAIL (skyl,LAI,lidf,hotspot,sza,rho_leaf,tau_leaf,rsoil):
         # Upwelling shortwave (beam and diffuse) radiation towards the observer (at angle psi/vza)
         Eo_0=(rso*Es+rdo*Ed+tdo*Ed_up_1+too*Ed_up_1)
         # Calculate the reflectance factor and project into the solid angle
-        cosvza   = cos(radians(vza))
-        sinvza   = sin(radians(vza))
+        cosvza   = np.cos(np.radians(vza))
+        sinvza   = np.sin(np.radians(vza))
         # Spectral flux at the top of the canopy        
-        So=Eo_0*cosvza*sinvza*radians(stepvza)*radians(steppsi)
+        So=Eo_0*cosvza*sinvza*np.radians(stepvza)*np.radians(steppsi)
         # Spectral flux at ground lnevel
         Sn_soil=(1.-rsoil)*(Es_1+Ed_down_1) # narrowband net soil shortwave radiation
         # Get the to of the canopy flux (as it is not Lambertian)
-        So_sw_dir=So/pi
+        So_sw_dir=So/np.pi
         # Add the top of the canopy flux to the integral and continue through the hemisphere
         So_sw=So_sw+So_sw_dir
     # Calculate the vegetation (sw/lw) net radiation (divergence) as residual of top of the canopy and net soil radiation
@@ -305,6 +302,6 @@ def CalcfAPAR_4SAIL (skyl,LAI,lidf,hotspot,sza,rho_leaf,tau_leaf,rsoil):
 
 
 def FWHM2Sigma(fwhm):
-    from math import sqrt, log
-    sigma=fwhm/(2.0*sqrt(2.0*log(2.0)))
+
+    sigma=fwhm/(2.0*np.sqrt(2.0*np.log(2.0)))
     return sigma
