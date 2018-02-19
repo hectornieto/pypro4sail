@@ -1223,9 +1223,9 @@ def Jfunc2_wl(k,l,t) :
     from math import exp
     return (1.-exp(-(k+l)*t))/(k+l)
 
-def Get_SunAngles(lat,lon,doy,hour,stdlon):
+def calc_sun_angles(lat, lon, stdlon, doy, ftime):
     '''Calculates the Sun Zenith and Azimuth Angles (SZA & SAA).
-    
+
     Parameters
     ----------
     lat : float
@@ -1238,56 +1238,40 @@ def Get_SunAngles(lat,lon,doy,hour,stdlon):
         day of year of measurement (1-366).
     ftime : float
         time of measurement (decimal hours).
-    
+
     Returns
     -------
     sza : float
         Sun Zenith Angle (degrees).
     saa : float
         Sun Azimuth Angle (degrees).
-     
+
     '''
-    from math import pi, sin, cos, asin, acos, radians, degrees
+
+    lat, lon, stdlon, doy, ftime = map(
+        np.asarray, (lat, lon, stdlon, doy, ftime))
     # Calculate declination
-    declination=0.409*sin((2.0*pi*doy/365.0)-1.39)
-    EOT=0.258*cos(declination)-7.416*sin(declination)-3.648*cos(2.0*declination)-9.228*sin(2.0*declination)
-    LC=(stdlon-lon)/15.
-    time_corr=(-EOT/60.)+LC
-    solar_time=hour-time_corr
+    declination = 0.409 * np.sin((2.0 * np.pi * doy / 365.0) - 1.39)
+    EOT = 0.258 * np.cos(declination) - 7.416 * np.sin(declination) - \
+        3.648 * np.cos(2.0 * declination) - 9.228 * np.sin(2.0 * declination)
+    LC = (stdlon - lon) / 15.
+    time_corr = (-EOT / 60.) + LC
+    solar_time = ftime - time_corr
     # Get the hour angle
-    w=(solar_time-12.0)*15.
+    w = np.asarray((solar_time - 12.0) * 15.)
     # Get solar elevation angle
-    sin_thetha=cos(radians(w))*cos(declination)*cos(radians(lat))+sin(declination)*sin(radians(lat))
-    sun_elev=asin(sin_thetha)
+    sin_thetha = np.cos(np.radians(w)) * np.cos(declination) * np.cos(np.radians(lat)) + \
+         np.sin(declination) * np.sin(np.radians(lat))
+    sun_elev = np.arcsin(sin_thetha)
     # Get solar zenith angle
-    sza=pi/2.0-sun_elev
-    sza=degrees(sza)
+    sza = np.pi / 2.0 - sun_elev
+    sza = np.asarray(np.degrees(sza))
     # Get solar azimuth angle
-    cos_phi=(sin(declination)*cos(radians(lat))-cos(radians(w))*cos(declination)*sin(radians(lat)))/cos(sun_elev)
-    if w <= 0.0:
-        saa=degrees(acos(cos_phi))
-    else:
-        saa=360.-degrees(acos(cos_phi))
-
-    return sza,saa
-
-if __name__=='__main__':
-    from matplotlib import pyplot as plt
-    LAI=np.random.uniform(0,10,1000)
-    hotspot=np.random.uniform(0,1,LAI.size)
-    tts=np.random.uniform(0,90,LAI.size)
-    tto=np.random.uniform(0,90,LAI.size)
-    psi=np.random.uniform(0,360,LAI.size)
-    lidf=CalcLIDF_Campbell_vec(np.random.uniform(0,90,LAI.size))
-    rho=0.05
-    tau=0.03
-    rsoil=0.15
-    [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
-            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]=FourSAIL_vec(LAI,hotspot,lidf,tts,tto,psi,rho,tau,rsoil)
-    rdot_2=np.zeros(rdot.shape)
-    rsot_2=np.zeros(rsot.shape)
-    for i,lai in enumerate(LAI):
-        [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
-            rso,rsos,rsod,rddt,rsdt,rdot_2[i],rsodt,rsost,rsot_2[i],gammasdf,gammasdb,gammaso]=FourSAIL(lai,hotspot[i],lidf[:,i],tts[i],tto[i],psi[i],rho,tau,rsoil)
-
-    plt.plot(LAI,rdot-rdot_2,'r',LAI,rsot-rsot_2,'b')
+    cos_phi = np.asarray(
+        (np.sin(declination) * np.cos(np.radians(lat)) -
+         np.cos(np.radians(w)) * np.cos(declination) * np.sin(np.radians(lat))) /
+        np.cos(sun_elev))
+    saa = np.zeros(sza.shape)
+    saa[w <= 0.0] = np.degrees(np.arccos(cos_phi[w <= 0.0]))
+    saa[w > 0.0] = 360. - np.degrees(np.arccos(cos_phi[w > 0.0]))
+    return np.asarray(sza), np.asarray(saa)
