@@ -148,7 +148,7 @@ def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
         fwhm=None,outfile=None,
         ObjParam=['N_leaf','Cab','Car','Cbrown','Cm','Cw', 'Ant','LAI', 'leaf_angle','hotspot','fAPAR'],
         param_bounds={'N_leaf':[1.,3.],'Cab':[0.0,100.0],'Car':[0.0,40.0],'Cbrown':[0.0,1.0],
-        'Cw':[0.001,0.04],'Cm':[0.001,0.05],'Ant':[0.00,100],'LAI':[0.0,8.0],'leaf_angle':[34.0,73.0],
+        'Cw':[0.001,0.04],'Cm':[0.001,0.05],'Ant':[0.00,40.],'LAI':[0.0,8.0],'leaf_angle':[34.0,73.0],
         'hotspot':[0.0,1.0]}):
             
     
