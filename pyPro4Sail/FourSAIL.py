@@ -45,7 +45,7 @@ EXAMPLE
     
 """
 params4SAIL=('LAI','hotspot','leaf_angle')
-paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','LAI','hotspot','leaf_angle') 
+paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','Ant','LAI','hotspot','leaf_angle') 
 import numpy as np
 
 def CalcLIDF_Verhoef(a,b,n_elements=18):
