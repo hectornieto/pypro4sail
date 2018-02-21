@@ -15,7 +15,7 @@ from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import pyPro4Sail.ProspectD as ProspectD 
 import pyPro4Sail.FourSAIL as FourSAIL 
-from numpy.random import rand,randint
+import numpy.random as rnd
 from scipy.ndimage.filters import gaussian_filter1d
 
 
@@ -130,14 +130,23 @@ def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=N
     if not ObjParamName:
         ObjParamName=[str(i) for i in range(n_outputs)]
     f,axarr=plt.subplots(n_outputs)
-    for i,param in enumerate(ObjParamName):
-        RMSE.append(np.sqrt(np.sum((Y_array[:,i]-Y_test[:,i])**2)/np.size(Y_array[:,i])))
-        bias.append(np.mean(Y_array[:,i]-Y_test[:,i]))
-        cor.append(pearsonr(Y_array[:,i],Y_test[:,i])[0])
-        axarr[i].scatter(Y_array[:,i],Y_test[:,i], color='black', s=5,alpha=0.1, marker='.')
-        absline=np.asarray([[np.amin(Y_array[:,i]),np.amax(Y_array[:,i])],[np.amin(Y_array[:,i]),np.amax(Y_array[:,i])]])
-        axarr[i].plot(absline[0],absline[1],color='red')
-        axarr[i].set_title(param)
+    if n_outputs==1:
+        RMSE.append(np.sqrt(np.sum((Y_array[:,0]-Y_test[:,0])**2)/np.size(Y_array[:,0])))
+        bias.append(np.mean(Y_array[:,0]-Y_test[:,0]))
+        cor.append(pearsonr(Y_array[:,0],Y_test[:,0])[0])
+        axarr.scatter(Y_array[:,0],Y_test[:,0], color='black', s=5,alpha=0.1, marker='.')
+        absline=np.asarray([[np.amin(Y_array[:,0]),np.amax(Y_array[:,0])],[np.amin(Y_array[:,0]),np.amax(Y_array[:,0])]])
+        axarr.plot(absline[0],absline[1],color='red')
+        axarr.set_title(ObjParamName[0])
+    else:   
+        for i,param in enumerate(ObjParamName):
+            RMSE.append(np.sqrt(np.sum((Y_array[:,i]-Y_test[:,i])**2)/np.size(Y_array[:,i])))
+            bias.append(np.mean(Y_array[:,i]-Y_test[:,i]))
+            cor.append(pearsonr(Y_array[:,i],Y_test[:,i])[0])
+            axarr[i].scatter(Y_array[:,i],Y_test[:,i], color='black', s=5,alpha=0.1, marker='.')
+            absline=np.asarray([[np.amin(Y_array[:,i]),np.amax(Y_array[:,i])],[np.amin(Y_array[:,i]),np.amax(Y_array[:,i])]])
+            axarr[i].plot(absline[0],absline[1],color='red')
+            axarr[i].set_title(param)
     if outfile:        
         f.savefig(outfile)
     plt.close()
@@ -171,10 +180,9 @@ def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
             progress+=n_simulations/10
         input_param=dict()
         for param in param_bounds:
-            rnd=rand()
-            input_param[param]=param_bounds[param][0]+rnd*(param_bounds[param][1]-param_bounds[param][0])
+            input_param[param]=param_bounds[param][0]+rnd.rand()*(param_bounds[param][1]-param_bounds[param][0])
         if n_soils>1:
-            rho_soil=rsoil[randint(0,n_soils),:]
+            rho_soil=rsoil[rnd.randint(0,n_soils),:]
         else:
             rho_soil=np.asarray(rsoil)
         # Calculate the lidf
