@@ -18,6 +18,8 @@ import pyPro4Sail.FourSAIL as FourSAIL
 import numpy.random as rnd
 from scipy.ndimage.filters import gaussian_filter1d
 
+UNIFORM_DIST=1
+GAUSSIAN_DIST=2
 
 def TrainANN(X_array,Y_array, dropout_rate=0.25,learning_rate=0.3, momentum=0.99,hidden_layers=['Sigmoid'],
              inputScale=True, outputScale=True,reducePCA=True,outfile=None):
@@ -152,20 +154,118 @@ def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=N
     plt.close()
     
     return RMSE,bias,cor
-    
-def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
-        fwhm=None,outfile=None,
-        ObjParam=['N_leaf','Cab','Car','Cbrown','Cm','Cw', 'Ant','LAI', 'leaf_angle','hotspot','fAPAR'],
-        param_bounds={'N_leaf':[1.,3.],'Cab':[0.0,100.0],'Car':[0.0,40.0],'Cbrown':[0.0,1.0],
-        'Cw':[0.001,0.04],'Cm':[0.001,0.05],'Ant':[0.00,40.],'LAI':[0.0,8.0],'leaf_angle':[34.0,73.0],
-        'hotspot':[0.0,1.0]}):
+
+def build_prosail_database(n_simulations,
+                           ObjParam=('N_leaf',
+                           'Cab',
+                           'Car',
+                           'Cbrown',
+                           'Cm',
+                           'Cw',
+                           'Ant',
+                           'LAI', 
+                           'leaf_angle',
+                           'hotspot'),
+                           param_bounds={'N_leaf':(1.2,2.2),
+                                         'Cab':(0.0,100.0),
+                                         'Car':(0.0,40.0),
+                                         'Cbrown':(0.0,1.0),
+                                         'Cw':(0.003,0.011),
+                                         'Cm':(0.003,0.011),
+                                         'Ant':(0.00,40.),
+                                         'LAI':(0.0,15.0),
+                                         'leaf_angle':(30.0,80.0),
+                                         'hotspot':(0.1,0.5)},
+                           moments={'N_leaf':(1.5,0.3),
+                                         'Cab':(45.0,30.0),
+                                         'Car':(20.0,10.0),
+                                         'Cbrown':(0.0,0.3),
+                                         'Cw':(0.005,0.005),
+                                         'Cm':(0.005,0.005),
+                                         'Ant':(0.0,10.0),
+                                         'LAI':(1.5,3.0),
+                                         'leaf_angle':(60.0,30.0),
+                                         'hotspot':(0.2,0.5)},
+                            distribution={'N_leaf':GAUSSIAN_DIST,
+                                         'Cab':GAUSSIAN_DIST,
+                                         'Car':GAUSSIAN_DIST,
+                                         'Cbrown':GAUSSIAN_DIST,
+                                         'Cw':GAUSSIAN_DIST,
+                                         'Cm':GAUSSIAN_DIST,
+                                         'Ant':GAUSSIAN_DIST,
+                                         'LAI':GAUSSIAN_DIST,
+                                         'leaf_angle':GAUSSIAN_DIST,
+                                         'hotspot':GAUSSIAN_DIST},
+                            apply_covariate={'N_leaf':False,
+                                         'Cab':False,
+                                         'Car':False,
+                                         'Cbrown':False,
+                                         'Cw':False,
+                                         'Cm':False,
+                                         'Ant':False,
+                                         'leaf_angle':False,
+                                         'hotspot':False},
+                            covariate={'N_leaf':((1.2,2.2),(1.3,1.8)),
+                                         'Cab':((0,100),(45,100)),
+                                         'Car':((0,40),(20,40)),
+                                         'Cbrown':((0,1),(0,0.2)),
+                                         'Cw':((0.003,0.011),(0.005,0.011)),
+                                         'Cm':((0.003,0.011),(0.005,0.011)),
+                                         'Ant':((0,40),(0,40)),
+                                         'leaf_angle':((30,80),(55,65)),
+                                         'hotspot':((0.1,0.5),(0.1,0.5))},
+                                    
+                            outfile=None):
             
     
+    print ('Build ProspectD+4SAIL database')
+    input_param=dict()
+    for param in param_bounds:
+        if distribution[param]==UNIFORM_DIST:
+            input_param[param]=param_bounds[param][0]+rnd.rand(n_simulations)*(param_bounds[param][1]-param_bounds[param][0])
+        elif distribution[param]==GAUSSIAN_DIST:
+            input_param[param]=moments[param][0]+ rnd.randn(n_simulations) * moments[param][1]
+            input_param[param]=np.clip(input_param[param],param_bounds[param][0],param_bounds[param][1])
+            
+    # Apply covariates where needed
+    LAI_range=param_bounds['LAI'][1]-param_bounds['LAI'][0]
+    for param in apply_covariate:
+        if apply_covariate:
+            Vmin_lai=covariate[param][0][0]+input_param['LAI']*(covariate[param][1][0]-covariate[param][0][0])/LAI_range
+            Vmax_lai=covariate[param][0][1]+input_param['LAI']*(covariate[param][1][1]-covariate[param][0][1])/LAI_range
+            input_param[param]=np.clip(input_param[param], Vmin_lai, Vmax_lai)
+            
+            
+    return input_param
+    
+def SimulateProSAIL_LUT(input_param,
+                        wls_sim,
+                        rsoil,
+                        skyl=0.1,
+                        sza=37,
+                        vza=0,
+                        psi=0,
+                        srf=None,
+                        outfile=None,
+                        calc_FAPAR=False,
+                        reduce_4sail=False,
+                        ObjParam=('N_leaf',
+                           'Cab',
+                           'Car',
+                           'Cbrown',
+                           'Cm',
+                           'Cw',
+                           'Ant',
+                           'LAI', 
+                           'leaf_angle',
+                           'hotspot')):            
+    
     print ('Starting Simulations... 0% done')
+    # Convert input 
+    n_simulations=input_param[ObjParam[0]].shape[0]
     progress=n_simulations/10
     percent=10
     X_array=[]
-    Y_array=[]
     # Get the number of soil spectra
     rsoil=np.asarray(rsoil)
     n_soils=rsoil.shape
@@ -173,62 +273,117 @@ def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
         n_soils=1
     else:
         n_soils=n_soils[0]
+    if calc_FAPAR:
+        FAPAR_array=[]
     for case in range(n_simulations):
         if case>=progress:
             print(str(percent) +'% done')
             percent+=10
             progress+=n_simulations/10
-        input_param=dict()
-        for param in param_bounds:
-            input_param[param]=param_bounds[param][0]+rnd.rand()*(param_bounds[param][1]-param_bounds[param][0])
+
         if n_soils>1:
             rho_soil=rsoil[rnd.randint(0,n_soils),:]
         else:
             rho_soil=np.asarray(rsoil)
         # Calculate the lidf
-        lidf=FourSAIL.CalcLIDF_Campbell(input_param['leaf_angle'])
+        lidf=FourSAIL.CalcLIDF_Campbell(input_param['leaf_angle'][case])
         #for i,wl in enumerate(wls_wim):
-        [wls,r,t]=ProspectD.ProspectD(input_param['N_leaf'],
-                input_param['Cab'],input_param['Car'],input_param['Cbrown'], 
-                input_param['Cw'],input_param['Cm'],input_param['Ant'])
+        [wls,r,t]=ProspectD.ProspectD(input_param['N_leaf'][case],
+                input_param['Cab'][case], input_param['Car'][case],
+                input_param['Cbrown'][case],input_param['Cw'][case],
+                input_param['Cm'][case],input_param['Ant'][case])
         #Convolve the simulated spectra to a gaussian filter per band
-        if fwhm:
-            sigma=FWHM2Sigma(fwhm)
-            r=gaussian_filter1d(r,sigma)
-            t=gaussian_filter1d(t,sigma)
-        else:
-            r=np.asarray(r)
-            t=np.asarray(t)
         rho_leaf=[]
         tau_leaf=[]
-        for wl in wls_sim:
-            rho_leaf.append(float(r[wls==wl]))
-            tau_leaf.append(float(t[wls==wl]))
+
+        if srf and reduce_4sail:
+            if type(srf)==float or type(srf)==int:
+                wls=np.asarray(wls_sim)
+                #Convolve spectra by full width half maximum
+                sigma=FWHM2Sigma(srf)
+                r=gaussian_filter1d(r,sigma)
+                t=gaussian_filter1d(t,sigma)
+                for wl in wls_sim:
+                    rho_leaf.append(float(r[wls==wl]))
+                    tau_leaf.append(float(t[wls==wl]))
+
+            elif type(srf)==list or type(srf)==tuple:
+                for band in srf:
+                   rho_leaf.append(float(np.sum(srf[band]*r)/np.sum(srf[band])))
+                   rho_leaf.append(float(np.sum(srf[band]*r)/np.sum(srf[band])))
+        elif reduce_4sail:
+            wls=np.asarray(wls_sim)
+            r=np.asarray(r)
+            t=np.asarray(t)
+            for wl in wls_sim:
+                rho_leaf.append(float(r[wls==wl]))
+                tau_leaf.append(float(t[wls==wl]))
+        else:
+            rho_leaf=np.asarray(r)
+            tau_leaf=np.asarray(t)
+
+
+
         rho_leaf=np.asarray(rho_leaf)
         tau_leaf=np.asarray(tau_leaf)
                         
         [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,
                  rsodt,rsost,rsot,gammasdf,gammasdb,
-                 gammaso]=FourSAIL.FourSAIL(input_param['LAI'],input_param['hotspot'],
-                    lidf,sza,vza,psi,rho_leaf,tau_leaf,rho_soil)
-        if 'fAPAR' in ObjParam:
-            par_index=wls_sim<=700
-            fAPAR,fIPAR=CalcfAPAR_4SAIL (skyl[par_index],input_param['LAI'],lidf,
-                                         input_param['hotspot'],sza,rho_leaf[par_index],
+                 gammaso]=FourSAIL.FourSAIL(input_param['LAI'][case],
+                                            input_param['hotspot'][case],
+                                            lidf,sza,vza,psi,rho_leaf,
+                                            tau_leaf,rho_soil)
+        
+        if type(skyl)==float:
+            skyl=skyl*np.ones(len(wls))
+                    
+        r2=rdot*skyl+rsot*(1-skyl)  
+        
+        if calc_FAPAR:
+            par_index=wls<=700
+            fAPAR,fIPAR=CalcfAPAR_4SAIL (skyl[par_index],input_param['LAI'][case],lidf,
+                                         input_param['hotspot'][case],sza,rho_leaf[par_index],
                                         tau_leaf[par_index],rho_soil[par_index])
-            if fAPAR==np.nan:fAPAR=0
-        r2=rdot*skyl+rsot*(1-skyl)
+            if fAPAR==np.nan:
+                fAPAR=0
+                
+            FAPAR_array.append(fAPAR)
+        
+        rho_canopy=[]      
+        if srf and not reduce_4sail:
+            if type(srf)==float or type(srf)==int:
+                #Convolve spectra by full width half maximum
+                sigma=FWHM2Sigma(srf)
+                r2=gaussian_filter1d(r2,sigma)
+                for wl in wls_sim:
+                    rho_canopy.append(float(r2[wls==wl]))
+
+            elif type(srf)==list or type(srf)==tuple:
+                for band in srf:
+                   rho_canopy.append(float(np.sum(srf[band]*r2)/np.sum(srf[band])))
+        else:
+            for wl in wls_sim:
+                rho_canopy.append(float(r2[wls==wl]))
+
+        rho_canopy=np.asarray(rho_canopy)
+
+        X_array.append(rho_canopy)            
+
+            
+        
         X_array.append(r2)
-        Y=[]
-        for param in ObjParam:
-            if param=='fAPAR':
-                Y.append(fAPAR)
-            else:
-                Y.append(input_param[param])
-        Y_array.append(Y)
+    
+    #Append FAPAR to dependent parameters array
+    Y_array=[]
+    for param in ObjParam:
+        Y_array.append(input_param[param])
+    if calc_FAPAR:
+        Y_array.append(FAPAR_array)
+
    
     X_array=np.asarray(X_array)
     Y_array=np.asarray(Y_array)
+    
     if outfile:
         fid=open(outfile+'_rho','wb')
         pickle.dump(X_array,fid,-1)
@@ -236,6 +391,7 @@ def SimulateProSAIL_LUT(n_simulations,wls_sim,rsoil,skyl=0.1,sza=37,vza=0,psi=0,
         fid=open(outfile+'_param','wb')
         pickle.dump(Y_array,fid,-1)
         fid.close()
+
     return X_array,Y_array
 
 def CalcfAPAR_4SAIL (skyl,LAI,lidf,hotspot,sza,rho_leaf,tau_leaf,rsoil):
