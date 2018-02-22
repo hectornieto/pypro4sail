@@ -85,8 +85,10 @@ def TrainANN(X_array,Y_array, dropout_rate=0.25,learning_rate=0.3, momentum=0.99
         raise TypeError('hidden_layers must be either a list or a dictionary')
     # Include the output layer
     layers.append(Layer('Linear', units=n_outputs))
-    ann=Regressor(layers,verbose=True,learning_momentum=momentum,learning_rate=learning_rate,
-                  regularize='dropout',batch_size=10000,learning_rule='sgd')
+    ann=Regressor(layers,verbose=False,learning_momentum=momentum,learning_rate=learning_rate,
+                  batch_size=10000,learning_rule='sgd',
+                  #regularize='dropout'
+                  )
     
     ANN=ann.fit(X_array, Y_array)
     if outfile:    
