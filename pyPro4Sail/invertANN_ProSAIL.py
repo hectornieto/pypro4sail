@@ -156,16 +156,6 @@ def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=N
     return RMSE,bias,cor
 
 def build_prosail_database(n_simulations,
-                           ObjParam=('N_leaf',
-                           'Cab',
-                           'Car',
-                           'Cbrown',
-                           'Cm',
-                           'Cw',
-                           'Ant',
-                           'LAI', 
-                           'leaf_angle',
-                           'hotspot'),
                            param_bounds={'N_leaf':(1.2,2.2),
                                          'Cab':(0.0,100.0),
                                          'Car':(0.0,40.0),
@@ -308,9 +298,14 @@ def SimulateProSAIL_LUT(input_param,
                     tau_leaf.append(float(t[wls==wl]))
 
             elif type(srf)==list or type(srf)==tuple:
-                for band in srf:
-                   rho_leaf.append(float(np.sum(srf[band]*r)/np.sum(srf[band])))
-                   rho_leaf.append(float(np.sum(srf[band]*r)/np.sum(srf[band])))
+                skyl_rho=[]
+                for weight in srf:
+                   rho_leaf.append(float(np.sum(weight*r)/np.sum(weight)))
+                   tau_leaf.append(float(np.sum(weight*t)/np.sum(weight)))
+                   skyl_rho.append(float(np.sum(weight*skyl)/np.sum(weight)))
+                   
+                skyl_rho=np.asarray(skyl_rho)
+                
         elif reduce_4sail:
             wls=np.asarray(wls_sim)
             r=np.asarray(r)
@@ -321,6 +316,7 @@ def SimulateProSAIL_LUT(input_param,
         else:
             rho_leaf=np.asarray(r)
             tau_leaf=np.asarray(t)
+            skyl_rho=np.asarray(skyl)
 
 
 
@@ -335,13 +331,13 @@ def SimulateProSAIL_LUT(input_param,
                                             tau_leaf,rho_soil)
         
         if type(skyl)==float:
-            skyl=skyl*np.ones(len(wls))
+            skyl_rho=skyl*np.ones(len(wls))
                     
-        r2=rdot*skyl+rsot*(1-skyl)  
+        r2=rdot*skyl_rho+rsot*(1-skyl_rho)  
         
         if calc_FAPAR:
-            par_index=wls<=700
-            fAPAR,fIPAR=CalcfAPAR_4SAIL (skyl[par_index],input_param['LAI'][case],lidf,
+            par_index=wls_sim<=700
+            fAPAR,fIPAR=CalcfAPAR_4SAIL (skyl_rho[par_index],input_param['LAI'][case],lidf,
                                          input_param['hotspot'][case],sza,rho_leaf[par_index],
                                         tau_leaf[par_index],rho_soil[par_index])
             if fAPAR==np.nan:
@@ -361,6 +357,9 @@ def SimulateProSAIL_LUT(input_param,
             elif type(srf)==list or type(srf)==tuple:
                 for band in srf:
                    rho_canopy.append(float(np.sum(srf[band]*r2)/np.sum(srf[band])))
+        elif reduce_4sail:
+            rho_canopy=np.asarray(r2)
+            
         else:
             for wl in wls_sim:
                 rho_canopy.append(float(r2[wls==wl]))
@@ -368,31 +367,44 @@ def SimulateProSAIL_LUT(input_param,
         rho_canopy=np.asarray(rho_canopy)
 
         X_array.append(rho_canopy)            
-
-            
-        
-        X_array.append(r2)
     
     #Append FAPAR to dependent parameters array
-    Y_array=[]
-    for param in ObjParam:
-        Y_array.append(input_param[param])
     if calc_FAPAR:
-        Y_array.append(FAPAR_array)
-
-   
+        input_param['fAPAR']=FAPAR_array
+ 
     X_array=np.asarray(X_array)
-    Y_array=np.asarray(Y_array)
+    
     
     if outfile:
         fid=open(outfile+'_rho','wb')
         pickle.dump(X_array,fid,-1)
         fid.close()
         fid=open(outfile+'_param','wb')
-        pickle.dump(Y_array,fid,-1)
+        pickle.dump(input_param,fid,-1)
         fid.close()
 
-    return X_array,Y_array
+    return X_array,input_param
+
+def inputdict2array(input_param, 
+                    ObjParam=('N_leaf',
+                           'Cab',
+                           'Car',
+                           'Cbrown',
+                           'Cm',
+                           'Cw',
+                           'Ant',
+                           'LAI', 
+                           'leaf_angle',
+                           'hotspot')):
+    
+    Y_array=[]
+    for param in ObjParam:
+        Y_array.append(input_param[param])
+
+    Y_array=np.asarray(Y_array).T
+    
+    return Y_array
+
 
 def CalcfAPAR_4SAIL (skyl,LAI,lidf,hotspot,sza,rho_leaf,tau_leaf,rsoil):
     '''Estimates the fraction of Absorbed PAR using the 4SAIL 
