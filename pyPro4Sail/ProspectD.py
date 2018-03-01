@@ -35,7 +35,7 @@ EXAMPLE
 
 # Extinction coefficients and refractive index
 from pyPro4Sail import spectral_lib
-from scipy.special import expn
+from scipy.special import expi
 import numpy as np
 
 wls,refr_index,Cab_k,Car_k,Cbrown_k,Cw_k,Cm_k,Ant_k=spectral_lib
@@ -111,7 +111,7 @@ def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
         +Cm*np.array(Cm_k))/Nleaf
     k[k<=0]=1e-6
     
-    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    trans=(1.-k)*np.exp(-k)+k**2.*expi(-k)
     trans[k<=0.0]=1.0
     
     #==============================================================================
@@ -233,7 +233,7 @@ def Prospect5_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm):
         +Cm*np.array(Cm_k))/Nleaf
     k[k<=0]=1e-6
     
-    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    trans=(1.-k)*np.exp(-k)+k**2.*expi(-k)
     trans[k<=0.0]=1.0
     
     #==============================================================================
@@ -356,7 +356,7 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     if k<=0.: 
         trans=1.0
     else:
-        trans=(1.-k)*np.exp(-k)+(k**2)*expn(1.,k)
+        trans=(1.-k)*np.exp(-k)+(k**2)*expi(-k)
         if trans <0.0:trans=0.0
     #==============================================================================
     # reflectance and transmittance of one layer
@@ -474,7 +474,7 @@ def ProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
         +Cm*np.array(Cm_k)+Ant*np.array(Ant_k))/Nleaf
     k[k<=0]=1e-6
     
-    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    trans=(1.-k)*np.exp(-k)+k**2.*expi(-k)
     trans[k<=0.0]=1.0
     
     #==============================================================================
@@ -595,7 +595,7 @@ def ProspectD_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
         +Cm*np.array(Cm_k)+Ant*np.array(Ant_k))/Nleaf
     k[k<=0]=1e-6
     
-    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    trans=(1.-k)*np.exp(-k)+k**2.*expi(-k)
     trans[k<=0.0]=1.0
     
     #==============================================================================
@@ -720,7 +720,7 @@ def ProspectD_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     if k<=0.: 
         trans=1.0
     else:
-        trans=(1.-k)*np.exp(-k)+(k**2)*expn(1.,k)
+        trans=(1.-k)*np.exp(-k)+(k**2)*expi(-k)
         if trans <0.0:trans=0.0
     #==============================================================================
     # reflectance and transmittance of one layer
