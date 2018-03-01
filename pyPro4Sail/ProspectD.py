@@ -221,11 +221,12 @@ def Prospect5_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
     # Vectorize the inputs
-    Nleaf,Cab,Car,Cbrown,Cw,Cm=map(np.asarray,[Nleaf,Cab,Car,Cbrown,Cw,Cm])
-    Nleaf,Cab,Car,Cbrown,Cw,Cm=map(np.reshape,[Nleaf,Cab,Car,Cbrown,Cw,Cm],
-                                   [(-1,1),(-1,1),(-1,1),(-1,1),(-1,1),(-1,1)])
-    Nleaf,Cab,Car,Cbrown,Cw,Cm=map(np.repeat,[Nleaf,Cab,Car,Cbrown,Cw,Cm],
-                                   6*[2101],6*[1])
+    Nleaf,Cab,Car,Cbrown,Cw,Cm=(Nleaf[:,np.newaxis],
+                                Cab[:,np.newaxis],
+                                Car[:,np.newaxis],
+                                Cbrown[:,np.newaxis],
+                                Cw[:,np.newaxis],
+                                Cm[:,np.newaxis])
     
     l=np.array(wls)
     k=(Cab*np.array(Cab_k)+Car*np.array(Car_k)
@@ -343,6 +344,13 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # walnut (D)   2.656   62.8  0.000263  0.006573
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
+    #Vectorize the input
+    Nleaf,Cab,Car,Cbrown,Cw,Cm=(Nleaf[:,np.newaxis],
+                                Cab[:,np.newaxis],
+                                Car[:,np.newaxis],
+                                Cbrown[:,np.newaxis],
+                                Cw[:,np.newaxis],
+                                Cm[:,np.newaxis])
 
     wl_index=wls==wl
     Cab_abs=float(Cab_k[wl_index])
@@ -583,12 +591,14 @@ def ProspectD_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
     # Vectorize the inputs
-    Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant=map(np.asarray,[Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant])
-    Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant=map(np.reshape,[Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant],
-                                   [(-1,1),(-1,1),(-1,1),(-1,1),(-1,1),(-1,1),(-1,1)])
-    Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant=map(np.repeat,[Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant],
-                                   7*[2101],7*[1])
-
+    Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant=(Nleaf[:,np.newaxis],
+                                Cab[:,np.newaxis],
+                                Car[:,np.newaxis],
+                                Cbrown[:,np.newaxis],
+                                Cw[:,np.newaxis],
+                                Cm[:,np.newaxis],
+                                Ant[:,np.newaxis])
+    
     l=np.array(wls)
     k=(Cab*np.array(Cab_k)+Car*np.array(Car_k)
         +Cbrown*np.array(Cbrown_k)+Cw*np.array(Cw_k)
