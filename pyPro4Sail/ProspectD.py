@@ -104,11 +104,11 @@ def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # walnut (D)   2.656   62.8  0.000263  0.006573
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
-
+   
     l=np.array(wls)
-    k=(float(Cab)*np.array(Cab_k)+float(Car)*np.array(Car_k)
-        +float(Cbrown)*np.array(Cbrown_k)+float(Cw)*np.array(Cw_k)
-        +float(Cm)*np.array(Cm_k))/float(Nleaf)
+    k=(Cab*np.array(Cab_k)+Car*np.array(Car_k)
+        +Cbrown*np.array(Cbrown_k)+Cw*np.array(Cw_k)
+        +Cm*np.array(Cm_k))/Nleaf
     k[k<=0]=1e-6
     
     trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
@@ -143,10 +143,132 @@ def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     delta=np.sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
     beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
     va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
-    denominator=np.zeros(va.shape[0])+1e-14
+    denominator=np.zeros(va.shape)+1e-14
     denominator[va*(beta-r90)> 1e-14]=va[va*(beta-r90)> 1e-14]*(beta[va*(beta-r90)> 1e-14]-r90[va*(beta-r90)> 1e-14])
     vb=np.sqrt(beta*(va-r90)/(denominator))
-    vbNN = vb**(float(Nleaf)-1.)
+    vbNN = vb**(Nleaf-1.)
+    vbNNinv = 1./vbNN
+    vainv = 1./va
+    s1=ta*t90*(vbNN-vbNNinv)
+    s2=ta*(va-vainv)
+    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
+    rho=ra+s1/s3
+    tau=s2/s3
+    
+    return l,rho,tau
+
+
+def Prospect5_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm):
+    '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
+    from 400 nm to 2500 nm (1 nm step).
+
+    Parameters
+    ----------    
+    N   : float
+        leaf structure parameter.
+    Cab : float
+        chlorophyll a+b content (mug cm-2).
+    Car : float
+        carotenoids content (mug cm-2).
+    Cbrown : float
+        brown pigments concentration (unitless).
+    Cw  : float
+        equivalent water thickness (g cm-2 or cm).
+    Cm  : float
+        dry matter content (g cm-2).
+
+    Returns
+    -------
+    l : array_like
+        wavelenght (nm).
+    rho : array_like
+        leaf reflectance .
+    tau : array_like
+        leaf transmittance .
+    
+    References
+    ----------
+    .. [Jacquemoud96] Jacquemoud S., Ustin S.L., Verdebout J., Schmuck G., Andreoli G.,
+        Hosgood B. (1996), Estimating leaf biochemistry using the PROSPECT
+        leaf optical properties model, Remote Sensing of Environment, 56:194-202
+        http://dx.doi.org/10.1016/0034-4257(95)00238-3.
+    .. [Jacquemoud90] Jacquemoud S., Baret F. (1990), PROSPECT: a model of leaf optical
+        properties spectra, Remote Sensing of Environment, 34:75-91
+        http://dx.doi.org/10.1016/0034-4257(90)90100-Z.
+    .. [Feret08] Feret et al. (2008), PROSPECT-4 and 5: Advances in the Leaf Optical
+        Properties Model Separating Photosynthetic Pigments, Remote Sensing of
+        Environment. http://dx.doi.org/10.1016/j.rse.2008.02.012.
+    '''
+    #==============================================================================
+    # Here are some examples observed during the LOPEX'93 experiment on
+    # Fresh (F) and dry (D) leaves :
+    # 
+    # ---------------------------------------------
+    #                N     Cab     Cw        Cm    
+    # ---------------------------------------------
+    # min          1.000    0.0  0.004000  0.001900
+    # max          3.000  100.0  0.040000  0.016500
+    # corn (F)     1.518   58.0  0.013100  0.003662
+    # rice (F)     2.275   23.7  0.007500  0.005811
+    # clover (F)   1.875   46.7  0.010000  0.003014
+    # laurel (F)   2.660   74.1  0.019900  0.013520
+    # ---------------------------------------------
+    # min          1.500    0.0  0.000063  0.0019
+    # max          3.600  100.0  0.000900  0.0165
+    # bamboo (D)   2.698   70.8  0.000117  0.009327
+    # lettuce (D)  2.107   35.2  0.000244  0.002250
+    # walnut (D)   2.656   62.8  0.000263  0.006573
+    # chestnut (D) 1.826   47.7  0.000307  0.004305
+    #==============================================================================
+    # Vectorize the inputs
+    Nleaf,Cab,Car,Cbrown,Cw,Cm=map(np.asarray,[Nleaf,Cab,Car,Cbrown,Cw,Cm])
+    Nleaf,Cab,Car,Cbrown,Cw,Cm=map(np.reshape,[Nleaf,Cab,Car,Cbrown,Cw,Cm],
+                                   [(-1,1),(-1,1),(-1,1),(-1,1),(-1,1),(-1,1)])
+    Nleaf,Cab,Car,Cbrown,Cw,Cm=map(np.repeat,[Nleaf,Cab,Car,Cbrown,Cw,Cm],
+                                   6*[2101],6*[1])
+    
+    l=np.array(wls)
+    k=(Cab*np.array(Cab_k)+Car*np.array(Car_k)
+        +Cbrown*np.array(Cbrown_k)+Cw*np.array(Cw_k)
+        +Cm*np.array(Cm_k))/Nleaf
+    k[k<=0]=1e-6
+    
+    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    trans[k<=0.0]=1.0
+    
+    #==============================================================================
+    # reflectance and transmittance of one layer
+    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
+    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
+    # Soc. Am., 59(10):1376-1379.
+    #==============================================================================
+    #reflectivity and transmissivity at the interface
+    alpha=40.;
+    n=np.array(refr_index)
+    t12=tav(alpha,n)
+    t21=tav(90.,n)/n**2.
+    r12=1.-t12
+    r21=1.-t21
+    x=tav(alpha,n)/tav(90.,n)
+    y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
+    #reflectance and transmittance of the elementary layer N = 1
+    ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
+    ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
+    r90=(ra-y)/x
+    t90=ta/x
+    #==============================================================================
+    # reflectance and transmittance of N layers
+    # Stokes G.G. (1862), On the intensity of the light reflected from
+    # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
+    # 11:545-556.
+    #==============================================================================
+    delta=np.sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
+    beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
+    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
+    denominator=np.zeros(va.shape)+1e-14
+    denominator[va*(beta-r90)> 1e-14]=va[va*(beta-r90)> 1e-14]*(beta[va*(beta-r90)> 1e-14]-r90[va*(beta-r90)> 1e-14])
+    vb=np.sqrt(beta*(va-r90)/(denominator))
+    vbNN = vb**(Nleaf-1.)
     vbNNinv = 1./vbNN
     vainv = 1./va
     s1=ta*t90*(vbNN-vbNNinv)
@@ -222,15 +344,15 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
 
-    wl_index=wls.index(wl)
+    wl_index=wls==wl
     Cab_abs=float(Cab_k[wl_index])
     Car_abs=float(Car_k[wl_index])
     Cbrown_abs=float(Cbrown_k[wl_index])
     Cw_abs=float(Cw_k[wl_index])
     Cm_abs=float(Cm_k[wl_index])
     n=float(refr_index[wl_index])
-    k=(float(Cab)*Cab_abs+float(Car)*Car_abs+float(Cbrown)*Cbrown_abs
-        +float(Cw)*Cw_abs+float(Cm)*Cm_abs)/float(Nleaf)
+    k=(Cab*Cab_abs+Car*Car_abs+Cbrown*Cbrown_abs
+        +Cw*Cw_abs+Cm*Cm_abs)/Nleaf
     if k<=0.: 
         trans=1.0
     else:
@@ -272,7 +394,7 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     else:
         denominator=1e-36
     vb=np.sqrt(beta*(va-r90)/(denominator))
-    vbNN = vb**(float(Nleaf)-1.)
+    vbNN = vb**(Nleaf-1.)
     vbNNinv = 1./vbNN
     vainv = 1./va
     s1=ta*t90*(vbNN-vbNNinv)
@@ -345,10 +467,11 @@ def ProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     # walnut (D)   2.656   62.8  0.000263  0.006573
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
+
     l=np.array(wls)
-    k=(float(Cab)*np.array(Cab_k)+float(Car)*np.array(Car_k)
-        +float(Cbrown)*np.array(Cbrown_k)+float(Cw)*np.array(Cw_k)
-        +float(Cm)*np.array(Cm_k)+float(Ant)*np.array(Ant_k))/float(Nleaf)
+    k=(Cab*np.array(Cab_k)+Car*np.array(Car_k)
+        +Cbrown*np.array(Cbrown_k)+Cw*np.array(Cw_k)
+        +Cm*np.array(Cm_k)+Ant*np.array(Ant_k))/Nleaf
     k[k<=0]=1e-6
     
     trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
@@ -383,10 +506,131 @@ def ProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     delta=np.sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
     beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
     va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
-    denominator=np.zeros(va.shape[0])+1e-14
+    denominator=np.zeros(va.shape)+1e-14
     denominator[va*(beta-r90)> 1e-14]=va[va*(beta-r90)> 1e-14]*(beta[va*(beta-r90)> 1e-14]-r90[va*(beta-r90)> 1e-14])
     vb=np.sqrt(beta*(va-r90)/(denominator))
-    vbNN = vb**(float(Nleaf)-1.)
+    vbNN = vb**(Nleaf-1.)
+    vbNNinv = 1./vbNN
+    vainv = 1./va
+    s1=ta*t90*(vbNN-vbNNinv)
+    s2=ta*(va-vainv)
+    s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
+    rho=ra+s1/s3
+    tau=s2/s3
+    
+    return l,rho,tau
+
+def ProspectD_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
+    '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
+    from 400 nm to 2500 nm (1 nm step).
+
+    Parameters
+    ----------    
+    N   : float
+        leaf structure parameter.
+    Cab : float
+        chlorophyll a+b content (mug cm-2).
+    Car : float
+        carotenoids content (mug cm-2).
+    Cbrown : float
+        brown pigments concentration (unitless).
+    Cw  : float
+        equivalent water thickness (g cm-2 or cm).
+    Cm  : float
+        dry matter content (g cm-2).
+
+    Returns
+    -------
+    l : array_like
+        wavelenght (nm).
+    rho : array_like
+        leaf reflectance .
+    tau : array_like
+        leaf transmittance .
+    
+    References
+    ----------
+    .. [Jacquemoud96] Jacquemoud S., Ustin S.L., Verdebout J., Schmuck G., Andreoli G.,
+        Hosgood B. (1996), Estimating leaf biochemistry using the PROSPECT
+        leaf optical properties model, Remote Sensing of Environment, 56:194-202
+        http://dx.doi.org/10.1016/0034-4257(95)00238-3.
+    .. [Jacquemoud90] Jacquemoud S., Baret F. (1990), PROSPECT: a model of leaf optical
+        properties spectra, Remote Sensing of Environment, 34:75-91
+        http://dx.doi.org/10.1016/0034-4257(90)90100-Z.
+    .. [Feret08] Feret et al. (2008), PROSPECT-4 and 5: Advances in the Leaf Optical
+        Properties Model Separating Photosynthetic Pigments, Remote Sensing of
+        Environment. http://dx.doi.org/10.1016/j.rse.2008.02.012.
+    '''
+    #==============================================================================
+    # Here are some examples observed during the LOPEX'93 experiment on
+    # Fresh (F) and dry (D) leaves :
+    # 
+    # ---------------------------------------------
+    #                N     Cab     Cw        Cm    
+    # ---------------------------------------------
+    # min          1.000    0.0  0.004000  0.001900
+    # max          3.000  100.0  0.040000  0.016500
+    # corn (F)     1.518   58.0  0.013100  0.003662
+    # rice (F)     2.275   23.7  0.007500  0.005811
+    # clover (F)   1.875   46.7  0.010000  0.003014
+    # laurel (F)   2.660   74.1  0.019900  0.013520
+    # ---------------------------------------------
+    # min          1.500    0.0  0.000063  0.0019
+    # max          3.600  100.0  0.000900  0.0165
+    # bamboo (D)   2.698   70.8  0.000117  0.009327
+    # lettuce (D)  2.107   35.2  0.000244  0.002250
+    # walnut (D)   2.656   62.8  0.000263  0.006573
+    # chestnut (D) 1.826   47.7  0.000307  0.004305
+    #==============================================================================
+    # Vectorize the inputs
+    Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant=map(np.asarray,[Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant])
+    Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant=map(np.reshape,[Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant],
+                                   [(-1,1),(-1,1),(-1,1),(-1,1),(-1,1),(-1,1),(-1,1)])
+    Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant=map(np.repeat,[Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant],
+                                   7*[2101],7*[1])
+
+    l=np.array(wls)
+    k=(Cab*np.array(Cab_k)+Car*np.array(Car_k)
+        +Cbrown*np.array(Cbrown_k)+Cw*np.array(Cw_k)
+        +Cm*np.array(Cm_k)+Ant*np.array(Ant_k))/Nleaf
+    k[k<=0]=1e-6
+    
+    trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
+    trans[k<=0.0]=1.0
+    
+    #==============================================================================
+    # reflectance and transmittance of one layer
+    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
+    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
+    # Soc. Am., 59(10):1376-1379.
+    #==============================================================================
+    #reflectivity and transmissivity at the interface
+    alpha=40.;
+    n=np.array(refr_index)
+    t12=tav(alpha,n)
+    t21=tav(90.,n)/n**2.
+    r12=1.-t12
+    r21=1.-t21
+    x=tav(alpha,n)/tav(90.,n)
+    y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
+    #reflectance and transmittance of the elementary layer N = 1
+    ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
+    ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
+    r90=(ra-y)/x
+    t90=ta/x
+    #==============================================================================
+    # reflectance and transmittance of N layers
+    # Stokes G.G. (1862), On the intensity of the light reflected from
+    # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
+    # 11:545-556.
+    #==============================================================================
+    delta=np.sqrt((t90**2.-r90**2.-1.)**2.-4.*r90**2.)
+    beta=(1.+r90**2.-t90**2.-delta)/(2.*r90)
+    va=(1.+r90**2.-t90**2.+delta)/(2.*r90)
+    denominator=np.zeros(va.shape)+1e-14
+    denominator[va*(beta-r90)> 1e-14]=va[va*(beta-r90)> 1e-14]*(beta[va*(beta-r90)> 1e-14]-r90[va*(beta-r90)> 1e-14])
+    vb=np.sqrt(beta*(va-r90)/(denominator))
+    vbNN = vb**(Nleaf-1.)
     vbNNinv = 1./vbNN
     vainv = 1./va
     s1=ta*t90*(vbNN-vbNNinv)
@@ -462,7 +706,7 @@ def ProspectD_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     # chestnut (D) 1.826   47.7  0.000307  0.004305
     #==============================================================================
 
-    wl_index=wls.index(wl)
+    wl_index=wls==wl
     Cab_abs=float(Cab_k[wl_index])
     Car_abs=float(Car_k[wl_index])
     Cbrown_abs=float(Cbrown_k[wl_index])
@@ -471,8 +715,8 @@ def ProspectD_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     Ant_abs=float(Ant_k[wl_index])
     n=float(refr_index[wl_index])
     
-    k=(float(Cab)*Cab_abs+float(Car)*Car_abs+float(Cbrown)*Cbrown_abs
-        +float(Cw)*Cw_abs+float(Cm)*Cm_abs+float(Ant)*Ant_abs)/float(Nleaf)
+    k=(Cab*Cab_abs+Car*Car_abs+Cbrown*Cbrown_abs
+        +Cw*Cw_abs+Cm*Cm_abs+Ant*Ant_abs)/Nleaf
     if k<=0.: 
         trans=1.0
     else:
@@ -514,7 +758,7 @@ def ProspectD_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     else:
         denominator=1e-36
     vb=np.sqrt(beta*(va-r90)/(denominator))
-    vbNN = vb**(float(Nleaf)-1.)
+    vbNN = vb**(Nleaf-1.)
     vbNNinv = 1./vbNN
     vainv = 1./va
     s1=ta*t90*(vbNN-vbNNinv)
