@@ -564,7 +564,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
-
+    # get number of wavelengs
     cts   = np.cos(np.radians(tts))
     cto   = np.cos(np.radians(tto))
     ctscto  = cts*cto
@@ -603,6 +603,8 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         sob+=sobli*lidf[i]
         sof+=sofli*lidf[i]
 
+    
+
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
     sdf=0.5*(ks-bf)
@@ -613,12 +615,8 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Here rho and tau come in
     sigb=ddb*rho+ddf*tau
     sigf=ddf*rho+ddb*tau
-    if np.size(sigf)>1:
-        sigf[sigf == 0.0]=1e-36
-        sigb[sigb == 0.0]=1e-36
-    else:
-        sigf=max(1e-36,sigf)
-        sigb=max(1e-36,sigb)
+    sigf=np.maximum(1e-36,sigf)
+    sigb=np.maximum(1e-36,sigb)
     att=1.-sigf
     m=np.sqrt(att**2.-sigb**2.)
     sb=sdb*rho+sdf*tau
@@ -626,28 +624,6 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     vb=dob*rho+dof*tau
     vf=dof*rho+dob*tau
     w =sob*rho+sof*tau
-    # Here the LAI comes in
-    tss = np.ones(lai.shape)
-    too= np.ones(lai.shape)
-    tsstoo= np.ones(lai.shape)
-    rdd= np.zeros(lai.shape)
-    tdd=np.ones(lai.shape)
-    rsd=np.zeros(lai.shape)
-    tsd=np.zeros(lai.shape)
-    rdo=np.zeros(lai.shape)
-    tdo=np.zeros(lai.shape)
-    rso=np.zeros(lai.shape)
-    rsos=np.zeros(lai.shape)
-    rsod=np.zeros(lai.shape)
-    rddt= np.ones(lai.shape)*rsoil
-    rsdt= np.ones(lai.shape)*rsoil
-    rdot= np.ones(lai.shape)*rsoil
-    rsodt= np.zeros(lai.shape)
-    rsost= np.ones(lai.shape)*rsoil
-    rsot= np.ones(lai.shape)*rsoil
-    gammasdf=np.zeros(lai.shape)
-    gammaso=np.zeros(lai.shape)
-    gammasdb=np.zeros(lai.shape)
           
     e1=np.exp(-lai*m)
     e2=e1**2.
@@ -663,17 +639,17 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     Qss=(sf*rinf+sb)*J2ks
     Pv=(vf+vb*rinf)*J1ko
     Qv=(vf*rinf+vb)*J2ko
-    tdd[lai>0]=(1.-rinf2[lai>0])*e1[lai>0]/denom[lai>0]
-    rdd[lai>0]=rinf[lai>0]*(1.-e2[lai>0])/denom[lai>0]
-    tsd[lai>0]=(Pss[lai>0]-re[lai>0]*Qss[lai>0])/denom[lai>0]
-    rsd[lai>0]=(Qss[lai>0]-re[lai>0]*Pss[lai>0])/denom[lai>0]
-    tdo[lai>0]=(Pv[lai>0]-re[lai>0]*Qv[lai>0])/denom[lai>0]
-    rdo[lai>0]=(Qv[lai>0]-re[lai>0]*Pv[lai>0])/denom[lai>0]
+    tdd=(1.-rinf2)*e1/denom
+    rdd=rinf*(1.-e2)/denom
+    tsd=(Pss-re*Qss)/denom
+    rsd=(Qss-re*Pss)/denom
+    tdo=(Pv-re*Qv)/denom
+    rdo=(Qv-re*Pv)/denom
     # Thermal "sd" quantities
-    gammasdf[lai>0]=(1.+rinf[lai>0])*(J1ks[lai>0]-re[lai>0]*J2ks[lai>0])/denom[lai>0]
-    gammasdb[lai>0]=(1.+rinf[lai>0])*(-re[lai>0]*J1ks[lai>0]+J2ks[lai>0])/denom[lai>0]
-    tss[lai>0]=np.exp(-ks[lai>0]*lai[lai>0])
-    too[lai>0]=np.exp(-ko[lai>0]*lai[lai>0])
+    gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
+    gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
+    tss=np.exp(-ks*lai)
+    too=np.exp(-ko*lai)
     z=Jfunc2(ks,ko,lai)
     g1=(z-J1ks*too)/(ko+m)
     g2=(z-J1ko*tss)/(ks+m)
@@ -683,7 +659,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     T2=Tv2*(sf*rinf+sb)
     T3=(rdo*Qss+tdo*Pss)*rinf
     # Multiple scattering contribution to bidirectional canopy reflectance
-    rsod[lai>0]=(T1[lai>0]+T2[lai>0]-T3[lai>0])/(1.-rinf2[lai>0])
+    rsod=(T1+T2-T3)/(1.-rinf2)
     # Thermal "sod" quantity
     T4=Tv1*(1.+rinf)
     T5=Tv2*(1.+rinf)
@@ -697,6 +673,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     sumint=np.zeros(lai.shape)
     index=np.logical_and(lai>0,alf == 0)
     # The pure hotspot
+    tsstoo=np.zeros(tss.shape)
     tsstoo[index]=tss[index]
     sumint[index]=(1.-tss[index])/(ks[index]*lai[index])
     # Outside the hotspot
@@ -715,30 +692,27 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         y2=-(ko[index]+ks[index])*lai[index]*x2+fhot*(1.-np.exp(-alf[index]*x2))/alf[index]
         f2=np.exp(y2)
         sumint[index]=sumint[index]+(f2-f1)*(x2-x1)/(y2-y1)
-        x1=np.array(x2)
-        y1=np.array(y2)
-        f1=np.array(f2)
-    tsstoo[lai>0]=f1
+        x1=np.copy(x2)
+        y1=np.copy(y2)
+        f1=np.copy(f2)
+    tsstoo[index]=f1
     sumint[np.isnan(sumint)] =0.
     # Bidirectional reflectance
     # Single scattering contribution
-    rsos[lai>0]=w[lai>0]*lai[lai>0]*sumint[lai>0]
-    gammasos=ko[lai>0]*lai[lai>0]*sumint[lai>0]
+    rsos=w*lai*sumint
+    gammasos=ko*lai*sumint
     # Total canopy contribution
-    rso[lai>0]=rsos[lai>0]+rsod[lai>0]
-    gammaso[lai>0]=gammasos+gammasod[lai>0]
+    rso=rsos+rsod
+    gammaso=gammasos+gammasod
     #Interaction with the soil
     dn=1.-rsoil*rdd
-    if np.size(dn)>1:
-        dn[dn < 1e-36]=1e-36
-    else:
-        dn=max(1e-36,dn)
-    rddt[lai>0]=rdd[lai>0]+tdd[lai>0]*rsoil*tdd[lai>0]/dn[lai>0]
-    rsdt[lai>0]=rsd[lai>0]+(tsd[lai>0]+tss[lai>0])*rsoil*tdd[lai>0]/dn[lai>0]
-    rdot[lai>0]=rdo[lai>0]+tdd[lai>0]*rsoil*(tdo[lai>0]+too[lai>0])/dn[lai>0]
-    rsodt[lai>0]=((tss[lai>0]+tsd[lai>0])*tdo[lai>0]+(tsd[lai>0]+tss[lai>0]*rsoil*rdd[lai>0])*too[lai>0])*rsoil/dn[lai>0]
-    rsost[lai>0]=rso[lai>0]+tsstoo[lai>0]*rsoil
-    rsot[lai>0]=rsost[lai>0]+rsodt[lai>0]
+    dn=np.maximum(1e-36,dn)
+    rddt=rdd+tdd*rsoil*tdd/dn
+    rsdt=rsd+(tsd+tss)*rsoil*tdd/dn
+    rdot=rdo+tdd*rsoil*(tdo+too)/dn
+    rsodt=((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*rsoil/dn
+    rsost=rso+tsstoo*rsoil
+    rsot=rsost+rsodt
     
     return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
           rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
@@ -1195,7 +1169,9 @@ def Jfunc1_vec(k,l,t) :
     ''' J1 function with avoidance of singularity problem.'''
     
     del_=(k-l)*t
-    result=np.zeros(t.shape)
+    t=np.repeat(t[np.newaxis,:],del_.shape[0],0)
+    k=np.repeat(k[np.newaxis,:],del_.shape[0],0)
+    result=np.zeros(del_.shape)
     index=np.abs(del_) > 1e-3 
     result[index]=(np.exp(-l[index]*t[index])-np.exp(-k[index]*t[index]))/(k[index]-l[index])
     result[~index]=0.5*t[~index]*(np.exp(-k[~index]*t[~index])+np.exp(-l[~index]*t[~index]))*(1.-(del_[~index]**2.)/12.)
