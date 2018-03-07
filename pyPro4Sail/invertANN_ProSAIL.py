@@ -21,8 +21,16 @@ from scipy.ndimage.filters import gaussian_filter1d
 UNIFORM_DIST=1
 GAUSSIAN_DIST=2
 
-def TrainANN(X_array,Y_array, dropout_rate=0.25,learning_rate=0.3, momentum=0.99,hidden_layers=['Sigmoid'],
-             inputScale=True, outputScale=True,reducePCA=True,outfile=None):
+def TrainANN(X_array,
+             Y_array, 
+             dropout_rate=0.25,
+             learning_rate=0.3, 
+             momentum=0.99,
+             hidden_layers=['Sigmoid'],
+             inputScale=True, 
+             outputScale=True,
+             reducePCA=True,
+             outfile=None):
 
 
     Y_array=np.asarray(Y_array)
@@ -98,8 +106,14 @@ def TrainANN(X_array,Y_array, dropout_rate=0.25,learning_rate=0.3, momentum=0.99
     
     return ANN, scalerInput,scalerOutput,pca
 
-def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=None, 
-            outfile=None,ObjParamName=None):
+def TestANN(X_array,
+            Y_array, 
+            annObject, 
+            scalerInput=None,
+            scalerOutput=None,
+            pca=None, 
+            outfile=None,
+            ObjParamName=None):
     
     
     X_array=np.asarray(X_array)
@@ -408,7 +422,14 @@ def inputdict2array(input_param,
     return Y_array
 
 
-def CalcfAPAR_4SAIL (skyl,LAI,lidf,hotspot,sza,rho_leaf,tau_leaf,rsoil):
+def CalcfAPAR_4SAIL (skyl,
+                     LAI,
+                     lidf,
+                     hotspot,
+                     sza,
+                     rho_leaf,
+                     tau_leaf,
+                     rsoil):
     '''Estimates the fraction of Absorbed PAR using the 4SAIL 
          Radiative Transfer Model.
         
