@@ -157,6 +157,119 @@ def TestANN(X_array,Y_array, annObject, scalerInput=None,scalerOutput=None,pca=N
     
     return RMSE,bias,cor
 
+def build_prospect_database(n_simulations,
+                           param_bounds={'N_leaf':(1.2,2.2),
+                                         'Cab':(0.0,100.0),
+                                         'Car':(0.0,40.0),
+                                         'Cbrown':(0.0,1.0),
+                                         'Cw':(0.003,0.011),
+                                         'Cm':(0.003,0.011),
+                                         'Ant':(0.00,40.)},
+                           moments={'N_leaf':(1.5,0.3),
+                                         'Cab':(45.0,30.0),
+                                         'Car':(20.0,10.0),
+                                         'Cbrown':(0.0,0.3),
+                                         'Cw':(0.005,0.005),
+                                         'Cm':(0.005,0.005),
+                                         'Ant':(0.0,10.0)},
+                            distribution={'N_leaf':GAUSSIAN_DIST,
+                                         'Cab':GAUSSIAN_DIST,
+                                         'Car':GAUSSIAN_DIST,
+                                         'Cbrown':GAUSSIAN_DIST,
+                                         'Cw':GAUSSIAN_DIST,
+                                         'Cm':GAUSSIAN_DIST,
+                                         'Ant':GAUSSIAN_DIST},
+                            apply_covariate={'N_leaf':False,
+                                         'Car':False,
+                                         'Cbrown':False,
+                                         'Cw':False,
+                                         'Cm':False,
+                                         'Ant':False},
+                            covariate={'N_leaf':((1.2,2.2),(1.3,1.8)),
+                                         'Car':((0,40),(20,40)),
+                                         'Cbrown':((0,1),(0,0.2)),
+                                         'Cw':((0.003,0.011),(0.005,0.011)),
+                                         'Cm':((0.003,0.011),(0.005,0.011)),
+                                         'Ant':((0,40),(0,40))},
+                            outfile=None):
+            
+    
+    print ('Build ProspectD database')
+    input_param=dict()
+    for param in param_bounds:
+        if distribution[param]==UNIFORM_DIST:
+            input_param[param]=param_bounds[param][0]+rnd.rand(n_simulations)*(param_bounds[param][1]-param_bounds[param][0])
+        elif distribution[param]==GAUSSIAN_DIST:
+            input_param[param]=moments[param][0]+ rnd.randn(n_simulations) * moments[param][1]
+            input_param[param]=np.clip(input_param[param],param_bounds[param][0],param_bounds[param][1])
+            
+    # Apply covariates where needed
+    LAI_range=param_bounds['Cab'][1]-param_bounds['Cab'][0]
+    for param in apply_covariate:
+        if apply_covariate:
+            Vmin_lai=covariate[param][0][0]+input_param['Cab']*(covariate[param][1][0]-covariate[param][0][0])/LAI_range
+            Vmax_lai=covariate[param][0][1]+input_param['Cab']*(covariate[param][1][1]-covariate[param][0][1])/LAI_range
+            input_param[param]=np.clip(input_param[param], Vmin_lai, Vmax_lai)
+            
+            
+    return input_param
+
+
+def simulate_prospectD_LUT(input_param,
+                        wls_sim,
+                        srf=None,
+                        outfile=None,
+                        ObjParam=('N_leaf',
+                           'Cab',
+                           'Car',
+                           'Cbrown',
+                           'Cm',
+                           'Cw',
+                           'Ant')):            
+    
+    [wls,r,t]=ProspectD.ProspectD_vec(input_param['N_leaf'],
+                input_param['Cab'], input_param['Car'],
+                input_param['Cbrown'],input_param['Cw'],
+                input_param['Cm'],input_param['Ant'])
+    #Convolve the simulated spectra to a gaussian filter per band
+    rho_leaf=[]
+    tau_leaf=[]
+
+    if srf:
+        if type(srf)==float or type(srf)==int:
+            wls=np.asarray(wls_sim)
+            #Convolve spectra by full width half maximum
+            sigma=FWHM2Sigma(srf)
+            r=gaussian_filter1d(r,sigma)
+            t=gaussian_filter1d(t,sigma)
+            for wl in wls_sim:
+                rho_leaf.append(float(r[wls==wl]))
+                tau_leaf.append(float(t[wls==wl]))
+
+        elif type(srf)==list or type(srf)==tuple:
+            for weight in srf:
+               rho_leaf.append(float(np.sum(weight*r)/np.sum(weight)))
+               tau_leaf.append(float(np.sum(weight*t)/np.sum(weight)))
+
+    else:
+        rho_leaf=np.copy(r)                
+        tau_leaf=np.copy(t)
+        
+    rho_leaf=np.asarray(rho_leaf)
+    tau_leaf=np.asarray(tau_leaf)
+                        
+    
+    if outfile:
+        fid=open(outfile+'_rho','wb')
+        pickle.dump(rho_leaf,fid,-1)
+        fid.close()
+        fid=open(outfile+'_param','wb')
+        pickle.dump(input_param,fid,-1)
+        fid.close()
+
+    return rho_leaf,input_param
+
+
 def build_prosail_database(n_simulations,
                            param_bounds={'N_leaf':(1.2,2.2),
                                          'Cab':(0.0,100.0),
