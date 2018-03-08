@@ -32,8 +32,8 @@ EXAMPLE
 
 '''
 
-import FourSAIL
-import Prospect5
+import pyPro4Sail.FourSAIL
+import pyPro4Sail.ProspectD
 import numpy as np
 import os
 
@@ -50,7 +50,7 @@ EXTREMOPHILE = (0, 1)
 SPHERICAL = (-0.35, -0.15)
 UNIFORM = (0, 0)
 
-def run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_azimuth, 
+def run(N, chloro, caroten, brown, EWT, LMA, Ant, LAI, hot_spot, solar_zenith, solar_azimuth, 
         view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=DEFAULT_SOIL):
     ''' Runs Prospect5 4SAIL model to estimate canopy directional reflectance factor.
     
@@ -127,7 +127,7 @@ def run(N, chloro, caroten, brown, EWT, LMA, LAI, hot_spot, solar_zenith, solar_
         lidf=FourSAIL.CalcLIDF_Campbell(LIDF)
     
     # PROSPECT5 for leaf bihemispherical reflectance and transmittance
-    wl,rho_leaf,tau_leaf=Prospect5.Prospect5(N, chloro, caroten, brown, EWT, LMA)
+    wl,rho_leaf,tau_leaf=ProspectD.ProspectD(N, chloro, caroten, brown, EWT, LMA, Ant)
     
     # Get the relative sun-view azimth angle
     psi=abs(solar_azimuth-view_azimuth)
