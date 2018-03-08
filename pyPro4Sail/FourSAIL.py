@@ -603,7 +603,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         sob+=sobli*lidf[i]
         sof+=sofli*lidf[i]
 
-    
+    del chi_s, chi_o, frho, ftau, ksli, koli, sobli, sofli, bfli
 
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
@@ -624,7 +624,9 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     vb=dob*rho+dof*tau
     vf=dof*rho+dob*tau
     w =sob*rho+sof*tau
-          
+    
+    del sdb, sdf, dob, dof, ddb, ddf
+     
     e1=np.exp(-lai*m)
     e2=e1**2.
     rinf=(att-m)/sigb
@@ -639,12 +641,16 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     Qss=(sf*rinf+sb)*J2ks
     Pv=(vf+vb*rinf)*J1ko
     Qv=(vf*rinf+vb)*J2ko
+   
     tdd=(1.-rinf2)*e1/denom
     rdd=rinf*(1.-e2)/denom
     tsd=(Pss-re*Qss)/denom
     rsd=(Qss-re*Pss)/denom
     tdo=(Pv-re*Qv)/denom
     rdo=(Qv-re*Pv)/denom
+    
+    del e1, e2, Qv, Pv 
+    
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
@@ -665,6 +671,9 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     T5=Tv2*(1.+rinf)
     T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
     gammasod=(T4+T5-T6)/(1.-rinf2)
+    
+    del T1, T2, T3, T4, T5, T6, rinf2, rinf, J2ks, J1ks, z, g1, g2
+    
     #Treatment of the hotspot-effect
     alf=np.ones(lai.shape)*1e36
     
@@ -701,6 +710,9 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     # Single scattering contribution
     rsos=w*lai*sumint
     gammasos=ko*lai*sumint
+    
+    del ko, ks, sumint, w, f1, f2, fint, x1, x2, y1, y2, fhot, alf   
+    
     # Total canopy contribution
     rso=rsos+rsod
     gammaso=gammasos+gammasod
