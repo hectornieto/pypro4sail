@@ -44,6 +44,7 @@ EXAMPLE
     rho_canopy = rdot*skyl+rsot*(1-skyl)
     
 """
+
 params4SAIL=('LAI','hotspot','leaf_angle')
 paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','Ant','LAI','hotspot','leaf_angle') 
 import numpy as np
@@ -306,44 +307,9 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
 
-    cts   = np.cos(np.radians(tts))
-    cto   = np.cos(np.radians(tto))
-    ctscto  = cts*cto
-    #sts   = sin(radians(tts))
-    #sto   = sin(radians(tto))
-    tants = np.tan(np.radians(tts))
-    tanto = np.tan(np.radians(tto))
-    cospsi  = np.cos(np.radians(psi))
-    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
-    #Calculate geometric factors associated with extinction and scattering 
-    #Initialise sums
-    ks=0.
-    ko=0.
-    bf=0.
-    sob=0.
-    sof=0.
-    # Weighted sums over LIDF
-    n_angles=len(lidf)
-    angle_step=float(90.0/n_angles)
-    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    for i,ili in enumerate(litab):
-        ttl=float(ili)
-        cttl=np.cos(np.radians(ttl))
-        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
-        [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
-        # Extinction coefficients
-        ksli=chi_s/cts
-        koli=chi_o/cto
-        # Area scattering coefficient fractions
-        sobli=frho*np.pi/ctscto
-        sofli=ftau*np.pi/ctscto
-        bfli=cttl**2.
-        ks+=ksli*float(lidf[i])
-        ko+=koli*float(lidf[i])
-        bf+=bfli*float(lidf[i])
-        sob+=sobli*float(lidf[i])
-        sof+=sofli*float(lidf[i])
-
+    # weighted_sum_over_lidf
+    ks, ko, bf, sob, sof = weighted_sum_over_lidf(lidf, tts, tto, psi)
+    
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
     sdf=0.5*(ks-bf)
@@ -367,6 +333,7 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     vb=dob*rho+dof*tau
     vf=dof*rho+dob*tau
     w =sob*rho+sof*tau
+    
     # Here the LAI comes in
     if lai<=0:
         tss = 1
@@ -414,6 +381,7 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     rsd=(Qss-re*Pss)/denom
     tdo=(Pv-re*Qv)/denom
     rdo=(Qv-re*Pv)/denom
+    
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
@@ -434,36 +402,10 @@ def FourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     T5=Tv2*(1.+rinf)
     T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
     gammasod=(T4+T5-T6)/(1.-rinf2)
-    #Treatment of the hotspot-effect
-    alf=1e36
-    # Apply correction 2/(K+k) suggested by F.-M. Breon
-    if hotspot > 0. : alf=(dso/hotspot)*2./(ks+ko)
-    if alf == 0. : 
-        # The pure hotspot
-        tsstoo=tss
-        sumint=(1.-tss)/(ks*lai)
-    else :
-        # Outside the hotspot
-        fhot=lai*np.sqrt(ko*ks)
-        # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
-        x1=0.
-        y1=0.
-        f1=1.
-        fint=(1.-np.exp(-alf))*.05
-        sumint=0.
-        for istep in range(1,21):
-            if istep < 20 :
-                x2=-np.log(1.-istep*fint)/alf
-            else :
-                x2=1.
-            y2=-(ko+ks)*lai*x2+fhot*(1.-np.exp(-alf*x2))/alf
-            f2=np.exp(y2)
-            sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=np.array(x2)
-            y1=np.array(y2)
-            f1=np.array(f2)
-        tsstoo=np.array(f1)
-    if np.isnan(sumint) : sumint=0.
+    
+    dso = define_geometric_constant ( tts, tto, psi)
+    tsstoo, sumint = hotspot_calculations(hotspot, lai, ko, ks, dso, tss)   
+    
     # Bidirectional reflectance
     # Single scattering contribution
     rsos=w*lai*sumint
@@ -564,46 +506,9 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
-    # get number of wavelengs
-    cts   = np.cos(np.radians(tts))
-    cto   = np.cos(np.radians(tto))
-    ctscto  = cts*cto
-    #sts   = sin(radians(tts))
-    #sto   = sin(radians(tto))
-    tants = np.tan(np.radians(tts))
-    tanto = np.tan(np.radians(tto))
-    cospsi  = np.cos(np.radians(psi))
-    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
-    #Calculate geometric factors associated with extinction and scattering 
-    #Initialise sums
-    ks=np.zeros(lai.shape)
-    ko=np.zeros(lai.shape)
-    bf=np.zeros(lai.shape)
-    sob=np.zeros(lai.shape)
-    sof=np.zeros(lai.shape)
-    # Weighted sums over LIDF
-    n_angles=len(lidf)
-    angle_step=float(90.0/n_angles)
-    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    for i,ili in enumerate(litab):
-        ttl=float(ili)
-        cttl=np.cos(np.radians(ttl))
-        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
-        [chi_s,chi_o,frho,ftau]=volscatt_vec(tts,tto,psi,ttl)
-        # Extinction coefficients
-        ksli=chi_s/cts
-        koli=chi_o/cto
-        # Area scattering coefficient fractions
-        sobli=frho*np.pi/ctscto
-        sofli=ftau*np.pi/ctscto
-        bfli=cttl**2.
-        ks+=ksli*lidf[i]
-        ko+=koli*lidf[i]    
-        bf+=bfli*lidf[i]
-        sob+=sobli*lidf[i]
-        sof+=sofli*lidf[i]
 
-    del chi_s, chi_o, frho, ftau, ksli, koli, sobli, sofli, bfli
+    # weighted_sum_over_lidf
+    ks, ko, bf, sob, sof = weighted_sum_over_lidf_vec(lidf, tts, tto, psi)
 
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
@@ -612,6 +517,7 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     dof=0.5*(ko-bf)
     ddb=0.5*(1.+bf)
     ddf=0.5*(1.-bf)
+    
     # Here rho and tau come in
     sigb=ddb*rho+ddf*tau
     sigf=ddf*rho+ddb*tau
@@ -649,11 +555,14 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     tdo=(Pv-re*Qv)/denom
     rdo=(Qv-re*Pv)/denom
     
-    del e1, e2, Qv, Pv 
+    del e1, e2, Qv, Pv, att, sigb, sigf, J2ko
     
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
+
+    del denom, re   
+    
     tss=np.exp(-ks*lai)
     too=np.exp(-ko*lai)
     z=Jfunc2(ks,ko,lai)
@@ -664,6 +573,9 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     T1=Tv1*(sf+sb*rinf)
     T2=Tv2*(sf*rinf+sb)
     T3=(rdo*Qss+tdo*Pss)*rinf
+    
+    del vb, vf, Pss, Qss, J1ko, g1, g2, m, sb, sf, z
+    
     # Multiple scattering contribution to bidirectional canopy reflectance
     rsod=(T1+T2-T3)/(1.-rinf2)
     # Thermal "sod" quantity
@@ -672,50 +584,24 @@ def FourSAIL_vec(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
     gammasod=(T4+T5-T6)/(1.-rinf2)
     
-    del T1, T2, T3, T4, T5, T6, rinf2, rinf, J2ks, J1ks, z, g1, g2
+    del Tv1, Tv2, T1, T2, T3, T4, T5, T6, rinf2, rinf, J2ks, J1ks
     
-    #Treatment of the hotspot-effect
-    alf=np.ones(lai.shape)*1e36
+    # Hotspot effect
+    dso = define_geometric_constant ( tts, tto, psi)
+    tsstoo, sumint = hotspot_calculations_vec(hotspot, lai, ko, ks, dso, tss)    # Bidirectional reflectance
     
-    # Apply correction 2/(K+k) suggested by F.-M. Breon
-    alf[hotspot > 0]=(dso[hotspot > 0]/hotspot[hotspot > 0])*2./(ks[hotspot > 0]+ko[hotspot > 0])
-    sumint=np.zeros(lai.shape)
-    index=np.logical_and(lai>0,alf == 0)
-    # The pure hotspot
-    tsstoo=np.zeros(tss.shape)
-    tsstoo[index]=tss[index]
-    sumint[index]=(1.-tss[index])/(ks[index]*lai[index])
-    # Outside the hotspot
-    index=np.logical_and(lai>0,alf != 0)
-    fhot=lai[index]*np.sqrt(ko[index]*ks[index])
-    # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
-    x1=np.zeros(fhot.shape)
-    y1=np.zeros(fhot.shape)
-    f1=np.ones(fhot.shape)
-    fint=(1.-np.exp(-alf[index]))*.05
-    for istep in range(1,21):
-        if istep < 20 :
-            x2=-np.log(1.-istep*fint)/alf[index]
-        else :
-            x2=np.ones(fhot.shape)
-        y2=-(ko[index]+ks[index])*lai[index]*x2+fhot*(1.-np.exp(-alf[index]*x2))/alf[index]
-        f2=np.exp(y2)
-        sumint[index]=sumint[index]+(f2-f1)*(x2-x1)/(y2-y1)
-        x1=np.copy(x2)
-        y1=np.copy(y2)
-        f1=np.copy(f2)
-    tsstoo[index]=f1
-    sumint[np.isnan(sumint)] =0.
-    # Bidirectional reflectance
     # Single scattering contribution
     rsos=w*lai*sumint
     gammasos=ko*lai*sumint
     
-    del ko, ks, sumint, w, f1, f2, fint, x1, x2, y1, y2, fhot, alf   
+    del ko, ks, sumint, w, dso, tts, tto, psi, lai 
     
     # Total canopy contribution
     rso=rsos+rsod
     gammaso=gammasos+gammasod
+    
+    del gammasod, gammasos
+    
     #Interaction with the soil
     dn=1.-rsoil*rdd
     dn=np.maximum(1e-36,dn)
@@ -806,41 +692,9 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
     '''
 
-    cts   = np.cos(np.radians(tts))
-    cto   = np.cos(np.radians(tto))
-    ctscto  = cts*cto
-    tants = np.tan(np.radians(tts))
-    tanto = np.tan(np.radians(tto))
-    cospsi  = np.cos(np.radians(psi))
-    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
-    #Calculate geometric factors associated with extinction and scattering 
-    #Initialise sums
-    ks=0.
-    ko=0.
-    bf=0.
-    sob=0.
-    sof=0.
     # Weighted sums over LIDF
-    n_angles=len(lidf)
-    angle_step=float(90.0/n_angles)
-    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    for i,ili in enumerate(litab):
-        ttl=float(ili)
-        cttl=np.cos(np.radians(ttl))
-        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
-        [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
-        # Extinction coefficients
-        ksli=chi_s/cts
-        koli=chi_o/cto
-        # Area scattering coefficient fractions
-        sobli=frho*np.pi/ctscto
-        sofli=ftau*np.pi/ctscto
-        bfli=cttl**2.
-        ks+=ksli*float(lidf[i])
-        ko+=koli*float(lidf[i])
-        bf+=bfli*float(lidf[i])
-        sob+=sobli*float(lidf[i])
-        sof+=sofli*float(lidf[i])
+    ks, ko, bf, sob, sof = weighted_sum_over_lidf(lidf, tts, tto, psi)
+
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
     sdf=0.5*(ks-bf)
@@ -894,10 +748,13 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
         rinf=(att-m)/sigb
     else:
         rinf=1e36
+        
     rinf2=rinf**2.
     re=rinf*e1
     denom=1.-rinf2*e2
-    if denom < 1e-36: denom=1e-36
+    if denom < 1e-36: 
+        denom=1e-36
+        
     J1ks=Jfunc1_wl(ks,m,lai)
     J2ks=Jfunc2_wl(ks,m,lai)
     J1ko=Jfunc1_wl(ko,m,lai)
@@ -912,6 +769,7 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     rsd=(Qss-re*Pss)/denom
     tdo=(Pv-re*Qv)/denom
     rdo=(Qv-re*Pv)/denom
+    
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     gammasdb=(1.+rinf)*(-re*J1ks+J2ks)/denom
@@ -925,44 +783,22 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     T1=Tv1*(sf+sb*rinf)
     T2=Tv2*(sf*rinf+sb)
     T3=(rdo*Qss+tdo*Pss)*rinf
+    
     # Multiple scattering contribution to bidirectional canopy reflectance
-    if rinf2>=1:rinf2=1-1e-16
+    if rinf2>=1:
+        rinf2=1-1e-16
     rsod=(T1+T2-T3)/(1.-rinf2)
+    
     # Thermal "sod" quantity
     T4=Tv1*(1.+rinf)
     T5=Tv2*(1.+rinf)
     T6=(rdo*J2ks+tdo*J1ks)*(1.+rinf)*rinf
     gammasod=(T4+T5-T6)/(1.-rinf2)
-    #Treatment of the hotspot-effect
-    alf=1e36
-    # Apply correction 2/(K+k) suggested by F.-M. Breon
-    if hotspot > 0. : alf=(dso/hotspot)*2./(ks+ko)
-    if alf == 0. : 
-        # The pure hotspot
-        tsstoo=tss
-        sumint=(1.-tss)/(ks*lai)
-    else :
-        # Outside the hotspot
-        fhot=lai*np.sqrt(ko*ks)
-        # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
-        x1=0.
-        y1=0.
-        f1=1.
-        fint=(1.-np.exp(-alf))*.05
-        sumint=0.
-        for istep in range(1,21):
-            if istep < 20 :
-                x2=-np.log(1.-istep*fint)/alf
-            else :
-                x2=1.
-            y2=-(ko+ks)*lai*x2+fhot*(1.-np.exp(-alf*x2))/alf
-            f2=np.exp(y2)
-            sumint=sumint+(f2-f1)*(x2-x1)/(y2-y1)
-            x1=float(x2)
-            y1=float(y2)
-            f1=float(f2)
-        tsstoo=float(f1)
-    if np.isnan(sumint) : sumint=0.
+
+    # Hotspot effect
+    dso = define_geometric_constant ( tts, tto, psi)
+    tsstoo, sumint = hotspot_calculations(hotspot, lai, ko, ks, dso, tss)    # Bidirectional reflectance
+
     # Bidirectional reflectance
     # Single scattering contribution
     rsos=w*lai*sumint
@@ -972,7 +808,8 @@ def FourSAIL_wl(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil):
     gammaso=gammasos+gammasod
     #Interaction with the soil
     dn=1.-rsoil*rdd
-    if dn == 0.0 : dn=1e-36
+    if dn == 0.0 :
+        dn=1e-36
     rddt=rdd+tdd*rsoil*tdd/dn
     rsdt=rsd+(tsd+tss)*rsoil*tdd/dn
     rdot=rdo+tdd*rsoil*(tdo+too)/dn
@@ -1160,6 +997,75 @@ def volscatt_vec(tts,tto,psi,ttl) :
    
     return [chi_s,chi_o,frho,ftau]    
 
+def weighted_sum_over_lidf (lidf, tts, tto, psi):
+    ks = 0.
+    ko = 0.
+    bf = 0.
+    sob = 0.
+    sof = 0.
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
+    ctscto  = cts*cto
+
+    n_angles=len(lidf)
+    angle_step=float(90.0/n_angles)
+    litab = np.arange(n_angles)*angle_step + (angle_step*0.5)
+
+    for i,ili in enumerate(litab):
+        ttl = 1.*ili
+        cttl=np.cos(np.radians(ttl))
+        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
+        [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
+        # Extinction coefficients
+        ksli=chi_s/cts
+        koli=chi_o/cto
+        # Area scattering coefficient fractions
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
+        bfli=cttl**2.
+        ks+=ksli*float(lidf[i])
+        ko+=koli*float(lidf[i])
+        bf+=bfli*float(lidf[i])
+        sob+=sobli*float(lidf[i])
+        sof+=sofli*float(lidf[i])
+    
+    return ks, ko, bf, sob, sof
+   
+def weighted_sum_over_lidf_vec (lidf, tts, tto, psi):
+    
+    ks = 0
+    ko = 0.
+    bf = 0.
+    sob = 0.
+    sof = 0.
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
+    ctscto  = cts*cto
+
+    n_angles=len(lidf)
+    angle_step=90.0/n_angles
+    litab = np.arange(n_angles)*angle_step + (angle_step*0.5)
+
+    for i,ili in enumerate(litab):
+        ttl = 1.*ili
+        cttl=np.cos(np.radians(ttl))
+        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
+        [chi_s,chi_o,frho,ftau]=volscatt_vec(tts,tto,psi,ttl)
+        # Extinction coefficients
+        ksli=chi_s/cts
+        koli=chi_o/cto
+        # Area scattering coefficient fractions
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
+        bfli=cttl**2.
+        ks+=ksli*lidf[i]
+        ko+=koli*lidf[i]
+        bf+=bfli*lidf[i]
+        sob+=sobli*lidf[i]
+        sof+=sofli*lidf[i]
+    
+    return ks, ko, bf, sob, sof
+
 
 def Jfunc1(k,l,t) :
     ''' J1 function with avoidance of singularity problem.'''
@@ -1261,3 +1167,91 @@ def calc_sun_angles(lat, lon, stdlon, doy, ftime):
     saa[w <= 0.0] = np.degrees(np.arccos(cos_phi[w <= 0.0]))
     saa[w > 0.0] = 360. - np.degrees(np.arccos(cos_phi[w > 0.0]))
     return np.asarray(sza), np.asarray(saa)
+
+
+
+def hotspot_calculations(hotspot, lai, ko, ks, dso, tss):
+    
+    #Treatment of the hotspot-effect
+    alf=1e36
+    
+    # Apply correction 2/(K+k) suggested by F.-M. Breon
+    if hotspot > 0. : 
+        alf=(dso/hotspot)*2./(ks+ko)
+    if alf == 0. : 
+        # The pure hotspot
+        tsstoo=tss
+        sumint=(1.-tss)/(ks*lai)
+    else :
+        # Outside the hotspot
+        alf=(dso/hotspot)*2./(ks+ko)
+        fhot=lai*np.sqrt(ko*ks)
+        # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
+        x1=0.
+        y1=0.
+        f1=1.
+        fint=(1.-np.exp(-alf))*.05
+        sumint=0.
+        for istep in range(1,21):
+            if istep < 20 :
+                x2 = -np.log(1.-istep*fint)/alf
+            else:
+                x2=1.
+            y2 = -(ko+ks)*lai*x2+fhot*(1.-np.exp(-alf*x2))/alf
+            f2 = np.exp(y2)
+            sumint = sumint+(f2-f1)*(x2-x1)/(y2-y1)
+            x1 = x2
+            y1 = y2
+            f1 = f2
+            
+        tsstoo = f1
+        if np.isnan(sumint) :
+            sumint=0.
+        
+    return tsstoo, sumint
+
+def hotspot_calculations_vec(hotspot, lai, ko, ks, dso, tss):
+    
+    tsstoo=np.zeros(tss.shape)
+    sumint=np.zeros(lai.shape)
+
+    #Treatment of the hotspot-effect
+    alf=np.ones(lai.shape)*1e36
+    alf[hotspot > 0]=(dso[hotspot > 0]/hotspot[hotspot > 0])*2./(ks[hotspot > 0]+ko[hotspot > 0])
+    
+    index=np.logical_and(lai > 0, alf == 0)
+    # The pure hotspot
+    tsstoo[index]=tss[index]
+    sumint[index]=(1.-tss[index])/(ks[index]*lai[index])
+    
+    # Outside the hotspot
+    index=np.logical_and(lai > 0,alf != 0)
+    fhot=lai[index]*np.sqrt(ko[index]*ks[index])
+    # Integrate by exponential Simpson method in 20 steps the steps are arranged according to equal partitioning of the slope of the joint probability function
+    x1=np.zeros(fhot.shape)
+    y1=np.zeros(fhot.shape)
+    f1=np.ones(fhot.shape)
+    fint=(1.-np.exp(-alf[index]))*.05
+    for istep in range(1,21):
+        if istep < 20 :
+            x2=-np.log(1.-istep*fint)/alf[index]
+        else :
+            x2=np.ones(fhot.shape)
+        y2=-(ko[index]+ks[index])*lai[index]*x2+fhot*(1.-np.exp(-alf[index]*x2))/alf[index]
+        f2=np.exp(y2)
+        sumint[index]=sumint[index]+(f2-f1)*(x2-x1)/(y2-y1)
+        x1=np.copy(x2)
+        y1=np.copy(y2)
+        f1=np.copy(f2)
+        
+    tsstoo[index]=f1
+    sumint[np.isnan(sumint)] = 0.
+    
+    return tsstoo, sumint
+
+def define_geometric_constant (tts, tto, psi):
+    tants = np.tan(np.radians(tts))
+    tanto = np.tan(np.radians(tto))
+    cospsi  = np.cos(np.radians(psi))
+    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    return dso
