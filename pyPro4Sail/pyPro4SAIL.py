@@ -32,8 +32,7 @@ EXAMPLE
 
 '''
 
-import pyPro4Sail.FourSAIL
-import pyPro4Sail.ProspectD
+from  pyPro4Sail import FourSAIL, ProspectD
 import numpy as np
 import os
 
