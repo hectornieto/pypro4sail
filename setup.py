@@ -34,16 +34,17 @@ def read_file(filepath, root=PROJECT_ROOT):
 
 
 LONG_DESCRIPTION = read_file("README.md")
-SHORT_DESCRIPTION = "Prospect5 and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies"
+SHORT_DESCRIPTION = "ProspectD and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies"
 REQS = [
     'numpy>=1.10',
-    'scipy'
-]
+    'scipy']
 
 setup(
     name                  = "pyPro4Sail",
-    packages              = [''],
-    package_dir           = {'': 'src'},
+    packages              = ['pyPro4Sail'],
+    #package_dir           = ['pyPro4Sail'],
+    package_data={"pyPro4Sail": ["*.txt"]},
+    include_package_data=True,
     install_requires      = REQS,
     version               = "0.1-alpha",
     author                = "Hector Nieto",

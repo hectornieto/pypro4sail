@@ -28,9 +28,10 @@ PACKAGE CONTENTS
 * :func:`FCostJac_PROSPECT` Cost Function and Jacobian for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances.
 '''   
 import FourSAIL
-import Prospect5
+import ProspectD
 import FourSAILJacobian
-import Prospect5Jacobian
+import ProspectDJacobian
+import numpy as np
 
 def FCost_ProSail_wl(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,rsoil,wls,scale):
     ''' Cost Function for inverting PROSPEC5 + 4SAIL based on the Mean
@@ -69,7 +70,6 @@ def FCost_ProSail_wl(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
         Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
-    import numpy as np
     param_list=FourSAILJacobian.paramsPro4SAIL
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
@@ -92,9 +92,9 @@ def FCost_ProSail_wl(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
     for obs in range(n_obs):
         j=0
         for wl in wls:
-            [l,r,t]=Prospect5.Prospect5_wl(wl,input_parameters['N_leaf'],
+            [l,r,t]=ProspectD.ProspectD_wl(wl,input_parameters['N_leaf'],
                 input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
-                input_parameters['Cw'],input_parameters['Cm'])
+                input_parameters['Cw'],input_parameters['Cm'],input_parameters['Ant'])
             [_,_,_,_,_,_,_,_,_,_,_,_,_,_,rdot,
                  _,_,rsot,_,_,_]=FourSAIL.FourSAIL_wl(input_parameters['LAI'],
                  input_parameters['hotspot'],lidf,float(sza[obs]),float(vza[obs]),
@@ -143,7 +143,6 @@ def FCost_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,rsoi
         Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
-    import numpy as np
     param_list=FourSAILJacobian.paramsPro4SAIL
 
     # Get the a priori parameters and fixed parameters for the inversion
@@ -164,9 +163,9 @@ def FCost_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,rsoi
     #Calculate LIDF
     lidf=FourSAIL.CalcLIDF_Campbell(float(input_parameters['leaf_angle']))
     for obs in range(n_obs):
-        [l,r,t]=Prospect5.Prospect5(input_parameters['N_leaf'],
+        [l,r,t]=ProspectD.ProspectD(input_parameters['N_leaf'],
                 input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
-                input_parameters['Cw'],input_parameters['Cm'])
+                input_parameters['Cw'],input_parameters['Cm'],input_parameters['Ant'])
         k=[k for k,wl in enumerate(l) if float(wl) in wls]
         r=r[k]
         t=t[k]
@@ -217,7 +216,6 @@ def FCostJac_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
         Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
-    import numpy as np
     param_list=FourSAILJacobian.paramsPro4SAIL
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
@@ -240,9 +238,9 @@ def FCostJac_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
     #Calculate LIDF
     Jac_lidf,lidf=FourSAILJacobian.JacCalcLIDF_Campbell(float(input_parameters['leaf_angle']))
     for obs in range(n_obs):
-        l,Jac_r,Jac_t,r,t=Prospect5Jacobian.JacProspect5(input_parameters['N_leaf'],
+        l,Jac_r,Jac_t,r,t=ProspectDJacobian.JacProspectD(input_parameters['N_leaf'],
                 input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
-                input_parameters['Cw'],input_parameters['Cm'])
+                input_parameters['Cw'],input_parameters['Cm'],input_parameters['Ant'])
         k=[k for k,wl in enumerate(l) if float(wl) in wls]
         r=r[k]
         t=t[k]
@@ -263,7 +261,7 @@ def FCostJac_ProSail(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,r
     return mse,Jac_mse
 
 
-def FCost_PROSPECT5_wl(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
+def FCost_PROSPECTS_wl(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
     ''' Cost Function for inverting PROSPECT5  the Root MeanSquare Error of 
     observed vs. modeled reflectances and scaled [0,1] parameters.
         
@@ -288,8 +286,7 @@ def FCost_PROSPECT5_wl(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
         Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
-    import numpy as np
-    param_list=Prospect5Jacobian.paramsProspect5
+    param_list=ProspectDJacobian.paramsProspectD
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -306,15 +303,15 @@ def FCost_PROSPECT5_wl(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
     n_wl=len(wls)
     error= np.zeros(n_wl)
     for i,wl in enumerate(wls):
-        [l,r,t]=Prospect5.Prospect5_wl(wl,input_parameters['N_leaf'],
+        [l,r,t]=ProspectD.ProspectD_wl(wl,input_parameters['N_leaf'],
             input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
-            input_parameters['Cw'],input_parameters['Cm'])
+            input_parameters['Cw'],input_parameters['Cm'],input_parameters['Ant'])
         error[i]=(r-rho_leaf[i])**2
     mse=0.5*np.mean(error)
 
     return mse
 
-def FCost_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
+def FCost_PROSPECTD(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
     ''' Cost Function for inverting PROSPECT5  the Root MeanSquare Error of 
     observed vs. modeled reflectances and scaled [0,1] parameters.
         
@@ -339,8 +336,7 @@ def FCost_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
         Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
-    import numpy as np
-    param_list=Prospect5Jacobian.paramsProspect5
+    param_list=ProspectDJacobian.paramsProspectD
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -354,15 +350,15 @@ def FCost_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
             input_parameters[param]=FixedValues[j]
             j=j+1
     # Start processing   
-    [l,r,t]=Prospect5.Prospect5(input_parameters['N_leaf'],
+    [l,r,t]=ProspectD.ProspectD(input_parameters['N_leaf'],
             input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
-            input_parameters['Cw'],input_parameters['Cm'])
+            input_parameters['Cw'],input_parameters['Cm'],input_parameters['Ant'])
     k=[k for k,wl in enumerate(l) if float(wl) in wls]
     error=(r[k]-rho_leaf)**2
     mse=0.5*np.mean(error)
     return mse
     
-def FCostJac_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
+def FCostJac_PROSPECTD(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
     ''' Cost Function for inverting PROSPECT5  the Root MeanSquare Error of 
     observed vs. modeled reflectances and scaled [0,1] parameters.
         
@@ -387,8 +383,7 @@ def FCostJac_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
         Mean Square Error of observed vs. modelled surface reflectance
         This is the function to be minimized.'''
     
-    import numpy as np
-    param_list=Prospect5Jacobian.paramsProspect5
+    param_list=ProspectDJacobian.paramsProspectD
     # Get the a priori parameters and fixed parameters for the inversion
     input_parameters=dict()
     i=0
@@ -404,9 +399,9 @@ def FCostJac_PROSPECT5(x0,ObjParam,FixedValues,rho_leaf,wls,scale):
             input_parameters[param]=FixedValues[j]
             j=j+1
     # Start processing    
-    l,Delta_r,Delta_t,r,t=Prospect5Jacobian.JacProspect5(input_parameters['N_leaf'],
+    l,Delta_r,Delta_t,r,t=ProspectDJacobian.JacProspectD(input_parameters['N_leaf'],
             input_parameters['Cab'],input_parameters['Car'],input_parameters['Cbrown'], 
-            input_parameters['Cw'],input_parameters['Cm'])
+            input_parameters['Cw'],input_parameters['Cm'],input_parameters['Ant'])
     k=[k for k,wl in enumerate(l) if float(wl) in wls]
     error=(r[k]-rho_leaf)**2
     Delta_r=Delta_r[param_index]
