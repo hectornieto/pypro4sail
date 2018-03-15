@@ -26,11 +26,9 @@ PACKAGE CONTENTS
 * :func:`FCost_PROSPECT5_wl` Cost Function for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances, only run for specific wavelenghts.
 * :func:`FCost_PROSPECT` Cost Function for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances.
 * :func:`FCostJac_PROSPECT` Cost Function and Jacobian for inverting PROSPEC5 based on the Mean Squared Error of observed vs. modeled reflectances.
-'''   
-import FourSAIL
-import ProspectD
-import FourSAILJacobian
-import ProspectDJacobian
+''' 
+  
+from pyPro4Sail import FourSAIL, ProspectD, FourSAILJacobian, ProspectDJacobian
 import numpy as np
 
 def FCost_ProSail_wl(x0,ObjParam,FixedValues,n_obs,rho_canopy,vza,sza,psi,skyl,rsoil,wls,scale):
