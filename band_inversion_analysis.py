@@ -23,7 +23,7 @@ import scipy.stats as st
 
 # Number of simulations
 N_samples_canopy =  600
-N = 50
+N = 100
 
 ObjParams = ('Cab','Cbrown', 'Ant', 'LAI', 'leaf_angle')
 
@@ -298,30 +298,32 @@ for filters, wls_inv in band_selection.items():
     
     
     for i, param in enumerate(ObjParams):
-        plt.figure()
-        plt.plot(estimated[:,i], samples_new[:,i], 'b.')
-        plt.title('%s %s'%(filters, param))
-        lims = (scale[i][0],scale[i][0]+scale[i][1])
-        plt.xlim(lims)
-        plt.ylim(lims)
-        plt.xlabel('Inverse model')
-        plt.ylabel('Forward model')
-        plt.plot(lims,lims,'r--')
-        rmse = np.sqrt(np.mean((estimated[:,i] - samples_new[:,i])**2))
-        cor = st.pearsonr(estimated[:,i], samples_new[:,i])[0]
-        bias = np.mean(estimated[:,i] - samples_new[:,i])
-        plt.figtext(0.2,0.7, 
-                    'RMSD:  %s\nbias:  %s\nr:     %s'%(
-                            np.round(rmse,2),
-                            np.round(bias,2),
-                            np.round(cor,3)),
-                    backgroundcolor='white',
-                    linespacing=1.15, 
-                    family='monospace')
-        plt.savefig(pth.join(pth.expanduser('~'),
-                             '%s_%s.png'%(param,filters)),
-                    dpi=100)
-        plt.close()
+#==============================================================================
+#         plt.figure()
+#         plt.plot(estimated[:,i], samples_new[:,i], 'b.')
+#         plt.title('%s %s'%(filters, param))
+#         lims = (scale[i][0],scale[i][0]+scale[i][1])
+#         plt.xlim(lims)
+#         plt.ylim(lims)
+#         plt.xlabel('Inverse model')
+#         plt.ylabel('Forward model')
+#         plt.plot(lims,lims,'r--')
+#         rmse = np.sqrt(np.mean((estimated[:,i] - samples_new[:,i])**2))
+#         cor = st.pearsonr(estimated[:,i], samples_new[:,i])[0]
+#         bias = np.mean(estimated[:,i] - samples_new[:,i])
+#         plt.figtext(0.2,0.7, 
+#                     'RMSD:  %s\nbias:  %s\nr:     %s'%(
+#                             np.round(rmse,2),
+#                             np.round(bias,2),
+#                             np.round(cor,3)),
+#                     backgroundcolor='white',
+#                     linespacing=1.15, 
+#                     family='monospace')
+#         plt.savefig(pth.join(pth.expanduser('~'),
+#                              '%s_%s.png'%(param,filters)),
+#                     dpi=100)
+#         plt.close()
+#==============================================================================
 
 
         # Calculate the point density
@@ -334,7 +336,7 @@ for filters, wls_inv in band_selection.items():
         x, y, z = estimated[:,i][idx], samples_new[:,i][idx], z[idx]
         
         plt.scatter(x, y, c=z, s=5, edgecolor='')
-        plt.title('dual angle %s'%param)
+        plt.title('%s %s'%(filters, param))
         lims = (scale[i][0],scale[i][0]+scale[i][1])
         plt.xlim(lims)
         plt.ylim(lims)
@@ -409,30 +411,32 @@ for i,rho in enumerate(rho_canopy_nadir):
     print('inversion %s/%s'%(i, N_samples_canopy))
 
 for i, param in enumerate(ObjParams):
-    plt.figure()
-    plt.plot(estimated[:,i], samples_new[:,i], 'b.')
-    plt.title('dual angle %s'%param)
-    lims = (scale[i][0],scale[i][0]+scale[i][1])
-    plt.xlim(lims)
-    plt.ylim(lims)
-    plt.xlabel('Inverse model')
-    plt.ylabel('Forward model')
-    plt.plot(lims,lims,'r--')
-    rmse = np.sqrt(np.mean((estimated[:,i] - samples_new[:,i])**2))
-    cor = st.pearsonr(estimated[:,i], samples_new[:,i])[0]
-    bias = np.mean(estimated[:,i] - samples_new[:,i])
-    plt.figtext(0.2,0.7, 
-                'RMSD:  %s\nbias:  %s\nr:     %s'%(
-                        np.round(rmse,2),
-                        np.round(bias,2),
-                        np.round(cor,3)),
-                backgroundcolor='white',
-                linespacing=1.15, 
-                family='monospace')
-    plt.savefig(pth.join(pth.expanduser('~'),
-                         '%s_SA_2angles.png'%param),
-                dpi=100)
-    plt.close()
+#==============================================================================
+#     plt.figure()
+#     plt.plot(estimated[:,i], samples_new[:,i], 'b.')
+#     plt.title('dual angle %s'%param)
+#     lims = (scale[i][0],scale[i][0]+scale[i][1])
+#     plt.xlim(lims)
+#     plt.ylim(lims)
+#     plt.xlabel('Inverse model')
+#     plt.ylabel('Forward model')
+#     plt.plot(lims,lims,'r--')
+#     rmse = np.sqrt(np.mean((estimated[:,i] - samples_new[:,i])**2))
+#     cor = st.pearsonr(estimated[:,i], samples_new[:,i])[0]
+#     bias = np.mean(estimated[:,i] - samples_new[:,i])
+#     plt.figtext(0.2,0.7, 
+#                 'RMSD:  %s\nbias:  %s\nr:     %s'%(
+#                         np.round(rmse,2),
+#                         np.round(bias,2),
+#                         np.round(cor,3)),
+#                 backgroundcolor='white',
+#                 linespacing=1.15, 
+#                 family='monospace')
+#     plt.savefig(pth.join(pth.expanduser('~'),
+#                          '%s_SA_2angles.png'%param),
+#                 dpi=100)
+#     plt.close()
+#==============================================================================
     
     # Calculate the point density
     xy = np.vstack([estimated[:,i], samples_new[:,i]])
