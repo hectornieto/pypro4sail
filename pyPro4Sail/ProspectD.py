@@ -206,7 +206,7 @@ def Prospect5_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     # reflectance and transmittance of one layer
     rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
-    rho, tau = reflectance_N_layers_Stokes(rho, tau, Ra, Ta, Nleaf)
+    rho, tau = reflectance_N_layers_Stokes_vec(rho, tau, Ra, Ta, Nleaf)
     
     return l, rho, tau
 
@@ -417,6 +417,37 @@ def reflectance_N_layers_Stokes(r, t, Ra, Ta, Nleaf):
     refl    = Ra+Ta*Rsub*t/denom
     
     return refl, tran
+
+def reflectance_N_layers_Stokes_vec(r, t, Ra, Ta, Nleaf):
+    #==============================================================================
+    # reflectance and transmittance of N layers
+    # Stokes G.G. (1862), On the intensity of the light reflected from
+    # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
+    # 11:545-556.
+    #==============================================================================
+    
+    D       = np.sqrt((1.+r+t)*(1.+r-t)*(1.-r+t)*(1.-r-t))
+    a       = (1.+r**2-t**2+D)/(2.*r)
+    b       = (1.-r**2+t**2+D)/(2.*t)
+
+    bNm1    = np.power(b, Nleaf-1.)
+    bN2     = bNm1**2
+    a2      = a**2
+    denom   = a2*bN2-1.
+    Rsub    = a*(bN2-1.)/denom
+    Tsub    = bNm1*(a2-1.)/denom
+
+    # Case of zero absorption
+    j       = r+t >= 1.
+    Tsub[j] = t[j]/(t[j]+(1.-t[j])*(np.repeat(Nleaf, r.shape[1], axis=1)[j]-1.))
+    Rsub[j] = 1.-Tsub[j]
+
+    # Reflectance and transmittance of the leaf: combine top layer with next N-1 layers
+    denom   = 1.-Rsub*r
+    tran    = Ta*Tsub/denom
+    refl    = Ra+Ta*Rsub*t/denom
+    
+    return refl, tran
     
 def ProspectD_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
@@ -503,7 +534,7 @@ def ProspectD_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     # reflectance and transmittance of one layer
     rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
-    rho, tau = reflectance_N_layers_Stokes(rho, tau, Ra, Ta, Nleaf)
+    rho, tau = reflectance_N_layers_Stokes_vec(rho, tau, Ra, Ta, Nleaf)
     
     return l, rho, tau
 
