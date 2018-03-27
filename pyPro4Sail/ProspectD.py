@@ -35,7 +35,7 @@ EXAMPLE
 
 # Extinction coefficients and refractive index
 from pyPro4Sail import spectral_lib
-from scipy.special import expi
+from scipy.special import expi, expn
 import numpy as np
 
 wls,refr_index,Cab_k,Car_k,Cbrown_k,Cw_k,Cm_k,Ant_k=spectral_lib
@@ -112,11 +112,12 @@ def Prospect5(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     k[k<=0]=0
     
     trans=(1.-k)*np.exp(-k)+k**2.*(-expi(-k))
+    #trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
     trans[k<=0.0]=1.0
     
     alpha=40.
     # reflectance and transmittance of one layer
-    rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
+    rho, tau, Ra, Ta = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_N_layers_Stokes(rho, tau, Ra, Ta, Nleaf)
     
@@ -204,7 +205,7 @@ def Prospect5_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm):
     
     alpha=40.
     # reflectance and transmittance of one layer
-    rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
+    rho, tau, Ra, Ta = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_N_layers_Stokes_vec(rho, tau, Ra, Ta, Nleaf)
     
@@ -299,7 +300,7 @@ def Prospect5_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm):
     
     alpha=40.
     # reflectance and transmittance of one layer
-    rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
+    rho, tau, Ra, Ta = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_N_layers_Stokes(rho, tau, Ra, Ta, n)
     
@@ -375,12 +376,13 @@ def ProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
         +Cm*np.array(Cm_k)+Ant*np.array(Ant_k))/Nleaf
     k[k<=0]=0
     
-    trans=(1.-k)*np.exp(-k)+k**2.*(-expi(-k))
+    trans=(1.-k)*np.exp(-k)-k**2.*expi(-k)
+    #trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
     trans[k<=0.0]=1.0
     
     alpha=40.
     # reflectance and transmittance of one layer
-    rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
+    rho, tau, Ra, Ta = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_N_layers_Stokes(rho, tau, Ra, Ta, Nleaf)
     
@@ -532,7 +534,7 @@ def ProspectD_vec(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     
     alpha=40.
     # reflectance and transmittance of one layer
-    rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, refr_index, trans)
+    rho, tau, Ra, Ta = refl_trans_one_layer (alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_N_layers_Stokes_vec(rho, tau, Ra, Ta, Nleaf)
     
@@ -623,7 +625,7 @@ def ProspectD_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     
     alpha=40.
     # reflectance and transmittance of one layer
-    rho, tau, Ra, Ta, denom = refl_trans_one_layer (alpha, n, trans)
+    rho, tau, Ra, Ta = refl_trans_one_layer (alpha, n, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_N_layers_Stokes(rho, tau, Ra, Ta, Nleaf)
     
@@ -655,7 +657,7 @@ def refl_trans_one_layer (alpha, nr, tau):
     t = t12*tau*t21/denom
     r = r12+r21*tau*t
     
-    return r, t, Ra, Ta, denom
+    return r, t, Ra, Ta
 
 def tav(theta,ref):
     '''
