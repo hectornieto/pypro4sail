@@ -36,6 +36,7 @@ EXAMPLE
 # Extinction coefficients and refractive index
 from pyPro4Sail import spectral_lib
 from scipy.special import expn
+from scipy.special import expi
 import numpy as np
 
 wls,refr_index,Cab_k,Car_k,Cbrown_k,Cw_k,Cm_k,Ant_k=spectral_lib
@@ -93,42 +94,57 @@ def JacProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     k=(float(Cab)*np.array(Cab_k)+float(Car)*np.array(Car_k)
         +float(Cbrown)*np.array(Cbrown_k)+float(Cw)*np.array(Cw_k)
         +float(Cm)*np.array(Cm_k)+float(Ant)*np.array(Ant_k))/float(Nleaf)
-    Delta_k=np.array([-(float(Cab)*np.array(Cab_k)+float(Car)*np.array(Car_k)
-        +float(Cbrown)*np.array(Cbrown_k)+float(Cw)*np.array(Cw_k)
-        +float(Cm)*np.array(Cm_k)+float(Ant)*np.array(Ant_k))/float(Nleaf)**2,np.array(Cab_k)/float(Nleaf),
-        np.array(Car_k)/float(Nleaf),np.array(Cbrown_k)/float(Nleaf),
-        np.array(Cw_k)/float(Nleaf),np.array(Cm_k)/float(Nleaf),np.array(Ant_k)/float(Nleaf)])
+    Delta_k=np.array([-(float(Cab)*np.array(Cab_k)
+                            +float(Car)*np.array(Car_k)
+                            +float(Cbrown)*np.array(Cbrown_k)
+                            +float(Cw)*np.array(Cw_k)
+                            +float(Cm)*np.array(Cm_k)
+                            +float(Ant)*np.array(Ant_k))/float(Nleaf)**2,
+                        np.array(Cab_k)/float(Nleaf),
+                        np.array(Car_k)/float(Nleaf),
+                        np.array(Cbrown_k)/float(Nleaf),
+                        np.array(Cw_k)/float(Nleaf),
+                        np.array(Cm_k)/float(Nleaf),
+                        np.array(Ant_k)/float(Nleaf)])
     k[k<=0]=1e-6    
     trans=(1.-k)*np.exp(-k)+k**2.*expn(1.,k)
-    Delta_trans=(-np.exp(-k)-(1.-k)*np.exp(-k)+2*k*expn(1.,k)-k**2*expn(0,k))*Delta_k
-    
-    #==============================================================================
+    Delta_trans=(-np.exp(-k)-(1.-k)*np.exp(-k)+2*k*expn(1.,k)-k**2*expn(0.,k))*Delta_k
     # reflectance and transmittance of one layer
-    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
-    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
-    # Soc. Am., 59(10):1376-1379.
-    #==============================================================================
-    #reflectivity and transmissivity at the interface
-    alpha=40.;
-    n=np.array(refr_index)
-    t12=tav(alpha,n)
-    t21=tav(90.,n)/n**2.
-    r12=1.-t12
-    r21=1.-t21
-    x=tav(alpha,n)/tav(90.,n)
-    y=x*(tav(90.,n)-1.)+1.-tav(alpha,n)
-    #reflectance and transmittance of the elementary layer N = 1
-    ra=r12+(t12*t21*r21*trans**2.)/(1.-r21**2.*trans**2.)
-    Delta_ra=((2.*t12*t21*r21*trans*(1.-r21**2.*trans**2.)+2.*t12*t21*r21*trans**2.*r21**2.*trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans
+    alpha=40.
+    [r, 
+     t, 
+     Ra, 
+     Ta, 
+     Delta_r, 
+     Delta_t, 
+     Delta_Ra,
+     Delta_Ta] = Jac_refl_trans_one_layer (alpha, 
+                                             refr_index, 
+                                             trans, 
+                                             Delta_trans)          
 
-    ta=(t12*t21*trans)/(1.-r21**2.*trans**2.)
-    Delta_ta=((t12*t21*(1.-r21**2.*trans**2.)+2.*t12*t21*trans*r21**2.*trans)/(1.-r21**2.*trans**2.)**2)*Delta_trans 
+    # reflectance and transmittance of multiple layers
+    rho, tau, Delta_rho, Delta_tau = Jac_reflectance_N_layers_Stokes(r, 
+                                                                    t, 
+                                                                    Ra, 
+                                                                    Ta, 
+                                                                    Nleaf, 
+                                                                    Delta_r, 
+                                                                    Delta_t, 
+                                                                    Delta_Ra,
+                                                                    Delta_Ta)
+    
+    return l, Delta_rho, Delta_tau, rho, tau
 
-    r90=(ra-y)/x
-    Delta_r90=Delta_ra/x
-
-    t90=ta/x
-    Delta_t90=Delta_ta/x
+def Jac_reflectance_N_layers_Stokes(r90, 
+                                    t90, 
+                                    Ra, 
+                                    Ta, 
+                                    Nleaf, 
+                                    Delta_r90, 
+                                    Delta_t90, 
+                                    Delta_Ra,
+                                    Delta_Ta):
     #==============================================================================
     # reflectance and transmittance of N layers
     # Stokes G.G. (1862), On the intensity of the light reflected from
@@ -160,22 +176,55 @@ def JacProspectD(Nleaf,Cab,Car,Cbrown,Cw,Cm, Ant):
     vainv = 1./va
     Delta_vainv=-Delta_va/va**2
 
-    s1=ta*t90*(vbNN-vbNNinv)
-    Delta_s1=(Delta_ta*t90+ta*Delta_t90)*(vbNN-vbNNinv)+ta*t90*(Delta_vbNN-Delta_vbNNinv)
+    s1=Ta*t90*(vbNN-vbNNinv)
+    Delta_s1=(Delta_Ta*t90+Ta*Delta_t90)*(vbNN-vbNNinv)+Ta*t90*(Delta_vbNN-Delta_vbNNinv)
     
-    s2=ta*(va-vainv)
-    Delta_s2=Delta_ta*(va-vainv)+ta*(Delta_va-Delta_vainv)
+    s2=Ta*(va-vainv)
+    Delta_s2=Delta_Ta*(va-vainv)+Ta*(Delta_va-Delta_vainv)
     
     s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
     Delta_s3=(Delta_va*vbNN+va*Delta_vbNN)-(Delta_vainv*vbNNinv+vainv*Delta_vbNNinv)-(Delta_r90*(vbNN-vbNNinv)+r90*(Delta_vbNN-Delta_vbNNinv))
 
-    rho=ra+s1/s3
-    Delta_rho=Delta_ra+(Delta_s1*s3-s1*Delta_s3)/s3**2    
+    rho=Ra+s1/s3
+    Delta_rho=Delta_Ra+(Delta_s1*s3-s1*Delta_s3)/s3**2    
 
     tau=s2/s3
     Delta_tau=(Delta_s2*s3-s2*Delta_s3)/s3**2            
-    return l,Delta_rho,Delta_tau, rho, tau
+    
+    return rho, tau, Delta_rho, Delta_tau
 
+def Jac_refl_trans_one_layer (alpha, nr, tau, Delta_tau):
+    # ***********************************************************************
+    # reflectance and transmittance of one layer
+    # ***********************************************************************
+    # Allen W.A., Gausman H.W., Richardson A.J., Thomas J.R. (1969),
+    # Interaction of isotropic ligth with a compact plant leaf, J. Opt.
+    # Soc. Am., 59(10):1376-1379.
+    # ***********************************************************************
+    # reflectivity and transmissivity at the interface
+    #-------------------------------------------------   
+    talf = tav (alpha, nr)
+    ralf = 1.0-talf
+    t12 = tav (90., nr)
+    r12 = 1. - t12
+    t21 = t12/nr**2
+    r21 = 1-t21
+
+    # top surface side
+    denom = 1. - r21**2 * tau**2
+    Delta_denom = -2 * r21**2 * tau * Delta_tau
+    Ta = talf*tau*t21/denom
+    Delta_Ta = talf * t21 * (Delta_tau*denom - tau*Delta_denom)/denom**2
+    Ra = ralf + r21*tau*Ta
+    Delta_Ra = r21* (tau*Delta_Ta + Delta_tau*Ta)
+
+    # bottom surface side
+    t = t12*tau*t21/denom
+    Delta_t = t12 * t21 * (Delta_tau*denom - tau*Delta_denom)/denom**2
+    r = r12+r21*tau*t
+    Delta_r = r21* (tau*Delta_t + Delta_tau*t)
+    
+    return r, t, Ra, Ta, Delta_r, Delta_t, Delta_Ra, Delta_Ta
 
 def JacProspectD_wl(wl,Nleaf,Cab,Car,Cbrown,Cw,Cm,Ant):
     '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
