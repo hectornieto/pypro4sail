@@ -109,7 +109,7 @@ def run(N, chloro, caroten, brown, EWT, LMA, Ant, LAI, hot_spot, solar_zenith, s
     '''
     
     # Read the soil reflectance        
-    rsoil=np.genfromtxt(SOIL_FOLDER+soilType)
+    rsoil=np.genfromtxt(os.path.join(SOIL_FOLDER, soilType))
     #wl_soil=rsoil[:,0]
     rsoil=np.array(rsoil[:,1])
 
