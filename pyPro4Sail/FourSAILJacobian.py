@@ -140,7 +140,8 @@ def JacCalcLIDF_Campbell(alpha,n_elements=18):
     for i in range(n_elements):
         lidf.append(float(freq[i])/sum0)
         Delta_lidf.append(float(Delta_freq[i]*sum0-freq[i]*Delta_sum0)/sum0**2)
-    return Delta_lidf,lidf
+    
+    return lidf, Delta_lidf
 
 def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_tau=None):
     ''' Runs 4SAIL canopy radiative transfer model.
@@ -168,48 +169,6 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     
     Returns
     -------
-    Delta_tss : 2D_array_like
-        Jacobian, beam transmittance in the sun-target path.
-    Delta_too : 2D_array_like
-        Jacobian, beam transmittance in the target-view path.
-    Delta_tsstoo : 2D_array_like
-        Jacobian, beam tranmittance in the sur-target-view path.
-    Delta_rdd : 2D_array_like
-        Jacobian, canopy bihemisperical reflectance factor.
-    Delta_tdd : 2D_array_like
-        Jacobian, canopy bihemishperical transmittance factor.
-    Delta_rsd : 2D_array_like 
-        Jacobian, canopy directional-hemispherical reflectance factor.
-    Delta_tsd : 2D_array_like
-        Jacobian, canopy directional-hemispherical transmittance factor.
-    Delta_rdo : 2D_array_like
-        Jacobian, canopy hemispherical-directional reflectance factor.
-    Delta_tdo : 2D_array_like
-        Jacobian, canopy hemispherical-directional transmittance factor.
-    Delta_rso : 2D_array_like
-        Jacobian, canopy bidirectional reflectance factor.
-    Delta_rsos : 2D_array_like
-        Jacobian, single scattering contribution to rso.
-    Delta_rsod : 2D_array_like
-        Jacobian, multiple scattering contribution to rso.
-    Delta_rddt : 2D_array_like
-        Jacobian, surface bihemispherical reflectance factor.
-    Delta_rsdt : 2D_array_like
-        Jacobian, surface directional-hemispherical reflectance factor.
-    Delta_rdot : 2D_array_like
-        Jacobian, surface hemispherical-directional reflectance factor.
-    Delta_rsodt : 2D_array_like
-        Jacobian, reflectance factor.
-    Delta_rsost : 2D_array_like
-        Jacobian, reflectance factor.
-    Delta_rsot : 2D_array_like
-        Jacobian, surface bidirectional reflectance factor.
-    Delta_gammasdf : 2D_array_like
-        Jacobian, 'Thermal gamma factor'.
-    Delta_gammasdb : 2D_array_like
-        Jacobian, 'Thermal gamma factor'.
-    Delta_gammaso : 2D_array_like
-        Jacobian, 'Thermal gamma factor'.
     tss : 1D_array_like
         beam transmittance in the sun-target path.
     too : 1D_array_like
@@ -252,6 +211,48 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
         'Thermal gamma factor'.
     gammaso : 1D_array_like
         'Thermal gamma factor'.
+    Delta_tss : 2D_array_like
+        Jacobian, beam transmittance in the sun-target path.
+    Delta_too : 2D_array_like
+        Jacobian, beam transmittance in the target-view path.
+    Delta_tsstoo : 2D_array_like
+        Jacobian, beam tranmittance in the sur-target-view path.
+    Delta_rdd : 2D_array_like
+        Jacobian, canopy bihemisperical reflectance factor.
+    Delta_tdd : 2D_array_like
+        Jacobian, canopy bihemishperical transmittance factor.
+    Delta_rsd : 2D_array_like 
+        Jacobian, canopy directional-hemispherical reflectance factor.
+    Delta_tsd : 2D_array_like
+        Jacobian, canopy directional-hemispherical transmittance factor.
+    Delta_rdo : 2D_array_like
+        Jacobian, canopy hemispherical-directional reflectance factor.
+    Delta_tdo : 2D_array_like
+        Jacobian, canopy hemispherical-directional transmittance factor.
+    Delta_rso : 2D_array_like
+        Jacobian, canopy bidirectional reflectance factor.
+    Delta_rsos : 2D_array_like
+        Jacobian, single scattering contribution to rso.
+    Delta_rsod : 2D_array_like
+        Jacobian, multiple scattering contribution to rso.
+    Delta_rddt : 2D_array_like
+        Jacobian, surface bihemispherical reflectance factor.
+    Delta_rsdt : 2D_array_like
+        Jacobian, surface directional-hemispherical reflectance factor.
+    Delta_rdot : 2D_array_like
+        Jacobian, surface hemispherical-directional reflectance factor.
+    Delta_rsodt : 2D_array_like
+        Jacobian, reflectance factor.
+    Delta_rsost : 2D_array_like
+        Jacobian, reflectance factor.
+    Delta_rsot : 2D_array_like
+        Jacobian, surface bidirectional reflectance factor.
+    Delta_gammasdf : 2D_array_like
+        Jacobian, 'Thermal gamma factor'.
+    Delta_gammasdb : 2D_array_like
+        Jacobian, 'Thermal gamma factor'.
+    Delta_gammaso : 2D_array_like
+        Jacobian, 'Thermal gamma factor'.
     
     References
     ----------
@@ -284,54 +285,19 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
         
         
     # Here the LIDF comes in
-    Delta_lidf,lidf=lidf[0],lidf[1]
-    cts   = np.cos(np.radians(tts))
-    cto   = np.cos(np.radians(tto))
-    ctscto  = cts*cto
-    #sts   = sin(radians(tts))
-    #sto   = sin(radians(tto))
-    tants = np.tan(np.radians(tts))
-    tanto = np.tan(np.radians(tto))
-    cospsi  = np.cos(np.radians(psi))
-    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
-    #Calculate geometric factors associated with extinction and scattering 
-    #Initialise sums
-    ks=0.
-    Delta_ks=np.zeros(n_params)
-    ko=0.
-    Delta_ko=np.zeros(n_params)
-    bf=0.
-    Delta_bf=np.zeros(n_params)    
-    sob=0.
-    Delta_sob=np.zeros(n_params)
-    sof=0.
-    Delta_sof=np.zeros(n_params)
-    # Weighted sums over LIDF
-    n_angles=len(lidf)
-    angle_step=float(90.0/n_angles)
-    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
-    for i,ili in enumerate(litab):
-        ttl=float(ili)
-        cttl=np.cos(np.radians(ttl))
-        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
-        [chi_s,chi_o,frho,ftau]=volscatt(tts,tto,psi,ttl)
-        # Extinction coefficients
-        ksli=chi_s/cts
-        koli=chi_o/cto
-        # Area scattering coefficient fractions
-        sobli=frho*np.pi/ctscto
-        sofli=ftau*np.pi/ctscto
-        bfli=cttl**2.
-        ks+=ksli*float(lidf[i])
-        Delta_ks[leaf_params+2]+=ksli*float(Delta_lidf[i])
-        ko+=koli*float(lidf[i])
-        Delta_ko[leaf_params+2]+=koli*float(Delta_lidf[i])
-        bf+=bfli*float(lidf[i])
-        Delta_bf[leaf_params+2]+=bfli*float(Delta_lidf[i])
-        sob+=sobli*float(lidf[i])
-        Delta_sob[leaf_params+2]+=sobli*float(Delta_lidf[i])
-        sof+=sofli*float(lidf[i])
-        Delta_sof[leaf_params+2]+=sofli*float(Delta_lidf[i])
+    lidf, Delta_lidf=lidf[0],lidf[1]
+    # weighted_sum_over_lidf
+    [ks, 
+     ko, 
+     bf, 
+     sob, 
+     sof, 
+     Delta_ks, 
+     Delta_ko, 
+     Delta_bf, 
+     Delta_sob, 
+     Delta_sof] = Jac_weighted_sum_over_lidf(lidf, Delta_lidf, tts, tto, psi, leaf_params, n_params)
+
     # Geometric factors to be used later with rho and tau
     sdb=0.5*(ks+bf)
     Delta_sdb=0.5*(Delta_ks+Delta_bf)
@@ -372,7 +338,7 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_vf=np.asarray(Delta_dof.reshape(-1,1)*rho_array+dof*Delta_rho_array+Delta_dob.reshape(-1,1)*tau_array+dob*Delta_tau_array)
     w =sob*rho+sof*tau
     Delta_w=np.asarray(Delta_sob.reshape(-1,1)*rho_array+sob*Delta_rho_array+Delta_sof.reshape(-1,1)*tau_array+sof*Delta_tau_array)
-    # Here the LAI comes in
+    # Here the LAI comes inleaf_params
     if lai<=0:
         tss,Delta_tss = 1,np.zeros(n_params)
         too,Delta_too = 1,np.zeros(n_params)
@@ -396,10 +362,11 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
         gammaso,Delta_gammaso=0,np.zeros(n_params)
         gammasdb,Delta_gammasdb=0,np.zeros(n_params)
         
-        return [Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
-            Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso,
-            tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
-            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
+        return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso,
+            Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
+            Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,
+            Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso]
            
     e1=np.exp(-m*lai)
     Delta_e1= np.zeros((n_params,tau.shape[0]))
@@ -416,10 +383,12 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_re=Delta_rinf*e1+rinf*Delta_e1
     denom=1.-rinf2*e2
     Delta_denom=-(Delta_rinf2*e2+rinf2*Delta_e2)
-    Delta_J1ks,J1ks=JacJfunc1(ks,m,lai,Delta_ks,Delta_m)
-    Delta_J2ks,J2ks=JacJfunc2(ks,m,lai,Delta_ks,Delta_m)
-    Delta_J1ko,J1ko=JacJfunc1(ko,m,lai,Delta_ko,Delta_m)
-    Delta_J2ko,J2ko=JacJfunc2(ko,m,lai,Delta_ko,Delta_m)
+    
+    J1ks, Delta_J1ks = JacJfunc1(ks, m, lai, Delta_ks, Delta_m)
+    J2ks, Delta_J2ks = JacJfunc2(ks, m, lai, Delta_ks, Delta_m)
+    J1ko, Delta_J1ko = JacJfunc1(ko, m, lai, Delta_ko, Delta_m)
+    J2ko, Delta_J2ko = JacJfunc2(ko, m, lai, Delta_ko, Delta_m)
+    
     Pss=(sf+sb*rinf)*J1ks
     Delta_Pss=(Delta_sf+Delta_sb*rinf+sb*Delta_rinf)*J1ks+(sf+sb*rinf)*Delta_J1ks
     Qss=(sf*rinf+sb)*J2ks
@@ -440,6 +409,7 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_tdo=((Delta_Pv-(Delta_re*Qv+re*Delta_Qv))*denom-(Pv-re*Qv)*Delta_denom)/denom**2
     rdo=(Qv-re*Pv)/denom
     Delta_rdo=((Delta_Qv-(Delta_re*Pv+re*Delta_Pv))*denom-(Qv-re*Pv)*Delta_denom)/denom**2
+    
     # Thermal "sd" quantities
     gammasdf=(1.+rinf)*(J1ks-re*J2ks)/denom
     Delta_gammasdf=((Delta_rinf*(J1ks-re*J2ks)+(1.+rinf)*(Delta_J1ks-(Delta_re*J2ks+re*Delta_J2ks)))*denom-(1.+rinf)*(J1ks-re*J2ks)*Delta_denom)/denom**2
@@ -455,7 +425,7 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_too[0:leaf_params]=np.exp(-ko*lai)*(-Delta_ko[0:leaf_params]*lai)
     Delta_too[leaf_params]=np.exp(-ko*lai)*(-ko)    
     Delta_too[leaf_params+1:]=np.exp(-ko*lai)*(-Delta_ko[leaf_params+1:]*lai)
-    Delta_z,z=JacJfunc2(ks,ko,lai,Delta_ks,Delta_ko)
+    z, Delta_z = JacJfunc2(ks, ko, lai, Delta_ks, Delta_ko)
     g1=(z-J1ks*too)/(ko+m)
     Delta_g1=((Delta_z.reshape(-1,1)-(Delta_J1ks*too+J1ks*Delta_too.reshape(-1,1)))*(ko+m)-(z-J1ks*too)*(Delta_ko.reshape(-1,1)+Delta_m))/(ko+m)**2
     g2=(z-J1ko*tss)/(ks+m)
@@ -470,9 +440,11 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_T2=Delta_Tv2*(sf*rinf+sb)+Tv2*(Delta_sf*rinf+sf*Delta_rinf+Delta_sb)
     T3=(rdo*Qss+tdo*Pss)*rinf
     Delta_T3=(Delta_rdo*Qss+rdo*Delta_Qss+Delta_tdo*Pss+tdo*Delta_Pss)*rinf+(rdo*Qss+tdo*Pss)*Delta_rinf
+    
     # Multiple scattering contribution to bidirectional canopy reflectance
     rsod=(T1+T2-T3)/(1.-rinf2)
     Delta_rsod=((Delta_T1+Delta_T2-Delta_T3)*(1.-rinf2)+(T1+T2-T3)*Delta_rinf2)/(1.-rinf2)**2
+    
     # Thermal "sod" quantity
     T4=Tv1*(1.+rinf)
     Delta_T4=Delta_Tv1*(1.+rinf)+Tv1*Delta_rinf
@@ -482,6 +454,127 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
     Delta_T6=(Delta_rdo*J2ks+rdo*Delta_J2ks+Delta_tdo*J1ks+tdo*Delta_J1ks)*(1.+rinf)*rinf+(rdo*J2ks+tdo*J1ks)*(Delta_rinf*rinf+(1.+rinf)*Delta_rinf)
     gammasod=(T4+T5-T6)/(1.-rinf2)
     Delta_gammasod=((Delta_T4+Delta_T5-Delta_T6)*(1.-rinf2)+(T4+T5-T6)*Delta_rinf2)/(1.-rinf2)**2
+    
+    # Hotspot effect
+    dso = define_geometric_constant (tts, tto, psi)
+    [tsstoo, 
+     sumint, 
+     Delta_tsstoo, 
+     Delta_sumint] = Jac_hotspot_calculations(hotspot, 
+                                                lai, 
+                                                ko, 
+                                                ks, 
+                                                dso, 
+                                                tss, 
+                                                Delta_ko, 
+                                                Delta_ks, 
+                                                Delta_tss, 
+                                                leaf_params, 
+                                                n_params)
+
+    # Bidirectional reflectance
+    # Single scattering contribution
+    rsos=w*lai*sumint
+    Delta_rsos=np.zeros(Delta_w.shape)
+    Delta_rsos[:leaf_params]=lai*(Delta_w[:leaf_params]*sumint+w*Delta_sumint[:leaf_params].reshape(-1,1))
+    Delta_rsos[leaf_params]=(Delta_w[leaf_params]*sumint+w*Delta_sumint[leaf_params].reshape(-1,1))*lai+(w*sumint)
+    Delta_rsos[leaf_params+1:]=lai*(Delta_w[leaf_params+1:]*sumint+w*Delta_sumint[leaf_params+1:].reshape(-1,1))
+    gammasos=ko*lai*sumint
+    Delta_gammasos=np.zeros(Delta_ko.shape)
+    Delta_gammasos[leaf_params]=(Delta_ko[leaf_params]*sumint+ko*Delta_sumint[leaf_params])*lai+(ko*sumint)
+    Delta_gammasos[leaf_params+1:]=lai*(Delta_ko[leaf_params+1:]*sumint+ko*Delta_sumint[leaf_params+1:])
+    # Total canopy contribution
+    rso=rsos+rsod
+    Delta_rso=Delta_rsos+Delta_rsod
+    gammaso=gammasos+gammasod
+    Delta_gammaso=Delta_gammasos.reshape(-1,1)+Delta_gammasod
+    #Interaction with the soil
+    dn=1.-rsoil*rdd
+    Delta_dn=-rsoil*Delta_rdd
+    if np.size(dn)>1:
+        dn[dn < 1e-36]=1e-36
+    else:
+        dn=max(1e-36,dn)
+    rddt=rdd+tdd*rsoil*tdd/dn
+    Delta_rddt=Delta_rdd+(rsoil*2*tdd*Delta_tdd*dn-tdd*rsoil*tdd*Delta_dn)/dn**2
+    rsdt=rsd+(tsd+tss)*rsoil*tdd/dn
+    Delta_rsdt=Delta_rsd+rsoil*((Delta_tdd*(tsd+tss)+tdd*(Delta_tsd+Delta_tss.reshape(-1,1)))*dn-tdd*(tsd+tss)*Delta_dn)/dn**2
+    rdot=rdo+tdd*rsoil*(tdo+too)/dn
+    Delta_rdot=Delta_rdo+rsoil*((Delta_tdd*(tdo+too)+tdd*(Delta_tdo+Delta_too.reshape(-1,1)))*dn-tdd*(tdo+too)*Delta_dn)/dn**2
+    rsodt=((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*rsoil/dn
+    Delta_rsodt=rsoil*(((Delta_tss.reshape(-1,1)+Delta_tsd)*tdo+(tss+tsd)
+        *Delta_tdo+(Delta_tsd+rsoil*(Delta_tss.reshape(-1,1)*rdd+tss*Delta_rdd))
+        *too+(tsd+tss*rsoil*rdd)*Delta_too.reshape(-1,1))*dn
+        -((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*Delta_dn)/dn**2
+    rsost=rso+tsstoo*rsoil
+    Delta_rsost=Delta_rso+rsoil*Delta_tsstoo.reshape(-1,1)
+    rsot=rsost+rsodt
+    Delta_rsot=Delta_rsost+Delta_rsodt
+
+    return [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
+            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso,
+            Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
+            Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,
+            Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso]
+
+def Jac_weighted_sum_over_lidf(lidf, Delta_lidf, tts, tto, psi, leaf_params, n_params):
+    
+    cts   = np.cos(np.radians(tts))
+    cto   = np.cos(np.radians(tto))
+    ctscto  = cts*cto
+
+    #Initialise sums
+    ks=0.
+    Delta_ks=np.zeros(n_params)
+    ko=0.
+    Delta_ko=np.zeros(n_params)
+    bf=0.
+    Delta_bf=np.zeros(n_params)    
+    sob=0.
+    Delta_sob=np.zeros(n_params)
+    sof=0.
+    Delta_sof=np.zeros(n_params)
+    # Weighted sums over LIDF
+    n_angles=len(lidf)
+    angle_step=float(90.0/n_angles)
+    litab=[float(angle)*angle_step+(angle_step/2.0) for angle in range(n_angles)]
+    for i,ili in enumerate(litab):
+        ttl=float(ili)
+        cttl=np.cos(np.radians(ttl))
+        # SAIL volume scattering phase function gives interception and portions to be multiplied by rho and tau
+        chi_s, chi_o, frho, ftau = volscatt(tts, tto, psi, ttl)
+        # Extinction coefficients
+        ksli=chi_s/cts
+        koli=chi_o/cto
+        # Area scattering coefficient fractions
+        sobli=frho*np.pi/ctscto
+        sofli=ftau*np.pi/ctscto
+        bfli=cttl**2.
+        ks+=ksli*float(lidf[i])
+        Delta_ks[leaf_params+2]+=ksli*float(Delta_lidf[i])
+        ko+=koli*float(lidf[i])
+        Delta_ko[leaf_params+2]+=koli*float(Delta_lidf[i])
+        bf+=bfli*float(lidf[i])
+        Delta_bf[leaf_params+2]+=bfli*float(Delta_lidf[i])
+        sob+=sobli*float(lidf[i])
+        Delta_sob[leaf_params+2]+=sobli*float(Delta_lidf[i])
+        sof+=sofli*float(lidf[i])
+        Delta_sof[leaf_params+2]+=sofli*float(Delta_lidf[i])
+    
+    return ks, ko, bf, sob, sof, Delta_ks, Delta_ko, Delta_bf, Delta_sob, Delta_sof
+
+def Jac_hotspot_calculations(hotspot, 
+                             lai, 
+                             ko, 
+                             ks, 
+                             dso, 
+                             tss, 
+                             Delta_ko, 
+                             Delta_ks, 
+                             Delta_tss,
+                             leaf_params,
+                             n_params):
+
     #Treatment of the hotspot-effect
     alf=1e36
     Delta_alf=np.zeros(n_params)
@@ -545,52 +638,12 @@ def JacFourSAIL(lai,hotspot,lidf,tts,tto,psi,rho,tau,rsoil,Delta_rho=None,Delta_
 
         tsstoo=float(f1)
         Delta_tsstoo=np.array(Delta_f1)
-    if np.isnan(sumint) : sumint=0.
-    # Bidirectional reflectance
-    # Single scattering contribution
-    rsos=w*lai*sumint
-    Delta_rsos=np.zeros(Delta_w.shape)
-    Delta_rsos[:leaf_params]=lai*(Delta_w[:leaf_params]*sumint+w*Delta_sumint[:leaf_params].reshape(-1,1))
-    Delta_rsos[leaf_params]=(Delta_w[leaf_params]*sumint+w*Delta_sumint[leaf_params].reshape(-1,1))*lai+(w*sumint)
-    Delta_rsos[leaf_params+1:]=lai*(Delta_w[leaf_params+1:]*sumint+w*Delta_sumint[leaf_params+1:].reshape(-1,1))
-    gammasos=ko*lai*sumint
-    Delta_gammasos=np.zeros(Delta_ko.shape)
-    Delta_gammasos[leaf_params]=(Delta_ko[leaf_params]*sumint+ko*Delta_sumint[leaf_params])*lai+(ko*sumint)
-    Delta_gammasos[leaf_params+1:]=lai*(Delta_ko[leaf_params+1:]*sumint+ko*Delta_sumint[leaf_params+1:])
-    # Total canopy contribution
-    rso=rsos+rsod
-    Delta_rso=Delta_rsos+Delta_rsod
-    gammaso=gammasos+gammasod
-    Delta_gammaso=Delta_gammasos.reshape(-1,1)+Delta_gammasod
-    #Interaction with the soil
-    dn=1.-rsoil*rdd
-    Delta_dn=-rsoil*Delta_rdd
-    if np.size(dn)>1:
-        dn[dn < 1e-36]=1e-36
-    else:
-        dn=max(1e-36,dn)
-    rddt=rdd+tdd*rsoil*tdd/dn
-    Delta_rddt=Delta_rdd+(rsoil*2*tdd*Delta_tdd*dn-tdd*rsoil*tdd*Delta_dn)/dn**2
-    rsdt=rsd+(tsd+tss)*rsoil*tdd/dn
-    Delta_rsdt=Delta_rsd+rsoil*((Delta_tdd*(tsd+tss)+tdd*(Delta_tsd+Delta_tss.reshape(-1,1)))*dn-tdd*(tsd+tss)*Delta_dn)/dn**2
-    rdot=rdo+tdd*rsoil*(tdo+too)/dn
-    Delta_rdot=Delta_rdo+rsoil*((Delta_tdd*(tdo+too)+tdd*(Delta_tdo+Delta_too.reshape(-1,1)))*dn-tdd*(tdo+too)*Delta_dn)/dn**2
-    rsodt=((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*rsoil/dn
-    Delta_rsodt=rsoil*(((Delta_tss.reshape(-1,1)+Delta_tsd)*tdo+(tss+tsd)
-        *Delta_tdo+(Delta_tsd+rsoil*(Delta_tss.reshape(-1,1)*rdd+tss*Delta_rdd))
-        *too+(tsd+tss*rsoil*rdd)*Delta_too.reshape(-1,1))*dn
-        -((tss+tsd)*tdo+(tsd+tss*rsoil*rdd)*too)*Delta_dn)/dn**2
-    rsost=rso+tsstoo*rsoil
-    Delta_rsost=Delta_rso+rsoil*Delta_tsstoo.reshape(-1,1)
-    rsot=rsost+rsodt
-    Delta_rsot=Delta_rsost+Delta_rsodt
-
-    return [Delta_tss,Delta_too,Delta_tsstoo,Delta_rdd,Delta_tdd,Delta_rsd,Delta_tsd,Delta_rdo,Delta_tdo,
-            Delta_rso,Delta_rsos,Delta_rsod,Delta_rddt,Delta_rsdt,Delta_rdot,Delta_rsodt,Delta_rsost,Delta_rsot,Delta_gammasdf,Delta_gammasdb,Delta_gammaso,
-            tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,
-            rso,rsos,rsod,rddt,rsdt,rdot,rsodt,rsost,rsot,gammasdf,gammasdb,gammaso]
-
-
+    if np.isnan(sumint) : 
+        sumint=0.
+        Delta_sumint = np.zeros
+        
+    return tsstoo, sumint, Delta_tsstoo, Delta_sumint
+             
 def volscatt(tts,tto,psi,ttl) :
     '''Compute volume scattering functions and interception coefficients
     for given solar zenith, viewing zenith, azimuth and leaf inclination angle.
@@ -679,7 +732,7 @@ def volscatt(tts,tto,psi,ttl) :
     if frho < 0. : frho=0.
     if ftau < 0. : ftau=0.
    
-    return [chi_s,chi_o,frho,ftau]    
+    return chi_s, chi_o, frho, ftau    
 
 def JacJfunc1(k,l,t,Delta_k,Delta_l):
     ''' J1 function with avoidance of singularity problem.'''
@@ -708,16 +761,9 @@ def JacJfunc1(k,l,t,Delta_k,Delta_l):
         *Delta_l[-3+1:])-np.exp(-k*t)*(-t*Delta_k[-3+1:]))
         *(k-l)-(np.exp(-l*t)-np.exp(-k*t))*(Delta_k[-3+1:]
         -Delta_l[-3+1:]))/(k-l)**2
-#==============================================================================
     result[~index]=0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*(1.-(del_[~index]**2.)/12.)
-#==============================================================================
-#     Delta_result[0:leaf_params,~index]=(0.5*t*(np.exp(-k*t)*(-t*Delta_k[0:leaf_params].reshape(-1,1))+np.exp(-l[~index]*t)*(-t*Delta_l[0:leaf_params,~index])))*(1.-(del_[~index]**2.)/12.)+0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*(2.*del_[~index]*Delta_del_[0:leaf_params,~index]/12.)
-# #     Delta_result[leaf_params,~index]=(0.5*(np.exp(-k*t)+np.exp(-l[~index]*t))+0.5*t*(np.exp(-k*t)*(-k*Delta_k[leaf_params])+np.exp(-l[~index]*t)*(-l[~index]*Delta_l[leaf_params,~index])))*(1.-(del_[~index]**2.)/12.)+0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*-2*del_[~index]*Delta_del_[leaf_params,~index]/12
-#     Delta_result[leaf_params+1:,~index]=(0.5*t*(np.exp(-k*t)*(-t*Delta_k[leaf_params+1:].reshape(-1,1))+np.exp(-l[~index]*t)*(-t*Delta_l[leaf_params+1:,~index])))*(1.-(del_[~index]**2.)/12.)+0.5*t*(np.exp(-k*t)+np.exp(-l[~index]*t))*(2.*del_[~index]*Delta_del_[leaf_params+1:,~index]/12.)
-# # 
-#==============================================================================
-#==============================================================================
-    return Delta_result,result
+
+    return result, Delta_result
 
 def JacJfunc2(k,l,t,Delta_k,Delta_l) :
     '''J2 function.'''
@@ -726,9 +772,16 @@ def JacJfunc2(k,l,t,Delta_k,Delta_l) :
     Delta_result=np.zeros(Delta_l.shape)
     if len(Delta_result.shape)==2:
         Delta_k=Delta_k.reshape(-1,1)
+    
     Delta_result[0:-3]=(-np.exp(-(k+l)*t)*-t*(Delta_k[0:-3]+Delta_l[0:-3])*(k+l)-(1.-np.exp(-(k+l)*t))*(Delta_k[0:-3]+Delta_l[0:-3]))/(k+l)**2
     Delta_result[-3]=np.exp(-(k+l)*t)*(k+l)/(k+l)
     Delta_result[-2:]=(-np.exp(-(k+l)*t)*-t*(Delta_k[-2:]+Delta_l[-2:])*(k+l)-(1.-np.exp(-(k+l)*t))*(Delta_k[-2:]+Delta_l[-2:]))/(k+l)**2
-    return Delta_result,result
+    
+    return result, Delta_result
 
-
+def define_geometric_constant (tts, tto, psi):
+    tants = np.tan(np.radians(tts))
+    tanto = np.tan(np.radians(tto))
+    cospsi  = np.cos(np.radians(psi))
+    dso = np.sqrt(tants**2.+tanto**2.-2.*tants*tanto*cospsi)
+    return dso
