@@ -417,7 +417,6 @@ def SimulateProSAIL_LUT(input_param,
 
         if srf and reduce_4sail:
             if type(srf)==float or type(srf)==int:
-                wls=np.asarray(wls_sim)
                 #Convolve spectra by full width half maximum
                 sigma=FWHM2Sigma(srf)
                 r=gaussian_filter1d(r,sigma)
@@ -436,12 +435,11 @@ def SimulateProSAIL_LUT(input_param,
                 skyl_rho=np.asarray(skyl_rho)
                 
         elif reduce_4sail:
-            wls=np.asarray(wls_sim)
             r=np.asarray(r)
             t=np.asarray(t)
             for wl in wls_sim:
-                rho_leaf.append(float(r[wls==wl]))
-                tau_leaf.append(float(t[wls==wl]))
+                rho_leaf.append(float(r[wl==wls]))
+                tau_leaf.append(float(t[wl==wls]))
         else:
             rho_leaf=np.asarray(r)
             tau_leaf=np.asarray(t)
@@ -460,7 +458,7 @@ def SimulateProSAIL_LUT(input_param,
                                             tau_leaf,rho_soil)
         
         if type(skyl)==float:
-            skyl_rho=skyl*np.ones(len(wls))
+            skyl_rho=skyl*np.ones(len(wls_sim))
                     
         r2=rdot*skyl_rho+rsot*(1-skyl_rho)  
         
