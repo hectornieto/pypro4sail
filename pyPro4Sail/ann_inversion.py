@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+wls_sim# -*- coding: utf-8 -*-
 """
 Created on Fri Jun 10 16:56:25 2016
 
@@ -6,7 +6,6 @@ Created on Fri Jun 10 16:56:25 2016
 """
 import numpy as np
 import sklearn.neural_network as ann_sklearn
-import sknn.mlp as ann_sknn
 import pickle
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler
