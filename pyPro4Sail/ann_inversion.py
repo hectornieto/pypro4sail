@@ -86,7 +86,95 @@ font = {'family' : 'monospace',
         'size'   : 8}
 
 matplotlib.rc('font', **font)
-                  
+prospect_bounds = {'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
+                   'Cab': (MIN_CAB, MAX_CAB),
+                   'Car': (MIN_CAR, MAX_CAR),
+                   'Cbrown': (MIN_CBROWN, MAX_CBROWN),
+                   'Cw': (MIN_CW, MAX_CW),
+                   'Cm': (MIN_CM, MAX_CM),
+                   'Ant': (MIN_ANT, MAX_ANT)}
+
+prospect_moments = {'N_leaf': (MEAN_N_LEAF, STD_N_LEAF),
+                    'Cab': (MEAN_CAB, STD_CAB),
+                    'Car': (MEAN_CAR, STD_CAR),
+                    'Cbrown': (MEAN_CBROWN, STD_CBROWN),
+                    'Cw': (MEAN_CW, STD_CW),
+                    'Cm': (MEAN_CM, STD_CM),
+                    'Ant':  (MEAN_ANT, STD_ANT)}                 
+
+prospect_distribution = {'N_leaf': GAMMA_DIST,
+                         'Cab': GAMMA_DIST,
+                         'Car': GAMMA_DIST,
+                         'Cbrown': GAMMA_DIST,
+                         'Cw': GAMMA_DIST,
+                         'Cm': GAMMA_DIST,
+                         'Ant': GAMMA_DIST}
+
+prospect_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
+                                  (1.3,1.8)),
+                       'Car': ((MIN_CAR, MAX_CAR),
+                                (20,40)),
+                       'Cbrown': ((MIN_CBROWN, MAX_CBROWN),
+                                   (0,0.2)),
+                       'Cw': ((MIN_CW, MAX_CW),
+                              (0.005,0.011)),
+                       'Cm': ((MIN_CM, MAX_CM),
+                              (0.005,0.011)),
+                       'Ant': ((MIN_ANT, MAX_ANT),
+                              (0,40))}
+
+prosail_bounds = {'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
+                  'Cab': (MIN_CAB, MAX_CAB),
+                  'Car': (MIN_CAR, MAX_CAR),
+                  'Cbrown': (MIN_CBROWN, MAX_CBROWN),
+                  'Cw': (MIN_CW, MAX_CW),
+                  'Cm': (MIN_CM, MAX_CM),
+                  'Ant': (MIN_ANT, MAX_ANT),
+                  'LAI': (MIN_LAI, MAX_LAI),
+                  'leaf_angle': (MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
+                  'hotspot': (MIN_HOTSPOT, MAX_HOTSPOT)}
+
+prosail_moments = {'N_leaf': (MEAN_N_LEAF, STD_N_LEAF),
+                   'Cab': (MEAN_CAB, STD_CAB),
+                   'Car': (MEAN_CAR, STD_CAR),
+                   'Cbrown': (MEAN_CBROWN, STD_CBROWN),
+                   'Cw': (MEAN_CW, STD_CW),
+                   'Cm': (MEAN_CM, STD_CM),
+                   'Ant': (MEAN_ANT, STD_ANT),
+                   'LAI': (MEAN_LAI, STD_LAI),
+                   'leaf_angle': (MEAN_LEAF_ANGLE, STD_LEAF_ANGLE),
+                   'hotspot': (MEAN_HOTSPOT, STD_HOTSPOT)}
+
+prosail_distribution = {'N_leaf': UNIFORM_DIST,
+                        'Cab': GAUSSIAN_DIST,
+                        'Car': GAUSSIAN_DIST,
+                        'Cbrown': UNIFORM_DIST,
+                        'Cw': GAUSSIAN_DIST,
+                        'Cm': GAUSSIAN_DIST,
+                        'Ant': GAUSSIAN_DIST,
+                        'LAI': GAUSSIAN_DIST,
+                        'leaf_angle': GAUSSIAN_DIST,
+                        'hotspot': GAUSSIAN_DIST}
+
+prosail_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
+                                 (1.3,1.8)),
+                      'Cab': ((MIN_CAB, MAX_CAB),
+                              (45,100)),
+                      'Car': ((MIN_CAR, MAX_CAR),
+                              (20,40)),
+                      'Cbrown': ((MIN_CBROWN, MAX_CBROWN),
+                                 (0,0.2)),
+                      'Cw': ((MIN_CW, MAX_CW),
+                             (0.005,0.011)),
+                      'Cm': ((MIN_CM, MAX_CM),
+                             (0.005,0.011)),
+                      'Ant': ((MIN_ANT, MAX_ANT),
+                              (0,40)),
+                      'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
+                                     (55,65)),
+                      'hotspot': ((MIN_HOTSPOT, MAX_HOTSPOT),
+                                  (0.1,0.5))}
+
 def train_ann(X_array,
              Y_array, 
              scaling_input=None, 
@@ -225,45 +313,16 @@ def test_ann(X_array,
     return RMSE, bias, cor
 
 def build_prospect_database(n_simulations,
-                           param_bounds={'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
-                                         'Cab': (MIN_CAB, MAX_CAB),
-                                         'Car': (MIN_CAR, MAX_CAR),
-                                         'Cbrown': (MIN_CBROWN, MAX_CBROWN),
-                                         'Cw': (MIN_CW, MAX_CW),
-                                         'Cm': (MIN_CM, MAX_CM),
-                                         'Ant': (MIN_ANT, MAX_ANT)},
-                           moments={'N_leaf': (MEAN_N_LEAF, STD_N_LEAF),
-                                         'Cab': (MEAN_CAB, STD_CAB),
-                                         'Car': (MEAN_CAR, STD_CAR),
-                                         'Cbrown': (MEAN_CBROWN, STD_CBROWN),
-                                         'Cw': (MEAN_CW, STD_CW),
-                                         'Cm': (MEAN_CM, STD_CM),
-                                         'Ant':  (MEAN_ANT, STD_ANT)},
-                            distribution={'N_leaf': GAMMA_DIST,
-                                         'Cab': GAMMA_DIST,
-                                         'Car': GAMMA_DIST,
-                                         'Cbrown': GAMMA_DIST,
-                                         'Cw': GAMMA_DIST,
-                                         'Cm': GAMMA_DIST,
-                                         'Ant': GAMMA_DIST},
+                            param_bounds=prospect_bounds,
+                            moments=prospect_moments,
+                            distribution=prospect_distribution,
                             apply_covariate={'N_leaf': False,
                                          'Car': False,
                                          'Cbrown': False,
                                          'Cw': False,
                                          'Cm': False,
                                          'Ant': False},
-                            covariate={'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
-                                                  (1.3,1.8)),
-                                        'Car': ((MIN_CAR, MAX_CAR),
-                                                (20,40)),
-                                        'Cbrown': ((MIN_CBROWN, MAX_CBROWN),
-                                                   (0,0.2)),
-                                        'Cw': ((MIN_CW, MAX_CW),
-                                                (0.005,0.011)),
-                                        'Cm': ((MIN_CM, MAX_CM),
-                                                (0.005,0.011)),
-                                        'Ant': ((MIN_ANT, MAX_ANT),
-                                                (0,40))},
+                            covariate=prospect_covariates,
                             outfile=None):
             
     
@@ -310,37 +369,10 @@ def build_prospect_database(n_simulations,
     return input_param
 
 def build_prosail_database(n_simulations,
-                           param_bounds={'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
-                                         'Cab': (MIN_CAB, MAX_CAB),
-                                         'Car': (MIN_CAR, MAX_CAR),
-                                         'Cbrown': (MIN_CBROWN, MAX_CBROWN),
-                                         'Cw': (MIN_CW, MAX_CW),
-                                         'Cm': (MIN_CM, MAX_CM),
-                                         'Ant': (MIN_ANT, MAX_ANT),
-                                         'LAI': (MIN_LAI, MAX_LAI),
-                                         'leaf_angle': (MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
-                                         'hotspot': (MIN_HOTSPOT, MAX_HOTSPOT)},
-                           moments={'N_leaf': (MEAN_N_LEAF, STD_N_LEAF),
-                                         'Cab': (MEAN_CAB, STD_CAB),
-                                         'Car': (MEAN_CAR, STD_CAR),
-                                         'Cbrown': (MEAN_CBROWN, STD_CBROWN),
-                                         'Cw': (MEAN_CW, STD_CW),
-                                         'Cm': (MEAN_CM, STD_CM),
-                                         'Ant': (MEAN_ANT, STD_ANT),
-                                         'LAI': (MEAN_LAI, STD_LAI),
-                                         'leaf_angle': (MEAN_LEAF_ANGLE, STD_LEAF_ANGLE),
-                                         'hotspot': (MEAN_HOTSPOT, STD_HOTSPOT)},
-                            distribution={'N_leaf': UNIFORM_DIST,
-                                          'Cab': GAUSSIAN_DIST,
-                                          'Car': GAUSSIAN_DIST,
-                                          'Cbrown': UNIFORM_DIST,
-                                          'Cw': GAUSSIAN_DIST,
-                                          'Cm': GAUSSIAN_DIST,
-                                          'Ant': GAUSSIAN_DIST,
-                                          'LAI': GAUSSIAN_DIST,
-                                          'leaf_angle': GAUSSIAN_DIST,
-                                          'hotspot': GAUSSIAN_DIST},
-                            apply_covariate={'N_leaf': True,
+                           param_bounds=prosail_bounds,
+                           moments=prosail_moments,
+                           distribution=prosail_distribution,
+                           apply_covariate={'N_leaf': True,
                                              'Cab': True,
                                              'Car': True,
                                              'Cbrown': True,
@@ -349,26 +381,8 @@ def build_prosail_database(n_simulations,
                                              'Ant': True,
                                              'leaf_angle': True,
                                              'hotspot': True},
-                            covariate={'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
-                                                  (1.3,1.8)),
-                                        'Cab': ((MIN_CAB, MAX_CAB),
-                                                (45,100)),
-                                        'Car': ((MIN_CAR, MAX_CAR),
-                                                (20,40)),
-                                        'Cbrown': ((MIN_CBROWN, MAX_CBROWN),
-                                                   (0,0.2)),
-                                        'Cw': ((MIN_CW, MAX_CW),
-                                                (0.005,0.011)),
-                                        'Cm': ((MIN_CM, MAX_CM),
-                                                (0.005,0.011)),
-                                        'Ant': ((MIN_ANT, MAX_ANT),
-                                                (0,40)),
-                                        'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
-                                                       (55,65)),
-                                        'hotspot': ((MIN_HOTSPOT, MAX_HOTSPOT),
-                                                    (0.1,0.5))},
-                                    
-                            outfile=None):
+                           covariate=prosail_covariates,
+                           outfile=None):
             
     
     print ('Build ProspectD+4SAIL database')
@@ -439,8 +453,9 @@ def simulate_prospectD_lut(input_param,
 
         elif type(srf)==list or type(srf)==tuple:
             for weight in srf:
-               rho_leaf.append(float(np.sum(weight*r)/np.sum(weight)))
-               tau_leaf.append(float(np.sum(weight*t)/np.sum(weight)))
+                weight = np.tile(weight, (1, r.shape[2])).T
+                rho_leaf.append(float(np.sum(weight*r, axis=0)/np.sum(weight, axis=0)))
+                tau_leaf.append(float(np.sum(weight*t, axis=0)/np.sum(weight, axis=0)))
 
     else:
         rho_leaf=np.copy(r)                
@@ -523,11 +538,13 @@ def simulate_prosail_lut(input_param,
                 rsoil.append(soil[wls==wl].reshape(-1))
 
         elif type(srf) == list or type(srf) == tuple:
+            skyl = np.tile(skyl, (r.shape[1], 1)).T
             for weight in srf:
-               rho_leaf.append((np.sum(weight * r, axis=1) / np.sum(weight)).reshape(-1))
-               tau_leaf.append((np.sum(weight * t, axis=1) / np.sum(weight)).reshape(-1))
-               skyl_rho.append((np.sum(weight * skyl, axis=1) / np.sum(weight)).reshape(-1))
-               rsoil.append((np.sum(weight * rsoil_vec, axis=1) / np.sum(weight)).reshape(-1))
+                weight = np.tile(weight, (r.shape[1], 1)).T
+                rho_leaf.append(np.sum(weight * r, axis=0) / np.sum(weight, axis=0))
+                tau_leaf.append(np.sum(weight * t, axis=0) / np.sum(weight, axis=0))
+                skyl_rho.append(np.sum(weight * skyl, axis=0) / np.sum(weight, axis=0))
+                rsoil.append(np.sum(weight * rsoil_vec, axis=0) / np.sum(weight, axis=0))
             skyl_rho = np.asarray(skyl_rho)
             
     elif reduce_4sail:
@@ -615,8 +632,9 @@ def simulate_prosail_lut(input_param,
                 rho_canopy.append(r2[wls==wl].reshape(-1))
 
         elif type(srf)==list or type(srf)==tuple:
-            for band in srf:
-               rho_canopy.append((np.sum(srf[band]*r2, axis=1) / np.sum(srf[band])).reshape(-1))
+            for weight in srf:
+                weight = np.tile(weight, (1, r2.shape[2])).T
+                rho_canopy.append(np.sum(weight*r2, axis=0) / np.sum(weight, axis=0))
     elif reduce_4sail:
         rho_canopy = np.asarray(r2)
         
