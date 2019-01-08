@@ -36,6 +36,7 @@ MEAN_ANT = 1.0
 MEAN_LAI = 2.0 # from S2 L2B ATBD
 MEAN_LEAF_ANGLE = 60.0 # from S2 L2B ATBD
 MEAN_HOTSPOT = 0.2 # from S2 L2B ATBD
+MEAN_BS = 1.2 # from S2 L2B ATBD
 
 STD_N_LEAF = 0.305 # From LOPEX + ANGERS average
 STD_CAB = 20.55 # From LOPEX + ANGERS average
@@ -47,6 +48,7 @@ STD_ANT = 10
 STD_LAI = 3.0 # from S2 L2B ATBD
 STD_LEAF_ANGLE = 30 # from S2 L2B ATBD
 STD_HOTSPOT = 0.2 # from S2 L2B ATBD
+STD_BS = 2.00 # from S2 L2B ATBD
 
 MIN_N_LEAF = 1.0 # From LOPEX + ANGERS average
 MIN_CAB = 0.0 # From LOPEX + ANGERS average
@@ -58,6 +60,7 @@ MIN_ANT = 0.0
 MIN_LAI = 0.0
 MIN_LEAF_ANGLE = 30.0 # from S2 L2B ATBD
 MIN_HOTSPOT = 0.1 # from S2 L2B ATBD
+MIN_BS = 0.50 # from S2 L2B ATBD
 
 MAX_N_LEAF = 3.0 # From LOPEX + ANGERS average
 MAX_CAB = 110.0 # From LOPEX + ANGERS average
@@ -69,6 +72,7 @@ MAX_ANT = 40.0
 MAX_LAI = 15.0 # from S2 L2B ATBD
 MAX_LEAF_ANGLE = 80.0 # from S2 L2B ATBD
 MAX_HOTSPOT = 0.5 # from S2 L2B ATBD
+MAX_BS = 3.5 # from S2 L2B ATBD
 
 # log Covariance matrix
 # 'N', 'C_ab', 'C_car', 'EWT', 'LMA'
@@ -132,7 +136,8 @@ prosail_bounds = {'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
                   'Ant': (MIN_ANT, MAX_ANT),
                   'LAI': (MIN_LAI, MAX_LAI),
                   'leaf_angle': (MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
-                  'hotspot': (MIN_HOTSPOT, MAX_HOTSPOT)}
+                  'hotspot': (MIN_HOTSPOT, MAX_HOTSPOT),
+                  'bs': (MIN_BS, MAX_BS)}
 
 prosail_moments = {'N_leaf': (MEAN_N_LEAF, STD_N_LEAF),
                    'Cab': (MEAN_CAB, STD_CAB),
@@ -143,7 +148,8 @@ prosail_moments = {'N_leaf': (MEAN_N_LEAF, STD_N_LEAF),
                    'Ant': (MEAN_ANT, STD_ANT),
                    'LAI': (MEAN_LAI, STD_LAI),
                    'leaf_angle': (MEAN_LEAF_ANGLE, STD_LEAF_ANGLE),
-                   'hotspot': (MEAN_HOTSPOT, STD_HOTSPOT)}
+                   'hotspot': (MEAN_HOTSPOT, STD_HOTSPOT),
+                   'bs': (MEAN_BS, STD_BS)}
 
 prosail_distribution = {'N_leaf': UNIFORM_DIST,
                         'Cab': GAUSSIAN_DIST,
@@ -154,7 +160,8 @@ prosail_distribution = {'N_leaf': UNIFORM_DIST,
                         'Ant': GAUSSIAN_DIST,
                         'LAI': GAUSSIAN_DIST,
                         'leaf_angle': GAUSSIAN_DIST,
-                        'hotspot': GAUSSIAN_DIST}
+                        'hotspot': GAUSSIAN_DIST,
+                        'bs': GAUSSIAN_DIST}
 
 prosail_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
                                  (1.3,1.8)),
@@ -173,7 +180,9 @@ prosail_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
                       'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
                                      (55,65)),
                       'hotspot': ((MIN_HOTSPOT, MAX_HOTSPOT),
-                                  (0.1,0.5))}
+                                  (0.1,0.5)),
+                      'bs': ((MIN_BS, MAX_BS),
+                             (0.5, 1.2))}
 
 def train_ann(X_array,
              Y_array, 
@@ -380,7 +389,8 @@ def build_prosail_database(n_simulations,
                                              'Cm': True,
                                              'Ant': True,
                                              'leaf_angle': True,
-                                             'hotspot': True},
+                                             'hotspot': True,
+                                             'bs': True},
                            covariate=prosail_covariates,
                            outfile=None):
             
