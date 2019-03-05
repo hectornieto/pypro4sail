@@ -40,10 +40,10 @@ REQS = [
     'scipy']
 
 setup(
-    name                  = "pyPro4Sail",
-    packages              = ['pyPro4Sail'],
-    #package_dir           = ['pyPro4Sail'],
-    package_data={"pyPro4Sail": ["*.txt"]},
+    name                  = "pypro4sail",
+    packages              = ['pypro4sail'],
+    #package_dir           = ['pypro4sail'],
+    package_data={"pypro4sail": ["*.txt"]},
     include_package_data=True,
     install_requires      = REQS,
     version               = "0.1-alpha",

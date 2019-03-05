@@ -32,14 +32,14 @@ EXAMPLE
 
 '''
 
-from  pyPro4Sail import FourSAIL, ProspectD
+from pypro4sail import four_sail, prospect
 import numpy as np
 import os
 
 # Define Constants
-SOIL_FOLDER=os.path.join('../SoilSpectralLibrary/')
-DEFAULT_SOIL='ProSAIL_WetSoil.txt'
-SB=5.670373e-8 #Stephan Boltzmann constant (W m-2 K-4)
+SOIL_FOLDER = os.path.join('../SoilSpectralLibrary/')
+DEFAULT_SOIL = 'ProSAIL_WetSoil.txt'
+SB = 5.670373e-8  # Stephan Boltzmann constant (W m-2 K-4)
 
 # Common leaf distributions
 PLANOPHILE = (1, 0)
@@ -49,7 +49,8 @@ EXTREMOPHILE = (0, 1)
 SPHERICAL = (-0.35, -0.15)
 UNIFORM = (0, 0)
 
-def run(N, chloro, caroten, brown, EWT, LMA, Ant, LAI, hot_spot, solar_zenith, solar_azimuth, 
+
+def run(N, chloro, caroten, brown, EWT, LMA, Ant, LAI, hot_spot, solar_zenith, solar_azimuth,
         view_zenith, view_azimuth, LIDF, skyl=0.2, soilType=DEFAULT_SOIL):
     ''' Runs Prospect5 4SAIL model to estimate canopy directional reflectance factor.
     
@@ -107,39 +108,41 @@ def run(N, chloro, caroten, brown, EWT, LMA, Ant, LAI, hot_spot, solar_zenith, s
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844.
     '''
-    
+
     # Read the soil reflectance        
-    rsoil=np.genfromtxt(os.path.join(SOIL_FOLDER, soilType))
-    #wl_soil=rsoil[:,0]
-    rsoil=np.array(rsoil[:,1])
+    rsoil = np.genfromtxt(os.path.join(SOIL_FOLDER, soilType))
+    # wl_soil=rsoil[:,0]
+    rsoil = np.array(rsoil[:, 1])
 
     # Calculate the lidf
-    if type(LIDF)==tuple or type(LIDF)==list:
-        if len(LIDF)!=2:
+    if type(LIDF) == tuple or type(LIDF) == list:
+        if len(LIDF) != 2:
             print("ERROR, Verhoef's bimodal LIDF distribution must have two elements (LIDFa, LIDFb)")
             return None, None
-        elif LIDF[0]+LIDF[1]>1:
+        elif LIDF[0] + LIDF[1] > 1:
             print("ERROR,  |LIDFa| + |LIDFb| > 1 in Verhoef's bimodal LIDF distribution")
         else:
-            lidf=FourSAIL.CalcLIDF_Verhoef(LIDF[0],LIDF[1])
+            lidf = four_sail.calc_lidf_verhoef(LIDF[0], LIDF[1])
     else:
-        lidf=FourSAIL.CalcLIDF_Campbell(LIDF)
-    
+        lidf = four_sail.calc_lidf_campbell(LIDF)
+
     # PROSPECT5 for leaf bihemispherical reflectance and transmittance
-    wl,rho_leaf,tau_leaf=ProspectD.ProspectD(N, chloro, caroten, brown, EWT, LMA, Ant)
-    
+    wl, rho_leaf, tau_leaf = prospect.prospectd(N, chloro, caroten, brown, EWT, LMA, Ant)
+
     # Get the relative sun-view azimth angle
-    psi=abs(solar_azimuth-view_azimuth)
+    psi = abs(solar_azimuth - view_azimuth)
     # 4SAIL for canopy reflectance and transmittance factors       
-    [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,
-             rsodt,rsost,rsot,gammasdf,gammasdb,
-             gammaso]=FourSAIL.FourSAIL(LAI,hot_spot,
-                lidf,solar_zenith,view_zenith,psi,rho_leaf,tau_leaf,rsoil)
-    rho_canopy=rdot*skyl+rsot*(1-skyl)
+    [tss, too, tsstoo, rdd, tdd, rsd, tsd, rdo, tdo, rso, rsos, rsod, rddt, rsdt, rdot,
+     rsodt, rsost, rsot, gammasdf, gammasdb,
+     gammaso] = four_sail.foursail(LAI, hot_spot,
+                                   lidf, solar_zenith, view_zenith, psi, rho_leaf, tau_leaf, rsoil)
+    rho_canopy = rdot * skyl + rsot * (1 - skyl)
 
-    return wl,rho_canopy
+    return wl, rho_canopy
 
-def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_azimuth, view_zenith, view_azimuth, LIDF,T_VegSunlit=None, T_SoilSunlit=None, T_atm=0):
+
+def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith, solar_azimuth, view_zenith, view_azimuth,
+            LIDF, T_VegSunlit=None, T_SoilSunlit=None, T_atm=0):
     ''' Estimates the broadband at-sensor thermal radiance using 4SAIL model.
     
     Parameters
@@ -195,62 +198,64 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith,solar_
         IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
         http://dx.doi.org/10.1109/TGRS.2007.895844.
     '''
- 
+
     # Apply Kirchoff's law to get the soil and leaf bihemispherical reflectances
-    rsoil=1-emisSoil
-    rho_leaf=1-emisVeg
-    tau_leaf=0
+    rsoil = 1 - emisSoil
+    rho_leaf = 1 - emisVeg
+    tau_leaf = 0
     # Calculate the lidf,
-    if type(LIDF)==tuple or type(LIDF)==list:
-        if len(LIDF)!=2:
+    if type(LIDF) == tuple or type(LIDF) == list:
+        if len(LIDF) != 2:
             print("ERROR, Verhoef's bimodal LIDF distribution must have two elements (LIDFa, LIDFb)")
             return None, None
-        elif LIDF[0]+LIDF[1]>1:
+        elif LIDF[0] + LIDF[1] > 1:
             print("ERROR,  |LIDFa| + |LIDFb| > 1 in Verhoef's bimodal LIDF distribution")
         else:
-            lidf=FourSAIL.CalcLIDF_Verhoef(LIDF[0],LIDF[1])
+            lidf = four_sail.calc_lidf_verhoef(LIDF[0], LIDF[1])
     else:
-        lidf=FourSAIL.CalcLIDF_Campbell(LIDF)
-    
-    # Get the relative sun-view azimth angle
-    psi=abs(solar_azimuth-view_azimuth)
-    # 4SAIL for canopy reflectance and transmittance factors       
-    [tss,too,tsstoo,rdd,tdd,rsd,tsd,rdo,tdo,rso,rsos,rsod,rddt,rsdt,rdot,
-             rsodt,rsost,rsot,gammasdf,gammasdb,
-             gammaso]=FourSAIL.FourSAIL(LAI,hot_spot,
-                lidf,solar_zenith,view_zenith,psi,rho_leaf,tau_leaf,rsoil)
-    
-    tso=tss*too+tss*(tdo+rsoil*rdd*too)/(1.-rsoil*rdd)
-    gammad=1-rdd-tdd
-    gammao=1-rdo-tdo-too
-    ttot=(too+tdo)/(1.-rsoil*rdd)
-    gammaot=gammao+ttot*rsoil*gammad
-    gammasot=gammaso+ttot*rsoil*gammasdf
+        lidf = four_sail.calc_lidf_campbell(LIDF)
 
-    aeev=gammaot
-    aees=ttot*emisSoil
+    # Get the relative sun-view azimth angle
+    psi = abs(solar_azimuth - view_azimuth)
+    # 4SAIL for canopy reflectance and transmittance factors       
+    [tss, too, tsstoo, rdd, tdd, rsd, tsd, rdo, tdo, rso, rsos, rsod, rddt, rsdt, rdot,
+     rsodt, rsost, rsot, gammasdf, gammasdb,
+     gammaso] = four_sail.foursail(LAI, hot_spot,
+                                   lidf, solar_zenith, view_zenith, psi, rho_leaf, tau_leaf, rsoil)
+
+    tso = tss * too + tss * (tdo + rsoil * rdd * too) / (1. - rsoil * rdd)
+    gammad = 1 - rdd - tdd
+    gammao = 1 - rdo - tdo - too
+    ttot = (too + tdo) / (1. - rsoil * rdd)
+    gammaot = gammao + ttot * rsoil * gammad
+    gammasot = gammaso + ttot * rsoil * gammasdf
+
+    aeev = gammaot
+    aees = ttot * emisSoil
 
     # Get the different canopy broadband emssion components
-    Hvc=CalcStephanBoltzmann(T_Veg)
-    Hgc=CalcStephanBoltzmann(T_Soil)
-    Hsky=CalcStephanBoltzmann(T_atm)
-    
-    if T_VegSunlit: # Accout for different suntlit shaded temperatures
-        Hvh=CalcStephanBoltzmann(T_VegSunlit)
+    Hvc = CalcStephanBoltzmann(T_Veg)
+    Hgc = CalcStephanBoltzmann(T_Soil)
+    Hsky = CalcStephanBoltzmann(T_atm)
+
+    if T_VegSunlit:  # Accout for different suntlit shaded temperatures
+        Hvh = CalcStephanBoltzmann(T_VegSunlit)
     else:
-        Hvh=Hvc
-    if T_SoilSunlit: # Accout for different suntlit shaded temperatures
-        Hgh=CalcStephanBoltzmann(T_SoilSunlit)
+        Hvh = Hvc
+    if T_SoilSunlit:  # Accout for different suntlit shaded temperatures
+        Hgh = CalcStephanBoltzmann(T_SoilSunlit)
     else:
-        Hgh=Hgc
-    
+        Hgh = Hgc
+
     # Calculate the blackbody emission temperature
-    Lw=(rdot*Hsky+(aeev*Hvc+gammasot*emisVeg*(Hvh-Hvc)+aees*Hgc+tso*emisSoil*(Hgh-Hgc)))/np.pi
-    TB_obs=(np.pi*Lw/SB)**(0.25)
-    
+    Lw = (rdot * Hsky + (
+                aeev * Hvc + gammasot * emisVeg * (Hvh - Hvc) + aees * Hgc + tso * emisSoil * (Hgh - Hgc))) / np.pi
+    TB_obs = (np.pi * Lw / SB) ** (0.25)
+
     # Estimate the apparent surface directional emissivity
-    emiss=1-rdot
-    return Lw,TB_obs,emiss
+    emiss = 1 - rdot
+    return Lw, TB_obs, emiss
+
 
 def CalcStephanBoltzmann(T_K):
     '''Calculates the total energy radiated by a blackbody.
@@ -265,6 +270,6 @@ def CalcStephanBoltzmann(T_K):
     M : float
         Emitted radiance (W m-2).'''
     import numpy as np
-    
-    M=SB*T_K**4
+
+    M = SB * T_K ** 4
     return np.asarray(M)

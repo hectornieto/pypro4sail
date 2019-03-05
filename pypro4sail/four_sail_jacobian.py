@@ -41,8 +41,17 @@ EXAMPLE
 """
 import numpy as np
 
-params4SAIL=('LAI','hotspot','leaf_angle')
-paramsPro4SAIL=('N_leaf','Cab','Car','Cbrown','Cw','Cm','Ant','LAI','hotspot','leaf_angle') 
+params_SAIL=('LAI','hotspot','leaf_angle')
+params_prosail=('N_leaf',
+                'Cab',
+                'Car',
+                'Cbrown',
+                'Cw',
+                'Cm',
+                'Ant',
+                'LAI',
+                'hotspot',
+                'leaf_angle')
 
 def JacCalcLIDF_Campbell(alpha,n_elements=18):
     '''Calculate the Leaf Inclination Distribution Function based on the 
