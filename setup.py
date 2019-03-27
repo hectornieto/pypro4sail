@@ -42,9 +42,8 @@ REQS = [
 setup(
     name                  = "pypro4sail",
     packages              = ['pypro4sail'],
-    #package_dir           = ['pypro4sail'],
-    package_data={"pypro4sail": ["*.txt"]},
-    include_package_data=True,
+    include_package_data  = True,
+    zip_safe              = False,
     install_requires      = REQS,
     version               = "0.1-alpha",
     author                = "Hector Nieto",

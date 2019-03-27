@@ -37,7 +37,7 @@ import numpy as np
 import os
 
 # Define Constants
-SOIL_FOLDER = os.path.join('../SoilSpectralLibrary/')
+SOIL_FOLDER = os.path.join(os.path.dirname(four_sail.__file__), 'spectra', 'soil_spectral_library')
 DEFAULT_SOIL = 'ProSAIL_WetSoil.txt'
 SB = 5.670373e-8  # Stephan Boltzmann constant (W m-2 K-4)
 
