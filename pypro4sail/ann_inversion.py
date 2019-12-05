@@ -6,9 +6,11 @@ Created on Fri Jun 10 16:56:25 2016
 """
 import numpy as np
 import sklearn.neural_network as ann_sklearn
+from sklearn.ensemble import RandomForestRegressor as rf_sklearn
 import pickle
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler
+from sklearn import svm
 from collections import OrderedDict
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
@@ -191,8 +193,9 @@ def train_ann(X_array,
               scaling_output=None,
               reduce_pca=False,
               outfile=None,
+              reg_method="neural_network",
               regressor_opts={'activation': 'logistic'}):
-    print('Fitting Artificial Neural Network')
+    print('Fitting %s'%reg_method)
 
     Y_array = np.asarray(Y_array)
     X_array = np.asarray(X_array)
@@ -257,15 +260,19 @@ def train_ann(X_array,
             fid.close()
 
     # Get the number of bands to set the ANN structure
-    ann = ann_sklearn.MLPRegressor(**regressor_opts)
-
-    ANN = ann.fit(X_array, Y_array)
+    if reg_method == "neural_network":
+        reg = ann_sklearn.MLPRegressor(**regressor_opts)
+    elif reg_method == "random_forest":
+        reg = rf_sklearn(**regressor_opts)
+    elif reg_method == "svm":
+        reg = svm.SVR(**regressor_opts)
+    reg_object = reg.fit(X_array, np.ravel(Y_array))
     if outfile:
         fid = open(outfile, 'wb')
-        pickle.dump(ANN, fid, -1)
+        pickle.dump(reg_object, fid, -1)
         fid.close()
 
-    return ANN, input_scaler, output_scaler, pca
+    return reg_object, input_scaler, output_scaler, pca
 
 
 def test_ann(X_array,
@@ -276,7 +283,7 @@ def test_ann(X_array,
              reduce_pca=None,
              outfile=None,
              param_names=None):
-    print('Testing ANN fit')
+    print('Testing Regression fit')
 
     X_array = np.asarray(X_array)
     Y_array = np.asarray(Y_array)
@@ -326,14 +333,16 @@ def build_prospect_database(n_simulations,
                             param_bounds=prospect_bounds,
                             moments=prospect_moments,
                             distribution=prospect_distribution,
-                            apply_covariate={'N_leaf': False,
-                                             'Car': False,
-                                             'Cbrown': False,
-                                             'Cw': False,
-                                             'Cm': False,
-                                             'Ant': False},
+                            apply_covariate=None,
                             covariate=prospect_covariates,
                             outfile=None):
+    if apply_covariate is None:
+        apply_covariate = {'N_leaf': False,
+                           'Car': False,
+                           'Cbrown': False,
+                           'Cw': False,
+                           'Cm': False,
+                           'Ant': False}
     print('Build ProspectD database')
     input_param = dict()
     for param in param_bounds:
@@ -379,18 +388,20 @@ def build_prosail_database(n_simulations,
                            param_bounds=prosail_bounds,
                            moments=prosail_moments,
                            distribution=prosail_distribution,
-                           apply_covariate={'N_leaf': True,
-                                            'Cab': True,
-                                            'Car': True,
-                                            'Cbrown': True,
-                                            'Cw': True,
-                                            'Cm': True,
-                                            'Ant': True,
-                                            'leaf_angle': True,
-                                            'hotspot': True,
-                                            'bs': True},
+                           apply_covariate=None,
                            covariate=prosail_covariates,
                            outfile=None):
+    if apply_covariate is None:
+        apply_covariate = {'N_leaf': True,
+                           'Cab': True,
+                           'Car': True,
+                           'Cbrown': True,
+                           'Cw': True,
+                           'Cm': True,
+                           'Ant': True,
+                           'leaf_angle': True,
+                           'hotspot': True,
+                           'bs': True}
     print('Build ProspectD+4SAIL database')
     input_param = dict()
     for param in param_bounds:
