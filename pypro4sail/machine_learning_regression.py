@@ -5,7 +5,7 @@ Created on Fri Jun 10 16:56:25 2016
 @author: hector
 """
 import numpy as np
-import sklearn.neural_network as ann_sklearn
+from sklearn.neural_network import MLPRegressor as ann_sklearn
 from sklearn.ensemble import RandomForestRegressor as rf_sklearn
 import pickle
 from sklearn.decomposition import PCA
@@ -187,7 +187,7 @@ prosail_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
                              (0.5, 1.2))}
 
 
-def train_ann(X_array,
+def train_reg(X_array,
               Y_array,
               scaling_input=None,
               scaling_output=None,
@@ -259,9 +259,8 @@ def train_ann(X_array,
             pickle.dump(output_scaler, fid, -1)
             fid.close()
 
-    # Get the number of bands to set the ANN structure
     if reg_method == "neural_network":
-        reg = ann_sklearn.MLPRegressor(**regressor_opts)
+        reg = ann_sklearn(**regressor_opts)
     elif reg_method == "random_forest":
         reg = rf_sklearn(**regressor_opts)
     elif reg_method == "svm":
@@ -275,9 +274,9 @@ def train_ann(X_array,
     return reg_object, input_scaler, output_scaler, pca
 
 
-def test_ann(X_array,
+def test_reg(X_array,
              Y_array,
-             ann_object,
+             reg_object,
              scaling_input=None,
              scaling_output=None,
              reduce_pca=None,
@@ -298,7 +297,7 @@ def test_ann(X_array,
     if reduce_pca:
         X_array = reduce_pca.transform(X_array)
 
-    Y_test = ann_object.predict(X_array)
+    Y_test = reg_object.predict(X_array)
 
     if scaling_output:
         Y_test = scaling_output.inverse_transform(Y_test)
