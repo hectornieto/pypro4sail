@@ -1,4 +1,4 @@
-import pypro4sail.ann_inversion as inv
+import pypro4sail.machine_learning_regression as inv
 from sklearn.linear_model import LinearRegression
 import numpy as np
 import matplotlib.pyplot as plt
@@ -200,7 +200,7 @@ rho_canopy_vec, params = inv.simulate_prosail_lut(params,
                                                   calc_FAPAR=calc_FAPAR,
                                                   reduce_4sail=reduce_4sail)
 
-# Test ANN with testing simulated database
+# Test model with testing simulated database
 calc_fg = False
 
 split = np.random.uniform(0, 1, n_simulations)
@@ -208,7 +208,7 @@ split = np.random.uniform(0, 1, n_simulations)
 split = split > 0.40
 input_scalers = {}
 output_scalers = {}
-ANNs = {}
+regs = {}
 uncertainty = {}
 for reg_method in ["neural_network", "random_forest"]:
     if reg_method == "neural_network":
@@ -228,8 +228,8 @@ for reg_method in ["neural_network", "random_forest"]:
             testing = ~training
 
 
-        ANN, input_gauss_scaler, output_gauss_scaler, _ =\
-            inv.train_ann(rho_canopy_vec[training],
+        reg, input_gauss_scaler, output_gauss_scaler, _ =\
+            inv.train_reg(rho_canopy_vec[training],
                           params[param][training].reshape(-1, 1),
                           scaling_input='normalize',
                           scaling_output='normalize',
@@ -238,11 +238,11 @@ for reg_method in ["neural_network", "random_forest"]:
 
         input_scalers[param] = input_gauss_scaler
         output_scalers[param] = output_gauss_scaler
-        ANNs[param] = ANN
+        regs[param] = reg
         if param == 'fAPAR':
             fapar_obs = params[param][testing]
             fapar_pre = output_gauss_scaler.inverse_transform(
-                                    ANN.predict(
+                                    reg.predict(
                                         input_gauss_scaler.transform(
                                             rho_canopy_vec[testing])))
 
@@ -250,34 +250,34 @@ for reg_method in ["neural_network", "random_forest"]:
         elif param == 'fIPAR':
             fipar_obs = params[param][testing]
             fipar_pre = output_gauss_scaler.inverse_transform(
-                                    ANN.predict(
+                                    reg.predict(
                                         input_gauss_scaler.transform(
                                             rho_canopy_vec[testing])))
 
         elif param == 'LAI':
             lai_obs = params[param][testing]
             lai_pre = output_gauss_scaler.inverse_transform(
-                                    ANN.predict(
+                                    reg.predict(
                                         input_gauss_scaler.transform(
                                             rho_canopy_vec[testing])))
 
         elif param == 'Cab':
             Cab_obs = params[param][testing]
             Cab_pre = output_gauss_scaler.inverse_transform(
-                                    ANN.predict(
+                                    reg.predict(
                                         input_gauss_scaler.transform(
                                             rho_canopy_vec[testing])))
 
         elif param == 'Cm':
             Cm_obs = params[param][testing]
             Cm_pre = output_gauss_scaler.inverse_transform(
-                                    ANN.predict(
+                                    reg.predict(
                                         input_gauss_scaler.transform(
                                             rho_canopy_vec[testing])))
 
-        uncertainty[param] = senet.test_ann(rho_canopy_vec[testing],
+        uncertainty[param] = senet.test_reg(rho_canopy_vec[testing],
                                        params[param][testing],
-                                       ANN,
+                                       reg,
                                        scaling_input=input_gauss_scaler,
                                        scaling_output=output_gauss_scaler,
                                        outfile=pth.join(out_test_dir,
