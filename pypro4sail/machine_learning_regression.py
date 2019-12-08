@@ -20,10 +20,12 @@ import pypro4sail.four_sail as sail
 import numpy.random as rnd
 from scipy.stats import gamma
 from scipy.ndimage.filters import gaussian_filter1d
+from SALib.sample import fast_sampler, saltelli
 
 UNIFORM_DIST = 1
 GAUSSIAN_DIST = 2
 GAMMA_DIST = 3
+SALTELLI_DIST = 4
 # Angle step to perform the hemispherical integration
 STEP_VZA = 2.5
 STEP_PSI = 30
@@ -305,12 +307,13 @@ def test_reg(X_array,
     Y_test.reshape(-1)
 
     f = plt.figure()
-    RMSE.append(np.sqrt(np.sum((Y_array - Y_test) ** 2)
-                        / np.size(Y_array)))
+    rmse = np.sqrt(np.mean((Y_array - Y_test) ** 2))
+    rmses.append(rmse)
     bias.append(np.mean(Y_array - Y_test))
-    cor.append(pearsonr(Y_array, Y_test)[0])
-    plt.scatter(Y_array,
-                Y_test,
+    cor = pearsonr(Y_array, Y_test)[0]
+    cors.append(cor)
+    plt.scatter(Y_test,
+                Y_array,
                 color='black',
                 s=5,
                 alpha=0.1,
@@ -321,134 +324,168 @@ def test_reg(X_array,
 
     plt.plot(absline[0], absline[1], color='red')
     plt.title(param_names[0])
+    plt.xlabel("Predicted")
+    plt.ylabel("Observed")
+    plt.figtext(0.1, 0.8,
+                "bias: {:>7.2f}\nrmse: {:>7.2f}\n   r: {:>7.2f}".format(bias,
+                                                                        rmse,
+                                                                        cor))
+    plt.tight_layout()
     if outfile:
         f.savefig(outfile)
     plt.close()
 
-    return RMSE, bias, cor
+    return rmses, bias, cors
 
 
 def build_prospect_database(n_simulations,
-                            param_bounds=prospect_bounds,
-                            moments=prospect_moments,
-                            distribution=prospect_distribution,
+                            param_bounds=None,
+                            moments=None,
+                            distribution=None,
                             apply_covariate=None,
-                            covariate=prospect_covariates,
-                            outfile=None):
-    if apply_covariate is None:
-        apply_covariate = {'N_leaf': False,
-                           'Car': False,
-                           'Cbrown': False,
-                           'Cw': False,
-                           'Cm': False,
-                           'Ant': False}
-    print('Build ProspectD database')
-    input_param = dict()
-    for param in param_bounds:
-        if distribution[param] == UNIFORM_DIST:
-            input_param[param] = param_bounds[param][0] \
-                                 + rnd.rand(n_simulations) * (param_bounds[param][1]
-                                                              - param_bounds[param][0])
-
-        elif distribution[param] == GAUSSIAN_DIST:
-            input_param[param] = moments[param][0] \
-                                 + rnd.randn(n_simulations) * moments[param][1]
+                            covariate=None):
 
 
-        elif distribution[param] == GAMMA_DIST:
-            scale = moments[param][1] ** 2 / (moments[param][0] - param_bounds[param][0])
-            shape = (moments[param][0] - param_bounds[param][0]) / scale
-            input_param[param] = gamma.rvs(shape,
-                                           scale=scale,
-                                           loc=param_bounds[param][0],
-                                           size=n_simulations)
+    if covariate is None:
+        covariate = prospect_covariates
+    if distribution is None:
+        distribution = prospect_distribution
+    if moments is None:
+        moments = prospect_moments
+    if param_bounds is None:
+        param_bounds = prospect_bounds
 
-        input_param[param] = np.clip(input_param[param],
-                                     param_bounds[param][0],
-                                     param_bounds[param][1])
+    if isinstance(distribution, dict):
+        input_param = probabilistic_distribution(n_simulations,
+                                                 moments,
+                                                 param_bounds,
+                                                 distribution)
+    elif distribution == SALTELLI_DIST:
+        input_param = montecarlo_distribution(n_simulations, param_bounds)
 
     # Apply covariates where needed
-    Cab_range = param_bounds['Cab'][1] - param_bounds['Cab'][0]
-    for param in apply_covariate:
-        if apply_covariate:
-            Vmin = covariate[param][0][0] \
-                   + input_param['Cab'] * (covariate[param][1][0]
-                                           - covariate[param][0][0]) / Cab_range
-            Vmax = covariate[param][0][1] \
-                   + input_param['Cab'] * (covariate[param][1][1]
-                                           - covariate[param][0][1]) / Cab_range
-
-            input_param[param] = np.clip(input_param[param], Vmin, Vmax)
+    if apply_covariate is not None:
+        input_param = covariate_constraint(input_param,
+                                            param_bounds,
+                                            apply_covariate,
+                                            covariate,
+                                           "Cab")
 
     return input_param
 
 
 def build_prosail_database(n_simulations,
-                           param_bounds=prosail_bounds,
-                           moments=prosail_moments,
-                           distribution=prosail_distribution,
+                           param_bounds=None,
+                           moments=None,
+                           distribution=None,
                            apply_covariate=None,
-                           covariate=prosail_covariates,
-                           outfile=None):
-    if apply_covariate is None:
-        apply_covariate = {'N_leaf': True,
-                           'Cab': True,
-                           'Car': True,
-                           'Cbrown': True,
-                           'Cw': True,
-                           'Cm': True,
-                           'Ant': True,
-                           'leaf_angle': True,
-                           'hotspot': True,
-                           'bs': True}
-    print('Build ProspectD+4SAIL database')
-    input_param = dict()
-    for param in param_bounds:
-        if distribution[param] == UNIFORM_DIST:
-            input_param[param] = param_bounds[param][0] \
-                                 + rnd.rand(n_simulations) * (param_bounds[param][1]
-                                                              - param_bounds[param][0])
+                           covariate=None):
 
-        elif distribution[param] == GAUSSIAN_DIST:
-            input_param[param] = moments[param][0] \
-                                 + rnd.randn(n_simulations) * moments[param][1]
+    if covariate is None:
+        covariate = prosail_covariates
+    if distribution is None:
+        distribution = prosail_distribution
+    if moments is None:
+        moments = prosail_moments
+    if param_bounds is None:
+        param_bounds = prosail_bounds
 
-
-        elif distribution[param] == GAMMA_DIST:
-            scale = moments[param][1] ** 2 / (moments[param][0] - param_bounds[param][0])
-            shape = (moments[param][0] - param_bounds[param][0]) / scale
-            input_param[param] = gamma.rvs(shape,
-                                           scale=scale,
-                                           loc=param_bounds[param][0],
-                                           size=n_simulations)
-
-        input_param[param] = np.clip(input_param[param],
-                                     param_bounds[param][0],
-                                     param_bounds[param][1])
+    if isinstance(distribution, dict):
+        input_param = probabilistic_distribution(n_simulations,
+                                                 moments,
+                                                 param_bounds,
+                                                 distribution)
+    elif distribution == SALTELLI_DIST:
+        input_param = montecarlo_distribution(n_simulations, param_bounds)
 
     # Apply covariates where needed
-    LAI_range = param_bounds['LAI'][1] - param_bounds['LAI'][0]
-    for param in apply_covariate:
-        if apply_covariate:
-            Vmin = covariate[param][0][0] \
-                   + input_param['LAI'] * (covariate[param][1][0]
-                                           - covariate[param][0][0]) / LAI_range
-            Vmax = covariate[param][0][1] \
-                   + input_param['LAI'] * (covariate[param][1][1]
-                                           - covariate[param][0][1]) / LAI_range
-            input_param[param] = np.clip(input_param[param], Vmin, Vmax)
+    if apply_covariate is not None:
+        input_param = covariate_constraint(input_param,
+                                           param_bounds,
+                                           apply_covariate,
+                                           covariate,
+                                           "LAI")
 
     return input_param
 
 
-def simulate_prospectd_lut(input_param,
+def covariate_constraint(input_dict,
+                         bounds,
+                         apply,
+                         covariates,
+                         ref_param):
+
+    range = bounds[ref_param][1] - bounds[ref_param][0]
+    for param in apply:
+        if apply:
+            Vmin = covariates[param][0][0] \
+                   + input_dict[ref_param] * (covariates[param][1][0]
+                                           - covariates[param][0][
+                                               0]) / range
+            Vmax = covariates[param][0][1] \
+                   + input_dict[ref_param] * (covariates[param][1][1]
+                                           - covariates[param][0][
+                                               1]) / range
+
+            input_dict[param] = np.clip(input_dict[param], Vmin, Vmax)
+    return input_dict
+
+
+def probabilistic_distribution(simulations, moments_dict, bounds,
+                               distribution_type):
+    output = dict()
+    for param in bounds:
+        if distribution_type[param] == UNIFORM_DIST:
+            output[param] = bounds[param][0] \
+                            + rnd.rand(simulations) * (
+                                         bounds[param][1]
+                                         - bounds[param][0])
+
+        elif distribution_type[param] == GAUSSIAN_DIST:
+            output[param] = moments_dict[param][0] \
+                            + rnd.randn(simulations) * \
+                            moments_dict[param][1]
+
+
+        elif distribution_type[param] == GAMMA_DIST:
+            scale = moments_dict[param][1] ** 2 / (
+                    moments_dict[param][0] - bounds[param][0])
+            shape = (moments_dict[param][0] - bounds[param][0]) / scale
+            output[param] = gamma.rvs(shape,
+                                      scale=scale,
+                                      loc=bounds[param][0],
+                                      size=simulations)
+
+    output[param] = np.clip(output[param],
+                            bounds[param][0],
+                            bounds[param][1])
+
+    return output
+
+
+def montecarlo_distribution(simulations, bounds):
+    problem = {'num_vars': len(bounds),
+               'names': [name for name in bounds.keys()],
+               'bounds': [bounds for key, bounds in
+                          bounds.items()]
+               }
+    param_values = saltelli.sample(problem, simulations).T
+    output = dict()
+
+    for i, param in enumerate(bounds.keys()):
+        output[param] = param_values[i]
+
+    return output
+
+
+def simulate_prospectd_lut(input_dict,
                            wls_sim,
                            srf=None,
                            outfile=None):
-    [wls, r, t] = prospect.prospectd_vec(input_param['N_leaf'],
-                                         input_param['Cab'], input_param['Car'],
-                                         input_param['Cbrown'], input_param['Cw'],
-                                         input_param['Cm'], input_param['Ant'])
+    [wls, r, t] = prospect.prospectd_vec(input_dict['N_leaf'],
+                                         input_dict['Cab'], input_dict['Car'],
+                                         input_dict['Cbrown'], input_dict['Cw'],
+                                         input_dict['Cm'], input_dict['Ant'])
     # Convolve the simulated spectra to a gaussian filter per band
     rho_leaf = []
     tau_leaf = []
@@ -482,13 +519,13 @@ def simulate_prospectd_lut(input_param,
         pickle.dump(rho_leaf, fid, -1)
         fid.close()
         fid = open(outfile + '_param', 'wb')
-        pickle.dump(input_param, fid, -1)
+        pickle.dump(input_dict, fid, -1)
         fid.close()
 
-    return rho_leaf, input_param
+    return rho_leaf, input_dict
 
 
-def simulate_prosail_lut(input_param,
+def simulate_prosail_lut(input_dict,
                          wls_sim,
                          rsoil_vec,
                          skyl=0.1,
@@ -502,15 +539,15 @@ def simulate_prosail_lut(input_param,
     print('Starting Simulations')
 
     # Calculate the lidf
-    lidf = sail.calc_lidf_campbell_vec(input_param['leaf_angle'])
+    lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
     # for i,wl in enumerate(wls_wim):
-    [wls, r, t] = prospect.prospectd_vec(input_param['N_leaf'],
-                                         input_param['Cab'],
-                                         input_param['Car'],
-                                         input_param['Cbrown'],
-                                         input_param['Cw'],
-                                         input_param['Cm'],
-                                         input_param['Ant'])
+    [wls, r, t] = prospect.prospectd_vec(input_dict['N_leaf'],
+                                         input_dict['Cab'],
+                                         input_dict['Car'],
+                                         input_dict['Cbrown'],
+                                         input_dict['Cw'],
+                                         input_dict['Cm'],
+                                         input_dict['Ant'])
 
     r = r.T
     t = t.T
@@ -596,12 +633,12 @@ def simulate_prosail_lut(input_param,
      rsot,
      _,
      _,
-     _] = sail.foursail_vec(input_param['LAI'],
-                            input_param['hotspot'],
+     _] = sail.foursail_vec(input_dict['LAI'],
+                            input_dict['hotspot'],
                             lidf,
-                            np.ones(input_param['LAI'].shape) * sza,
-                            np.ones(input_param['LAI'].shape) * vza,
-                            np.ones(input_param['LAI'].shape) * psi,
+                            np.ones(input_dict['LAI'].shape) * sza,
+                            np.ones(input_dict['LAI'].shape) * vza,
+                            np.ones(input_dict['LAI'].shape) * psi,
                             rho_leaf,
                             tau_leaf,
                             rsoil)
@@ -611,10 +648,10 @@ def simulate_prosail_lut(input_param,
 
     if calc_FAPAR:
         fAPAR_array, fIPAR_array = calc_fapar_4sail(skyl_rho_fapar,
-                                                    input_param['LAI'],
+                                                    input_dict['LAI'],
                                                     lidf,
-                                                    input_param['hotspot'],
-                                                    np.ones(input_param['LAI'].shape) * sza,
+                                                    input_dict['hotspot'],
+                                                    np.ones(input_dict['LAI'].shape) * sza,
                                                     rho_leaf_fapar,
                                                     tau_leaf_fapar,
                                                     rsoil_vec_fapar)
@@ -627,8 +664,8 @@ def simulate_prosail_lut(input_param,
                                                         0,
                                                         1)
 
-        input_param['fAPAR'] = fAPAR_array
-        input_param['fIPAR'] = fIPAR_array
+        input_dict['fAPAR'] = fAPAR_array
+        input_dict['fIPAR'] = fIPAR_array
         del fAPAR_array, fIPAR_array
 
     rho_canopy = []
@@ -658,10 +695,10 @@ def simulate_prosail_lut(input_param,
         pickle.dump(rho_canopy, fid, -1)
         fid.close()
         fid = open(outfile + '_param', 'wb')
-        pickle.dump(input_param, fid, -1)
+        pickle.dump(input_dict, fid, -1)
         fid.close()
 
-    return rho_canopy.T, input_param
+    return rho_canopy.T, input_dict
 
 
 def calc_fapar_4sail(skyl,
