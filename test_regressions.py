@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 from agrotig_input_creator import sentinel_biophysical as senet
 import os.path as pth
 import glob
+from scipy.stats import pearsonr
 
-n_simulations = 20000
+n_simulations = 1500
 white_noise = 0
 param_bounds = senet.senet.prosail_bounds
 distribution = senet.senet.prosail_distribution
@@ -42,14 +43,26 @@ ObjParamNames = ('Cab',
                  'leaf_angle',
                  'fAPAR',
                  'fIPAR')
-
 for param in ObjParamNames:
     distribution[param] = 1
 distribution["LAI"] = 1
+distribution = inv.SALTELLI_DIST
+
+
+def calc_errors(obs, pred):
+    error = obs - pred
+    bias = np.mean(error)
+    rmse = np.sqrt(np.mean(error**2))
+    cor = pearsonr(pred, obs)[0]
+    return bias, rmse, cor
+
 
 def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
                  lai_pre, Cab_pre, Cm_pre, fapar_pre, fipar_pre,
                  out_template, calc_fg, uncertainty):
+
+
+
     def calc_uncertainty(pred, obs, n_bins=100):
         valid = np.logical_and.reduce(
             (pred >= 0, obs >= 0, np.isfinite(pred), np.isfinite(obs)))
@@ -80,13 +93,15 @@ def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
 
     obs = 1e5 * lai_obs * Cm_obs
     pre = 1e5 * lai_pre * Cm_pre
-    plt.scatter(obs,
-                pre,
+    plt.scatter(pre,
+                obs,
                 color='black',
                 s=5,
                 alpha=0.1,
                 marker='.')
     plt.title('Leaf Biomass (kg/ha)')
+    plt.xlabel("Predicted")
+    plt.ylabel("Observed")
     absline = np.asarray([[0, np.amax(np.array([obs, pre]))],
                           [0, np.amax(np.array([obs, pre]))]])
 
@@ -94,24 +109,32 @@ def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
     plt.ylim(0, np.amax(np.array([obs, pre])))
 
     plt.plot(absline[0], absline[1], 'k-')
+    bias, rmse, cor = calc_errors(obs, pre)
+    plt.figtext(0.1, 0.8,
+                "bias: {:>7.2f}\nrmse: {:>7.2f}\n   r: {:>7.2f}".format(bias,
+                                                                        rmse,
+                                                                        cor))
     values, rmses, reg = calc_uncertainty(pre, obs)
     uncertainty["biomass"] = reg
 
     values_fit = np.linspace(0, np.amax(pre), 1000)
     plt.plot(values, rmses, "r:")
     plt.plot(values_fit, reg.predict(np.array([values_fit, values_fit**2]).T), "r-")
+    plt.tight_layout()
     plt.savefig(out_template%'biomass')
     plt.close()
 
     obs = 0.1 * lai_obs * Cab_obs
     pre = 0.1 * lai_pre * Cab_pre
-    plt.scatter(obs,
-                pre,
+    plt.scatter(pre,
+                obs,
                 color='black',
                 s=5,
                 alpha=0.1,
                 marker='.')
     plt.title('Canopy Chlorophyll Content (kg/ha)')
+    plt.xlabel("Predicted")
+    plt.ylabel("Observed")
     absline = np.asarray([[0, np.amax(np.array([obs, pre]))],
                           [0, np.amax(np.array([obs, pre]))]])
 
@@ -119,11 +142,17 @@ def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
     plt.ylim(0, np.amax(np.array([obs, pre])))
 
     plt.plot(absline[0], absline[1], 'k-')
+    bias, rmse, cor = calc_errors(obs, pre)
+    plt.figtext(0.1, 0.8,
+                "bias: {:>7.2f}\nrmse: {:>7.2f}\n   r: {:>7.2f}".format(bias,
+                                                                        rmse,
+                                                                        cor))
     values, rmses, reg = calc_uncertainty(pre, obs)
     uncertainty["CCC"] = reg
     values_fit = np.linspace(0, np.amax(pre), 1000)
     plt.plot(values, rmses, "r:")
     plt.plot(values_fit, reg.predict(np.array([values_fit, values_fit**2]).T), "r-")
+    plt.tight_layout()
     plt.savefig(out_template%'CCC')
 
     plt.close()
@@ -135,13 +164,15 @@ def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
         valid = np.logical_and(np.isfinite(obs), np.isfinite(pre))
         obs = np.clip(obs[valid], 0, 1)
         pre = np.clip(pre[valid], 0, 1)
-        plt.scatter(obs,
-                    pre,
+        plt.scatter(pre,
+                    obs,
                     color='black',
                     s=5,
                     alpha=0.1,
                     marker='.')
         plt.title('$f_g$')
+        plt.xlabel("Predicted")
+        plt.ylabel("Observed")
         absline = np.asarray([[0, np.amax(np.array([obs, pre]))],
                               [0, np.amax(np.array([obs, pre]))]])
 
@@ -149,11 +180,18 @@ def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
         plt.ylim(0, np.amax(np.array([obs, pre])))
 
         plt.plot(absline[0], absline[1], 'k-')
+        bias, rmse, cor = calc_errors(obs, pre)
+        plt.figtext(0.1, 0.8,
+                    "bias: {:>7.2f}\nrmse: {:>7.2f}\n   r: {:>7.2f}".format(
+                        bias,
+                        rmse,
+                        cor))
         values, rmses, reg = calc_uncertainty(pre, obs)
         uncertainty["F_G"] = reg
         values_fit = np.linspace(0, 1, 1000)
         plt.plot(values, rmses, "r:")
         plt.plot(values_fit, reg.predict(np.array([values_fit, values_fit ** 2]).T), "r-")
+        plt.tight_layout()
         plt.savefig(out_template % 'fg')
 
         plt.close()
@@ -165,6 +203,7 @@ params = inv.build_prosail_database(n_simulations,
                         distribution=distribution,
                         moments=moments)
 
+
 wls_sim = np.arange(400, 2501)
 print('Builing standard soil database')
 soil_files = glob.glob(pth.join(senet.senet.SOIL_LIBRARY, 'jhu.*spectrum.txt'))
@@ -174,6 +213,7 @@ for soil_file in soil_files:
     r = np.genfromtxt(soil_file)
     soil_spectrum.append(r[:, 1])
 
+n_simulations = params["bs"].size
 multiplier = int(np.ceil(float(n_simulations/n_soils)))
 soil_spectrum = np.asarray(soil_spectrum * multiplier)
 soil_spectrum = soil_spectrum[:n_simulations]
