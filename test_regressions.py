@@ -7,11 +7,15 @@ import os.path as pth
 import glob
 from scipy.stats import pearsonr
 
-n_simulations = 1500
+n_simulations = 1000
 white_noise = 0
 param_bounds = senet.senet.prosail_bounds
 distribution = senet.senet.prosail_distribution
 moments = senet.senet.prosail_moments
+apply_covariate = {}
+for param in param_bounds.keys():
+    apply_covariate[param] = True
+del apply_covariate["LAI"]
 param_bounds["LAI"] = (0, 7)
 param_bounds["Cbrown"] = (0, 3)
 param_bounds["Cm"] = (0.01, 0.03)
@@ -199,9 +203,10 @@ def plot_scatter(lai_obs, Cab_obs, Cm_obs, fapar_obs, fipar_obs,
     return uncertainty
 
 params = inv.build_prosail_database(n_simulations,
-                        param_bounds=param_bounds,
-                        distribution=distribution,
-                        moments=moments)
+                                    param_bounds=param_bounds,
+                                    distribution=distribution,
+                                    moments=moments,
+                                    apply_covariate=apply_covariate)
 
 
 wls_sim = np.arange(400, 2501)
