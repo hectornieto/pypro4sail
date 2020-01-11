@@ -555,15 +555,6 @@ def simulate_prosail_lut(input_dict,
     if type(skyl) == float:
         skyl = skyl * np.ones(r.shape)
 
-    if calc_FAPAR:
-        par_index = wls <= 700
-        rho_leaf_fapar = np.mean(r[par_index], axis=0).reshape(1, -1)
-        tau_leaf_fapar = np.mean(t[par_index], axis=0).reshape(1, -1)
-        skyl_rho_fapar = np.mean(skyl[par_index], axis=0).reshape(1, -1)
-        rsoil_vec_fapar = np.mean(rsoil_vec[par_index], axis=0).reshape(1, -1)
-
-        par_index = wls_sim <= 700
-
     # Convolve the simulated spectra to a gaussian filter per band
     rho_leaf = []
     tau_leaf = []
@@ -595,13 +586,30 @@ def simulate_prosail_lut(input_dict,
                 rsoil.append(np.sum(weight * rsoil_vec, axis=0) / np.sum(weight, axis=0))
             skyl_rho = np.asarray(skyl_rho)
 
+        if calc_FAPAR:
+            par_index = wls_sim <= 700
+            rho_leaf_fapar = np.mean(r[par_index], axis=0).reshape(1, -1)
+            tau_leaf_fapar = np.mean(t[par_index], axis=0).reshape(1, -1)
+            skyl_rho_fapar = np.mean(skyl[par_index], axis=0).reshape(1, -1)
+            rsoil_vec_fapar = np.mean(rsoil_vec[par_index], axis=0).reshape(1,
+                                                                            -1)
+
     elif reduce_4sail:
         wls_sim = np.asarray(wls_sim)
         for wl in wls_sim:
             rho_leaf.append(r[wls == wl].reshape(-1))
             tau_leaf.append(t[wls == wl].reshape(-1))
-            skyl_rho.append(skyl[wls == wl].reshape(-1))
-            rsoil.append(rsoil_vec[wls == wl].reshape(-1))
+        skyl_rho = np.asarray(skyl)
+        rsoil = np.asarray(rsoil_vec)
+        rho_leaf = np.asarray(rho_leaf)
+        tau_leaf = np.asarray(tau_leaf)
+        if calc_FAPAR:
+            par_index = wls_sim <= 700
+            rho_leaf_fapar = np.mean(rho_leaf[par_index], axis=0).reshape(1, -1)
+            tau_leaf_fapar = np.mean(tau_leaf[par_index], axis=0).reshape(1, -1)
+            skyl_rho_fapar = np.mean(skyl_rho[par_index], axis=0).reshape(1, -1)
+            rsoil_vec_fapar = np.mean(rsoil[par_index], axis=0).reshape(1, -1)
+        skyl_rho = skyl_rho.reshape(-1, 1)
     else:
         rho_leaf = r.T
         tau_leaf = t.T
