@@ -536,7 +536,7 @@ def simulate_prosail_lut(input_dict,
                          outfile=None,
                          calc_FAPAR=False,
                          reduce_4sail=False):
-    print('Starting Simulations')
+    print('Starting %i Simulations'%np.size(input_dict['leaf_angle']))
 
     # Calculate the lidf
     lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
