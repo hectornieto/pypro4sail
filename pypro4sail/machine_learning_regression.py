@@ -553,8 +553,9 @@ def simulate_prosail_lut_parallel(n_jobs,
         end = int(np.minimum((i + 1) * subsample_size,
                              simulations))
 
-        subsample_dict = input_dict.loc[start:end - 1].to_records()
-        subsample_dict = {name: subsample_dict[name] for name in subsample_dict.dtype.names}
+        temp = input_dict.loc[start:end - 1].to_records()
+        subsample_dict = {name: temp[name] for name in temp.dtype.names}
+        del temp
         jobs.append((i,
                      subsample_dict,
                      wls_sim,
@@ -572,7 +573,7 @@ def simulate_prosail_lut_parallel(n_jobs,
     tp.close()
     tp.join()
 
-    input_dict = {name: np.empty(simulations) for name in results[0][1][1].keys()}
+    output_dict = {name: np.empty(simulations) for name in results[0][1][1].keys()}
     rho_canopy = np.empty((simulations,  len(wls_sim)))
     print("Filling output matrix")
     for k, result in results:
@@ -582,17 +583,17 @@ def simulate_prosail_lut_parallel(n_jobs,
 
         rho_canopy[start:end, :] = result[0]
         for var, array in result[1].items():
-            input_dict[var][start:end] = array
+            output_dict[var][start:end] = array
 
     if outfile:
         fid = open(outfile + '_rho', 'wb')
         pickle.dump(rho_canopy, fid, -1)
         fid.close()
         fid = open(outfile + '_param', 'wb')
-        pickle.dump(input_dict, fid, -1)
+        pickle.dump(output_dict, fid, -1)
         fid.close()
 
-    return np.array(rho_canopy), input_dict
+    return np.array(rho_canopy), output_dict
 
 
 def simulate_prosail_lut_worker(job,
