@@ -21,6 +21,8 @@ import numpy.random as rnd
 from scipy.stats import gamma
 from scipy.ndimage.filters import gaussian_filter1d
 from SALib.sample import fast_sampler, saltelli
+import pandas as pd
+import multiprocessing as mp
 
 UNIFORM_DIST = 1
 GAUSSIAN_DIST = 2
@@ -80,15 +82,17 @@ MAX_BS = 3.5  # from S2 L2B ATBD
 
 # log Covariance matrix
 # 'N', 'C_ab', 'C_car', 'EWT', 'LMA'
-LOG_COV = np.array([[0.02992514, 0.03325522, 0.03114539, 0.03282891, 0.04783304],
-                    [0.03325522, 0.52976802, 0.35201248, 0.02353788, 0.11989431],
-                    [0.03114539, 0.35201248, 0.34761489, 0.00203875, 0.12227829],
-                    [0.03282891, 0.02353788, 0.00203875, 0.17976, 0.08260031],
-                    [0.04783304, 0.11989431, 0.12227829, 0.08260031, 0.23379769]])
+LOG_COV = np.array(
+    [[0.02992514, 0.03325522, 0.03114539, 0.03282891, 0.04783304],
+     [0.03325522, 0.52976802, 0.35201248, 0.02353788, 0.11989431],
+     [0.03114539, 0.35201248, 0.34761489, 0.00203875, 0.12227829],
+     [0.03282891, 0.02353788, 0.00203875, 0.17976, 0.08260031],
+     [0.04783304, 0.11989431, 0.12227829, 0.08260031, 0.23379769]])
 
 # log means
 # 'N', 'C_ab', 'C_car', 'EWT', 'LMA'
-LOG_MEAN = np.array([0.45475538, 3.52688334, 2.12818934, -4.60373468, -5.36951247])
+LOG_MEAN = np.array(
+    [0.45475538, 3.52688334, 2.12818934, -4.60373468, -5.36951247])
 
 font = {'family': 'monospace',
         'size': 8}
@@ -197,7 +201,7 @@ def train_reg(X_array,
               outfile=None,
               reg_method="neural_network",
               regressor_opts={'activation': 'logistic'}):
-    print('Fitting %s'%reg_method)
+    print('Fitting %s' % reg_method)
 
     Y_array = np.asarray(Y_array)
     X_array = np.asarray(X_array)
@@ -290,9 +294,9 @@ def test_reg(X_array,
     Y_array = np.asarray(Y_array)
 
     # Estimate error measuremenents
-    RMSE = []
+    rmses = []
     bias = []
-    cor = []
+    cors = []
 
     if scaling_input:
         X_array = scaling_input.transform(X_array)
@@ -344,8 +348,6 @@ def build_prospect_database(n_simulations,
                             distribution=None,
                             apply_covariate=None,
                             covariate=None):
-
-
     if covariate is None:
         covariate = prospect_covariates
     if distribution is None:
@@ -366,9 +368,9 @@ def build_prospect_database(n_simulations,
     # Apply covariates where needed
     if apply_covariate is not None:
         input_param = covariate_constraint(input_param,
-                                            param_bounds,
-                                            apply_covariate,
-                                            covariate,
+                                           param_bounds,
+                                           apply_covariate,
+                                           covariate,
                                            "Cab")
 
     return input_param
@@ -380,7 +382,6 @@ def build_prosail_database(n_simulations,
                            distribution=None,
                            apply_covariate=None,
                            covariate=None):
-
     if covariate is None:
         covariate = prosail_covariates
     if distribution is None:
@@ -414,18 +415,17 @@ def covariate_constraint(input_dict,
                          apply,
                          covariates,
                          ref_param):
-
     range = bounds[ref_param][1] - bounds[ref_param][0]
     for param in apply:
         if apply:
             Vmin = covariates[param][0][0] \
                    + input_dict[ref_param] * (covariates[param][1][0]
-                                           - covariates[param][0][
-                                               0]) / range
+                                              - covariates[param][0][
+                                                  0]) / range
             Vmax = covariates[param][0][1] \
                    + input_dict[ref_param] * (covariates[param][1][1]
-                                           - covariates[param][0][
-                                               1]) / range
+                                              - covariates[param][0][
+                                                  1]) / range
 
             input_dict[param] = np.clip(input_dict[param], Vmin, Vmax)
     return input_dict
@@ -438,8 +438,8 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
         if distribution_type[param] == UNIFORM_DIST:
             output[param] = bounds[param][0] \
                             + rnd.rand(simulations) * (
-                                         bounds[param][1]
-                                         - bounds[param][0])
+                                    bounds[param][1]
+                                    - bounds[param][0])
 
         elif distribution_type[param] == GAUSSIAN_DIST:
             output[param] = moments_dict[param][0] \
@@ -504,8 +504,10 @@ def simulate_prospectd_lut(input_dict,
         elif type(srf) == list or type(srf) == tuple:
             for weight in srf:
                 weight = np.tile(weight, (1, r.shape[2])).T
-                rho_leaf.append(float(np.sum(weight * r, axis=0) / np.sum(weight, axis=0)))
-                tau_leaf.append(float(np.sum(weight * t, axis=0) / np.sum(weight, axis=0)))
+                rho_leaf.append(
+                    float(np.sum(weight * r, axis=0) / np.sum(weight, axis=0)))
+                tau_leaf.append(
+                    float(np.sum(weight * t, axis=0) / np.sum(weight, axis=0)))
 
     else:
         rho_leaf = np.copy(r)
@@ -525,6 +527,103 @@ def simulate_prospectd_lut(input_dict,
     return rho_leaf, input_dict
 
 
+def simulate_prosail_lut_parallel(n_jobs,
+                                  input_dict,
+                                  wls_sim,
+                                  rsoil_vec,
+                                  skyl=0.1,
+                                  sza=37,
+                                  vza=0,
+                                  psi=0,
+                                  srf=None,
+                                  outfile=None,
+                                  calc_FAPAR=False,
+                                  reduce_4sail=False):
+
+    input_dict = pd.DataFrame.from_dict(input_dict)
+    simulations = input_dict.shape[0]
+    print("Running %i simulations" % simulations)
+
+    # Calculate the total number of multiprocess loops
+    tp = mp.Pool(n_jobs)
+    subsample_size = np.ceil(simulations / n_jobs)
+    jobs = []
+    for i in range(n_jobs):
+        start = int(i * subsample_size)
+        end = int(np.minimum((i + 1) * subsample_size,
+                             simulations))
+
+        print(start, end)
+        subsample_dict = input_dict.loc[start:end - 1].to_records()
+        subsample_dict = {name: subsample_dict[name] for name in subsample_dict.dtype.names}
+        jobs.append((i,
+                     subsample_dict,
+                     wls_sim,
+                     rsoil_vec[:, start:end],
+                     skyl,
+                     sza,
+                     vza,
+                     psi,
+                     srf,
+                     calc_FAPAR,
+                     reduce_4sail))
+
+    results = tp.starmap(simulate_prosail_lut_worker, jobs)
+
+    tp.close()
+    tp.join()
+
+    input_dict = {name: np.empty(simulations) for name in results[0][1][1].keys()}
+    rho_canopy = np.empty((simulations,  len(wls_sim)))
+    print("Filling output matrix")
+    for k, result in results:
+        start = int(k * subsample_size)
+        end = int(np.minimum((k + 1) * subsample_size,
+                             simulations))
+
+        rho_canopy[start:end, :] = result[0]
+        for var, array in result[1].items():
+            input_dict[var][start:end] = array
+
+    if outfile:
+        fid = open(outfile + '_rho', 'wb')
+        pickle.dump(rho_canopy, fid, -1)
+        fid.close()
+        fid = open(outfile + '_param', 'wb')
+        pickle.dump(input_dict, fid, -1)
+        fid.close()
+
+    return np.array(rho_canopy), input_dict
+
+
+def simulate_prosail_lut_worker(job,
+                                input_dict,
+                                wls_sim,
+                                rsoil_vec,
+                                skyl=0.1,
+                                sza=37,
+                                vza=0,
+                                psi=0,
+                                srf=None,
+                                calc_FAPAR=False,
+                                reduce_4sail=False):
+    print("Running job %i" % job)
+    rho_canopy, input_dict = simulate_prosail_lut(input_dict,
+                                                  wls_sim,
+                                                  rsoil_vec,
+                                                  skyl=skyl,
+                                                  sza=sza,
+                                                  vza=vza,
+                                                  psi=psi,
+                                                  srf=srf,
+                                                  outfile=None,
+                                                  calc_FAPAR=calc_FAPAR,
+                                                  reduce_4sail=reduce_4sail)
+
+    print("Finished job %i" % job)
+    return (job, [rho_canopy, input_dict])
+
+
 def simulate_prosail_lut(input_dict,
                          wls_sim,
                          rsoil_vec,
@@ -536,7 +635,7 @@ def simulate_prosail_lut(input_dict,
                          outfile=None,
                          calc_FAPAR=False,
                          reduce_4sail=False):
-    print('Starting %i Simulations'%np.size(input_dict['leaf_angle']))
+    print('Starting %i Simulations' % np.size(input_dict['leaf_angle']))
 
     # Calculate the lidf
     lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
@@ -580,10 +679,14 @@ def simulate_prosail_lut(input_dict,
             skyl = np.tile(skyl, (r.shape[1], 1)).T
             for weight in srf:
                 weight = np.tile(weight, (r.shape[1], 1)).T
-                rho_leaf.append(np.sum(weight * r, axis=0) / np.sum(weight, axis=0))
-                tau_leaf.append(np.sum(weight * t, axis=0) / np.sum(weight, axis=0))
-                skyl_rho.append(np.sum(weight * skyl, axis=0) / np.sum(weight, axis=0))
-                rsoil.append(np.sum(weight * rsoil_vec, axis=0) / np.sum(weight, axis=0))
+                rho_leaf.append(
+                    np.sum(weight * r, axis=0) / np.sum(weight, axis=0))
+                tau_leaf.append(
+                    np.sum(weight * t, axis=0) / np.sum(weight, axis=0))
+                skyl_rho.append(
+                    np.sum(weight * skyl, axis=0) / np.sum(weight, axis=0))
+                rsoil.append(
+                    np.sum(weight * rsoil_vec, axis=0) / np.sum(weight, axis=0))
             skyl_rho = np.asarray(skyl_rho)
 
         if calc_FAPAR:
@@ -659,18 +762,21 @@ def simulate_prosail_lut(input_dict,
                                                     input_dict['LAI'],
                                                     lidf,
                                                     input_dict['hotspot'],
-                                                    np.ones(input_dict['LAI'].shape) * sza,
+                                                    np.ones(input_dict[
+                                                                'LAI'].shape) * sza,
                                                     rho_leaf_fapar,
                                                     tau_leaf_fapar,
                                                     rsoil_vec_fapar)
 
-        fAPAR_array[np.isfinite(fAPAR_array)] = np.clip(fAPAR_array[np.isfinite(fAPAR_array)],
-                                                        0,
-                                                        1)
+        fAPAR_array[np.isfinite(fAPAR_array)] = np.clip(
+            fAPAR_array[np.isfinite(fAPAR_array)],
+            0,
+            1)
 
-        fIPAR_array[np.isfinite(fIPAR_array)] = np.clip(fIPAR_array[np.isfinite(fIPAR_array)],
-                                                        0,
-                                                        1)
+        fIPAR_array[np.isfinite(fIPAR_array)] = np.clip(
+            fIPAR_array[np.isfinite(fIPAR_array)],
+            0,
+            1)
 
         input_dict['fAPAR'] = fAPAR_array
         input_dict['fIPAR'] = fIPAR_array
@@ -688,7 +794,8 @@ def simulate_prosail_lut(input_dict,
         elif type(srf) == list or type(srf) == tuple:
             for weight in srf:
                 weight = np.tile(weight, (1, r2.shape[2])).T
-                rho_canopy.append(np.sum(weight * r2, axis=0) / np.sum(weight, axis=0))
+                rho_canopy.append(
+                    np.sum(weight * r2, axis=0) / np.sum(weight, axis=0))
     elif reduce_4sail:
         rho_canopy = np.asarray(r2)
 
@@ -757,10 +864,12 @@ def calc_fapar_4sail(skyl,
     S_1 = np.zeros(rho_leaf.shape)
 
     # Start the hemispherical integration
-    vzas_psis = ((vza, psi) for vza in np.arange(0, 90 - STEP_VZA / 2., STEP_VZA)
+    vzas_psis = ((vza, psi) for vza in
+                 np.arange(0, 90 - STEP_VZA / 2., STEP_VZA)
                  for psi in np.arange(0, 360, STEP_PSI))
 
-    step_vza_radians, step_psi_radians = np.radians(STEP_VZA), np.radians(STEP_PSI)
+    step_vza_radians, step_psi_radians = np.radians(STEP_VZA), np.radians(
+        STEP_PSI)
 
     for vza, psi in vzas_psis:
         vza += STEP_VZA / 2.
@@ -812,13 +921,16 @@ def calc_fapar_4sail(skyl,
         S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians
         # Spectral flus at the bottom of the canopy
         # & add the bottom of the canopy flux to the integral and continue through the hemisphere
-        S_1 += (Es_1 + tdd * Ed) * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
+        S_1 += (
+                           Es_1 + tdd * Ed) * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Absorbed flux at ground lnevel
-        Sn_soil = (1. - rsoil) * (Es_1 + Ed_down_1)  # narrowband net soil shortwave radiation
+        Sn_soil = (1. - rsoil) * (
+                    Es_1 + Ed_down_1)  # narrowband net soil shortwave radiation
 
     # Calculate the vegetation (sw/lw) net radiation (divergence) as residual of top of the canopy and net soil radiation
     Rn_sw_veg_nb = 1.0 - S_0 - Sn_soil  # narrowband net canopy sw radiation
-    fAPAR = np.sum(Rn_sw_veg_nb, axis=0) / Rn_sw_veg_nb.shape[0]  # broadband net canopy sw radiation
+    fAPAR = np.sum(Rn_sw_veg_nb, axis=0) / Rn_sw_veg_nb.shape[
+        0]  # broadband net canopy sw radiation
     fIPAR = np.sum(1.0 - S_1, axis=0) / S_1.shape[0]
     return fAPAR, fIPAR
 
