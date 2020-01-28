@@ -553,7 +553,6 @@ def simulate_prosail_lut_parallel(n_jobs,
         end = int(np.minimum((i + 1) * subsample_size,
                              simulations))
 
-        print(start, end)
         subsample_dict = input_dict.loc[start:end - 1].to_records()
         subsample_dict = {name: subsample_dict[name] for name in subsample_dict.dtype.names}
         jobs.append((i,
