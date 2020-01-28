@@ -274,17 +274,20 @@ def prospectd_vec(Nleaf, Cab, Car, Cbrown, Cw, Cm, Ant):
     k = (Cab * np.array(Cab_k) + Car * np.array(Car_k)
          + Cbrown * np.array(Cbrown_k) + Cw * np.array(Cw_k)
          + Cm * np.array(Cm_k) + Ant * np.array(Ant_k)) / Nleaf
+
     k[k <= 0] = 0
 
     trans = (1. - k) * np.exp(-k) + k ** 2. * (-expi(-k))
     trans[k <= 0.0] = 1.0
+    trans[k > 85] = 0
+    # trans = trans_approx(k)
+    del k
 
     alpha = 40.
     # reflectance and transmittance of one layer
     rho, tau, Ra, Ta = refl_trans_one_layer(alpha, refr_index, trans)
     # reflectance and transmittance of multiple layers
     rho, tau = reflectance_n_layers_stokes_vec(rho, tau, Ra, Ta, Nleaf)
-
     return l, rho, tau
 
 
@@ -523,3 +526,43 @@ def tav_wl(theta, ref):
     f = (ts + tp) / (2.0 * ds ** 2.0)
 
     return f
+
+def trans_approx(k):
+    trans = np.zeros(k.shape)
+    i = k <= 0
+    trans[i] = 1
+    i = np.logical_and(k > 0.0, k <= 4.0)
+    xx = 0.5 * k[i] - 1.0
+    yy = (((((((((((((((-3.60311230482612224e-13
+        * xx + 3.46348526554087424e-12) * xx-2.99627399604128973e-11)
+        * xx + 2.57747807106988589e-10) * xx-2.09330568435488303e-9)
+        * xx + 1.59501329936987818e-8) * xx-1.13717900285428895e-7)
+        * xx + 7.55292885309152956e-7) * xx-4.64980751480619431e-6)
+        * xx + 2.63830365675408129e-5) * xx-1.37089870978830576e-4)
+        * xx + 6.47686503728103400e-4) * xx-2.76060141343627983e-3)
+        * xx + 1.05306034687449505e-2) * xx-3.57191348753631956e-2)
+        * xx + 1.07774527938978692e-1) * xx-2.96997075145080963e-1
+    yy = (yy * xx + 8.64664716763387311e-1) * xx + 7.42047691268006429e-1
+    yy = yy - np.log(k[i])
+    trans[i] = (1.0 - k[i]) * np.exp(-k[i]) + k[i]**2 * yy
+
+    i = np.logical_and(k > 4.0, k <= 85.0)
+    xx = 14.5 / (k[i] + 3.25) - 1.0
+    yy = (((((((((((((((-1.62806570868460749e-12
+        * xx - 8.95400579318284288e-13) * xx - 4.08352702838151578e-12)
+        * xx - 1.45132988248537498e-11) * xx - 8.35086918940757852e-11)
+        * xx - 2.13638678953766289e-10) * xx - 1.10302431467069770e-9)
+        * xx - 3.67128915633455484e-9) * xx - 1.66980544304104726e-8)
+        * xx - 6.11774386401295125e-8) * xx - 2.70306163610271497e-7)
+        * xx - 1.05565006992891261e-6) * xx - 4.72090467203711484e-6)
+        * xx - 1.95076375089955937e-5) * xx - 9.16450482931221453e-5)
+        * xx - 4.05892130452128677e-4) * xx - 2.14213055000334718e-3
+    yy = ((yy * xx - 1.06374875116569657e-2)
+             * xx - 8.50699154984571871e-2) * xx + 9.23755307807784058e-1
+    yy = np.exp(-k[i]) * yy / k[i]
+
+    trans[i] = (1.0 - k[i]) * np.exp(-k[i]) + k[i]**2 * yy
+
+    i = k > 85.0
+    trans[i] = 0
+    return trans
