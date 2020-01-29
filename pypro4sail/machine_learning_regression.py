@@ -574,7 +574,11 @@ def simulate_prosail_lut_parallel(n_jobs,
     tp.join()
 
     output_dict = {name: np.empty(simulations) for name in results[0][1][1].keys()}
-    rho_canopy = np.empty((simulations,  len(wls_sim)))
+    if not srf:
+        n_bands = len(wls_sim)
+    else:
+        n_bands = len(srf)
+    rho_canopy = np.empty((simulations, n_bands))
     print("Filling output matrix")
     for k, result in results:
         start = int(k * subsample_size)
