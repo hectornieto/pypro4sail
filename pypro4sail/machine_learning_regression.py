@@ -11,7 +11,6 @@ import pickle
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler
 from sklearn import svm
-from collections import OrderedDict
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import matplotlib
@@ -20,7 +19,7 @@ import pypro4sail.four_sail as sail
 import numpy.random as rnd
 from scipy.stats import gamma
 from scipy.ndimage.filters import gaussian_filter1d
-from SALib.sample import fast_sampler, saltelli
+from SALib.sample import saltelli
 import pandas as pd
 import multiprocessing as mp
 
@@ -436,15 +435,14 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
     output = dict()
     for param in bounds:
         if distribution_type[param] == UNIFORM_DIST:
-            output[param] = bounds[param][0] \
-                            + rnd.rand(simulations) * (
-                                    bounds[param][1]
-                                    - bounds[param][0])
+            output[param] = rnd.uniform(low=bounds[param][0],
+                                        high=bounds[param][1],
+                                        size=simulations)
 
         elif distribution_type[param] == GAUSSIAN_DIST:
-            output[param] = moments_dict[param][0] \
-                            + rnd.randn(simulations) * \
-                            moments_dict[param][1]
+            output[param] = rnd.normal(loc=moments_dict[param][0],
+                                       scale=moments_dict[param][1],
+                                       size=simulations)
 
 
         elif distribution_type[param] == GAMMA_DIST:
@@ -456,9 +454,9 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
                                       loc=bounds[param][0],
                                       size=simulations)
 
-    output[param] = np.clip(output[param],
-                            bounds[param][0],
-                            bounds[param][1])
+        output[param] = np.clip(output[param],
+                                bounds[param][0],
+                                bounds[param][1])
 
     return output
 
