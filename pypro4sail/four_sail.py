@@ -1279,3 +1279,140 @@ def define_geometric_constant(tts, tto, psi):
     cospsi = np.cos(np.radians(psi))
     dso = np.sqrt(tants ** 2. + tanto ** 2. - 2. * tants * tanto * cospsi)
     return dso
+
+
+def rsoil_inv(lai, hotspot, lidf, vza, sza, psi, skyl, rho, tau, rho_canopy):
+    """ Analytical inversion of 4SAIL to retrieve soil reflectance based on
+    leaf and canopy spectra.
+
+    Parameters
+    ----------
+    lai : ndarray
+        Leaf Area Index.
+    hotspot : ndarray
+        Hotspot parameter.
+    lidf : ndarray
+        Leaf Inclination Distribution at regular angle steps.
+    vza : ndarray
+        View(sensor) Zenith Angle (degrees).
+    sza : ndarray
+        Sun Zenith Angle (degrees).
+    psi : ndarray
+        Relative Sensor-Sun Azimuth Angle (degrees).
+    skyl : ndarray
+        Diffuse to total irradiance ratio
+    rho : ndarray
+        leaf lambertian reflectance.
+    tau : ndarray
+        leaf transmittance.
+    rho_canopy : ndarray
+        canopy directional reflectance.
+
+    Returns
+    -------
+    rsoil : ndarray
+        Soil lambertian reflectance.
+
+    References
+    ----------
+    .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
+        Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
+        IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
+    """
+
+    # weighted_sum_over_lidf
+    ks, ko, bf, sob, sof = weighted_sum_over_lidf_vec(lidf, sza, vza, psi)
+
+    # Geometric factors to be used later with rho and tau
+    sdb = 0.5 * (ks + bf)
+    sdf = 0.5 * (ks - bf)
+    dob = 0.5 * (ko + bf)
+    dof = 0.5 * (ko - bf)
+    ddb = 0.5 * (1. + bf)
+    ddf = 0.5 * (1. - bf)
+
+    # Here rho and tau come in
+    sigb = ddb * rho + ddf * tau
+    sigf = ddf * rho + ddb * tau
+    sigf = np.maximum(1e-36, sigf)
+    sigb = np.maximum(1e-36, sigb)
+    att = 1. - sigf
+    m = np.sqrt(att ** 2. - sigb ** 2.)
+    sb = sdb * rho + sdf * tau
+    sf = sdf * rho + sdb * tau
+    vb = dob * rho + dof * tau
+    vf = dof * rho + dob * tau
+    w = sob * rho + sof * tau
+
+    del sdb, sdf, dob, dof, ddb, ddf
+
+    e1 = np.exp(-lai * m)
+    e2 = e1 ** 2.
+    rinf = (att - m) / sigb
+    rinf2 = rinf ** 2.
+    re = rinf * e1
+    denom = 1. - rinf2 * e2
+    J1ks = jfunc1_vec(ks, m, lai)
+    J2ks = jfunc2(ks, m, lai)
+    J1ko = jfunc1_vec(ko, m, lai)
+    J2ko = jfunc2(ko, m, lai)
+    Pss = (sf + sb * rinf) * J1ks
+    Qss = (sf * rinf + sb) * J2ks
+    Pv = (vf + vb * rinf) * J1ko
+    Qv = (vf * rinf + vb) * J2ko
+
+    tdd = (1. - rinf2) * e1 / denom
+    rdd = rinf * (1. - e2) / denom
+    tsd = (Pss - re * Qss) / denom
+    tdo = (Pv - re * Qv) / denom
+    rdo = (Qv - re * Pv) / denom
+
+    del e1, e2, Qv, Pv, att, sigb, sigf, J2ko, denom, re
+
+    tss = np.exp(-ks * lai)
+    too = np.exp(-ko * lai)
+    z = jfunc2(ks, ko, lai)
+    g1 = (z - J1ks * too) / (ko + m)
+    g2 = (z - J1ko * tss) / (ks + m)
+    Tv1 = (vf * rinf + vb) * g1
+    Tv2 = (vf + vb * rinf) * g2
+    T1 = Tv1 * (sf + sb * rinf)
+    T2 = Tv2 * (sf * rinf + sb)
+    T3 = (rdo * Qss + tdo * Pss) * rinf
+
+    del vb, vf, Pss, Qss, J1ko, g1, g2, m, sb, sf, z
+
+    # Multiple scattering contribution to bidirectional canopy reflectance
+    rsod = (T1 + T2 - T3) / (1. - rinf2)
+
+    del Tv1, Tv2, T1, T2, T3, rinf2, rinf, J2ks, J1ks
+
+    # Hotspot effect
+    dso = define_geometric_constant(sza, vza, psi)
+    tsstoo, sumint = hotspot_calculations_vec(hotspot, lai, ko, ks, dso, tss)
+
+    # Single scattering contribution
+    rsos = w * lai * sumint
+
+    del ko, ks, sumint, w, dso, psi, lai
+
+    # Total canopy contribution
+    rso = rsos + rsod
+
+    # Invert Eq. 11 of Verhoef (2007) to retrieve rsoil
+    # a_factor * rsoil**2 + b_factor * rsoil + c_factor = 0
+    c_factor = rho_canopy - ((1. - skyl) * rso + skyl * rdo)
+    a_factor = rdd * (1. - skyl) * (tsstoo - tss * too)
+    b_factor = - (c_factor * rdd +
+                  (1. - skyl) * (tsstoo + (tss + tsd) * tdo + tsd * too) +
+                  skyl * tdd * (tdo + too))
+
+    root = np.sqrt(b_factor ** 2 - 4 * a_factor * c_factor)
+    # Only one root solution is valid
+    rsoil = (-b_factor - root) / (2 * a_factor)
+    # For non-valid solutions we assume that soil reflectance equals the measured reflectance
+    no_valid = ~np.isfinite(rsoil)
+    rsoil[no_valid] = rho_canopy[no_valid]
+    return rsoil
+
