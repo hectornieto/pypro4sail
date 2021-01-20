@@ -467,7 +467,10 @@ def montecarlo_distribution(simulations, bounds):
                'bounds': [bounds for key, bounds in
                           bounds.items()]
                }
-    param_values = saltelli.sample(problem, simulations).T
+    # The total number of simulations by saltelli.sample (calc_second_order=True)
+    # is N * (2D + 2) where D is the number of parameters
+    n_simulations = int(np.round(simulations / (2 * len(bounds) + 2)))
+    param_values = saltelli.sample(problem, n_simulations).T
     output = dict()
 
     for i, param in enumerate(bounds.keys()):
