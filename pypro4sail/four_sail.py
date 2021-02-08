@@ -1322,7 +1322,10 @@ def rsoil_inv(lai, hotspot, lidf, vza, sza, psi, skyl, rho, tau, rho_canopy):
     """
 
     # weighted_sum_over_lidf
-    ks, ko, bf, sob, sof = weighted_sum_over_lidf_vec(lidf, sza, vza, psi)
+    if np.isscalar(lai):
+        ks, ko, bf, sob, sof = weighted_sum_over_lidf(lidf, sza, vza, psi)
+    else:
+        ks, ko, bf, sob, sof = weighted_sum_over_lidf_vec(lidf, sza, vza, psi)
 
     # Geometric factors to be used later with rho and tau
     sdb = 0.5 * (ks + bf)
@@ -1353,9 +1356,13 @@ def rsoil_inv(lai, hotspot, lidf, vza, sza, psi, skyl, rho, tau, rho_canopy):
     rinf2 = rinf ** 2.
     re = rinf * e1
     denom = 1. - rinf2 * e2
-    J1ks = jfunc1_vec(ks, m, lai)
+    if np.isscalar(lai):
+        J1ks = jfunc1(ks, m, lai)
+        J1ko = jfunc1(ko, m, lai)
+    else:
+        J1ks = jfunc1_vec(ks, m, lai)
+        J1ko = jfunc1_vec(ko, m, lai)
     J2ks = jfunc2(ks, m, lai)
-    J1ko = jfunc1_vec(ko, m, lai)
     J2ko = jfunc2(ko, m, lai)
     Pss = (sf + sb * rinf) * J1ks
     Qss = (sf * rinf + sb) * J2ks
@@ -1390,7 +1397,10 @@ def rsoil_inv(lai, hotspot, lidf, vza, sza, psi, skyl, rho, tau, rho_canopy):
 
     # Hotspot effect
     dso = define_geometric_constant(sza, vza, psi)
-    tsstoo, sumint = hotspot_calculations_vec(hotspot, lai, ko, ks, dso, tss)
+    if np.isscalar(lai):
+        tsstoo, sumint = hotspot_calculations(hotspot, lai, ko, ks, dso, tss)
+    else:
+        tsstoo, sumint = hotspot_calculations_vec(hotspot, lai, ko, ks, dso, tss)
 
     # Single scattering contribution
     rsos = w * lai * sumint
