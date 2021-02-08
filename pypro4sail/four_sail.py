@@ -1415,4 +1415,95 @@ def rsoil_inv(lai, hotspot, lidf, vza, sza, psi, skyl, rho, tau, rho_canopy):
     no_valid = ~np.isfinite(rsoil)
     rsoil[no_valid] = rho_canopy[no_valid]
     return rsoil
+  
+    
+def surface_emissivity(lai, lidf, vza, e_leaf=0.99, e_soil=0.97, tau=0):
+    """ 4SAIL simulations to retrieve surface directional emissivity.
+
+    Parameters
+    ----------
+    lai : ndarray
+        Leaf Area Index.
+    lidf : ndarray
+        Leaf Inclination Distribution at regular angle steps.
+    vza : ndarray
+        View(sensor) Zenith Angle (degrees).
+    e_leaf : ndarray
+        leaf bihemispherical emissivity.
+    e_soil : ndarray
+        soil bihemispherical emissivity.
+
+    Returns
+    -------
+    emiss : ndarray
+        Surface directional emissivity.
+
+    References
+    ----------
+    .. [Verhoef2007] Verhoef, W.; Jia, Li; Qing Xiao; Su, Z., (2007) Unified Optical-Thermal
+        Four-Stream Radiative Transfer Theory for Homogeneous Vegetation Canopies,
+        IEEE Transactions on Geoscience and Remote Sensing, vol.45, no.6, pp.1808-1822,
+        http://dx.doi.org/10.1109/TGRS.2007.895844 based on  in Verhoef et al. (2007).
+    """
+
+    # weighted_sum_over_lidf
+    ko, bf = weighted_sum_over_lidf_vec(lidf,
+                                        np.zeros(vza.shape),
+                                        vza,
+                                        np.zeros(vza.shape))[1:3]
+
+    # Geometric factors to be used later with rho and tau
+    dob = 0.5 * (ko + bf)
+    dof = 0.5 * (ko - bf)
+    ddb = 0.5 * (1. + bf)
+    ddf = 0.5 * (1. - bf)
+
+    # Here rho and tau come in
+    rho = 1. - e_leaf
+    if np.isscalar(rho):
+        rho = np.full(lai.shape, rho)[np.newaxis, :]
+    if np.isscalar(tau):
+        tau = np.full(lai.shape, tau)[np.newaxis, :]
+    sigb = ddb * rho + ddf * tau
+    sigf = ddf * rho + ddb * tau
+    sigf = np.maximum(1e-36, sigf)
+    sigb = np.maximum(1e-36, sigb)
+    att = 1. - sigf
+    m = np.sqrt(att ** 2. - sigb ** 2.)
+    vb = dob * rho + dof * tau
+    vf = dof * rho + dob * tau
+
+    del dob, dof, ddb, ddf
+
+    J1ko = jfunc1_vec(ko, m, lai)
+    J2ko = jfunc2(ko, m, lai)
+    e1 = np.exp(-lai * m)
+    e2 = e1 ** 2.
+    rinf = (att - m) / sigb
+    rinf2 = rinf ** 2.
+    re = rinf * e1
+    denom = 1. - rinf2 * e2
+    Pv = (vf + vb * rinf) * J1ko
+    Qv = (vf * rinf + vb) * J2ko
+    
+    del att, sigb, sigf, J2ko, J1ko, vb, vf, m
+
+    tdd = (1. - rinf2) * e1 / denom
+    rdd = rinf * (1. - e2) / denom
+    tdo = (Pv - re * Qv) / denom
+    rdo = (Qv - re * Pv) / denom
+
+    too = np.exp(-ko * lai)
+
+    del ko, e1, e2, Qv, Pv, denom, rinf2, rinf
+
+    # Interaction with the soil
+    rsoil = 1. - e_soil
+    dn = 1. - rsoil * rdd
+    dn = np.maximum(1e-36, dn)
+    rdot = rdo + tdd * rsoil * (tdo + too) / dn
+
+    emiss = 1 - rdot
+    
+    return emiss
 
