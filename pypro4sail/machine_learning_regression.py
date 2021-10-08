@@ -17,7 +17,7 @@ import matplotlib
 import pypro4sail.prospect as prospect
 import pypro4sail.four_sail as sail
 import numpy.random as rnd
-from scipy.stats import gamma
+from scipy.stats import gamma, norm
 from scipy.ndimage.filters import gaussian_filter1d
 from SALib.sample import saltelli
 import pandas as pd
@@ -495,12 +495,13 @@ def simulate_prospectd_lut(input_dict,
         if type(srf) == float or type(srf) == int:
             wls_sim = np.asarray(wls_sim)
             # Convolve spectra by full width half maximum
-            sigma = fwhm2sigma(srf)
-            r = gaussian_filter1d(r, sigma)
-            t = gaussian_filter1d(t, sigma)
             for wl in wls_sim:
-                rho_leaf.append(float(r[wls == wl]))
-                tau_leaf.append(float(t[wls == wl]))
+                weight = srf_from_fwhm(wl, srf)
+                weight = np.tile(weight, (1, r.shape[2])).T
+                rho_leaf.append(
+                    float(np.sum(weight * r, axis=0) / np.sum(weight, axis=0)))
+                tau_leaf.append(
+                    float(np.sum(weight * t, axis=0) / np.sum(weight, axis=0)))
 
         elif type(srf) == list or type(srf) == tuple:
             for weight in srf:
@@ -669,19 +670,21 @@ def simulate_prosail_lut(input_dict,
 
             wls_sim = np.asarray(wls_sim)
             # Convolve spectra by full width half maximum
-            sigma = fwhm2sigma(srf)
-            r = gaussian_filter1d(r, sigma, axis=1)
-            t = gaussian_filter1d(t, sigma, axis=1)
-            s = gaussian_filter1d(skyl, sigma, axis=1)
-            soil = gaussian_filter1d(rsoil_vec, sigma, axis=1)
             for wl in wls_sim:
-                rho_leaf.append(r[wls == wl].reshape(-1))
-                tau_leaf.append(t[wls == wl].reshape(-1))
-                skyl_rho.append(s[wls == wl].reshape(-1))
-                rsoil.append(soil[wls == wl].reshape(-1))
+                weight = srf_from_fwhm(wl, srf)
+                weight = np.tile(weight, (r.shape[1], 1)).T
+                rho_leaf.append(
+                    np.sum(weight * r, axis=0) / np.sum(weight, axis=0))
+                tau_leaf.append(
+                    np.sum(weight * t, axis=0) / np.sum(weight, axis=0))
+                skyl_rho.append(
+                    np.sum(weight * skyl, axis=0) / np.sum(weight, axis=0))
+                rsoil.append(
+                    np.sum(weight * rsoil_vec, axis=0) / np.sum(weight, axis=0))
 
         elif type(srf) == list or type(srf) == tuple:
-            skyl = np.tile(skyl, (r.shape[1], 1)).T
+            if skyl.shape != r.shape:
+                skyl = np.tile(skyl, (r.shape[1], 1)).T
             for weight in srf:
                 weight = np.tile(weight, (r.shape[1], 1)).T
                 rho_leaf.append(
@@ -730,6 +733,13 @@ def simulate_prosail_lut(input_dict,
     skyl_rho = np.asarray(skyl_rho)
     rsoil = np.asarray(rsoil)
 
+    if np.isscalar(vza):
+        vza = np.full_like(input_dict['LAI'], vza)
+    if np.isscalar(sza):
+        sza = np.full_like(input_dict['LAI'], sza)
+    if np.isscalar(psi):
+        sza = np.full_like(input_dict['LAI'], psi)
+
     [_,
      _,
      _,
@@ -753,9 +763,9 @@ def simulate_prosail_lut(input_dict,
      _] = sail.foursail_vec(input_dict['LAI'],
                             input_dict['hotspot'],
                             lidf,
-                            np.ones(input_dict['LAI'].shape) * sza,
-                            np.ones(input_dict['LAI'].shape) * vza,
-                            np.ones(input_dict['LAI'].shape) * psi,
+                            sza,
+                            vza,
+                            psi,
                             rho_leaf,
                             tau_leaf,
                             rsoil)
@@ -792,10 +802,10 @@ def simulate_prosail_lut(input_dict,
     if srf and not reduce_4sail:
         if type(srf) == float or type(srf) == int:
             # Convolve spectra by full width half maximum
-            sigma = fwhm2sigma(srf)
-            r2 = gaussian_filter1d(r2, sigma, axis=1)
             for wl in wls_sim:
-                rho_canopy.append(r2[wls == wl].reshape(-1))
+                weight = srf_from_fwhm(wl, srf)
+                rho_canopy.append(
+                    np.sum(weight * r2, axis=0) / np.sum(weight, axis=0))
 
         elif type(srf) == list or type(srf) == tuple:
             for weight in srf:
@@ -977,3 +987,12 @@ def x_LAD2alpha(x_LAD):
     alpha = 9.65 * (3 + x_LAD) ** -1.65
     alpha = np.degrees(alpha)
     return alpha
+
+def srf_from_fwhm(wl, fwhm):
+    wls_full = np.arange(400, 2501)
+    sigma = fwhm2sigma(fwhm)
+    srf = norm.pdf(wls_full, loc=wl, scale=sigma)
+    # Normalize to get 1 at the maximum response
+    srf = srf / np.max(srf)
+    return srf
+
