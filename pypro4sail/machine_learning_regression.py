@@ -738,7 +738,7 @@ def simulate_prosail_lut(input_dict,
     if np.isscalar(sza):
         sza = np.full_like(input_dict['LAI'], sza)
     if np.isscalar(psi):
-        sza = np.full_like(input_dict['LAI'], psi)
+        psi = np.full_like(input_dict['LAI'], psi)
 
     [_,
      _,
