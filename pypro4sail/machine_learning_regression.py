@@ -879,15 +879,19 @@ def calc_fapar_4sail(skyl,
     S_0 = np.zeros(rho_leaf.shape)
     S_1 = np.zeros(rho_leaf.shape)
 
+    # vzas = np.linspace(0, 90, num=36)
+    # vaas = np.linspace(0, 360, num=12)
+    # step_vza_radians = np.radians(vzas[1] - vzas[0])
+    # step_psi_radians = np.radians(vaas[1] - vaas[0])
+    # vzas, psis = np.meshgrid(vzas, vaas, indexing="ij")
     # Start the hemispherical integration
-    vzas_psis = ((vza, psi) for vza in
-                 np.arange(0, 90 - STEP_VZA / 2., STEP_VZA)
-                 for psi in np.arange(0, 360, STEP_PSI))
-
+    vzas = np.arange(0, 90 - STEP_VZA / 2., STEP_VZA)
+    psis = np.arange(0, 360, STEP_PSI)
+    vzas, psis = np.meshgrid(vzas, psis, indexing="ij")
     step_vza_radians, step_psi_radians = np.radians(STEP_VZA), np.radians(
         STEP_PSI)
 
-    for vza, psi in vzas_psis:
+    for vza, psi in zip(vzas.reshape(-1), psis.reshape(-1)):
         vza += STEP_VZA / 2.
 
         # Calculate the reflectance factor and project into the solid angle
@@ -934,11 +938,10 @@ def calc_fapar_4sail(skyl,
         Eo_0 = rdot * Ed + rsot * Es
         # Spectral flux at the top of the canopy        
         # & add the top of the canopy flux to the integral and continue through the hemisphere
-        S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians
+        S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Spectral flus at the bottom of the canopy
         # & add the bottom of the canopy flux to the integral and continue through the hemisphere
-        S_1 += (
-                           Es_1 + tdd * Ed) * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
+        S_1 += (Es_1 + tdd * Ed) * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Absorbed flux at ground lnevel
         Sn_soil = (1. - rsoil) * (
                     Es_1 + Ed_down_1)  # narrowband net soil shortwave radiation
