@@ -22,6 +22,7 @@ from scipy.ndimage.filters import gaussian_filter1d
 from SALib.sample import saltelli
 import pandas as pd
 import multiprocessing as mp
+from pyTSEB import net_radiation as rad
 
 UNIFORM_DIST = 1
 GAUSSIAN_DIST = 2
@@ -699,11 +700,10 @@ def simulate_prosail_lut(input_dict,
 
         if calc_FAPAR:
             par_index = wls <= 700
-            rho_leaf_fapar = np.mean(r[par_index, :], axis=0).reshape(1, -1)
-            tau_leaf_fapar = np.mean(t[par_index, :], axis=0).reshape(1, -1)
-            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0).reshape(1, -1)
-            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0).reshape(1,
-                                                                            -1)
+            rho_leaf_fapar = np.mean(r[par_index, :], axis=0)
+            tau_leaf_fapar = np.mean(t[par_index, :], axis=0)
+            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0)
+            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0)
 
     elif reduce_4sail:
         wls_sim = np.asarray(wls_sim)
@@ -718,10 +718,10 @@ def simulate_prosail_lut(input_dict,
         rsoil = np.asarray(rsoil)
         if calc_FAPAR:
             par_index = wls <= 700
-            rho_leaf_fapar = np.mean(r[par_index, :], axis=0).reshape(1, -1)
-            tau_leaf_fapar = np.mean(t[par_index, :], axis=0).reshape(1, -1)
-            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0).reshape(1, -1)
-            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0).reshape(1, -1)
+            rho_leaf_fapar = np.mean(r[par_index, :], axis=0)
+            tau_leaf_fapar = np.mean(t[par_index, :], axis=0)
+            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0)
+            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0)
     else:
         rho_leaf = r.T
         tau_leaf = t.T
@@ -774,10 +774,9 @@ def simulate_prosail_lut(input_dict,
     del rdot, rsot
 
     if calc_FAPAR:
-        fAPAR_array, fIPAR_array = calc_fapar_4sail(skyl_rho_fapar,
+        fAPAR_array, fIPAR_array = calc_fapar_campbell(skyl_rho_fapar,
                                                     input_dict['LAI'],
-                                                    lidf,
-                                                    input_dict['hotspot'],
+                                                    input_dict['leaf_angle'],
                                                     np.ones(input_dict[
                                                                 'LAI'].shape) * sza,
                                                     rho_leaf_fapar,
@@ -953,6 +952,24 @@ def calc_fapar_4sail(skyl,
     fIPAR = np.sum(1.0 - S_1, axis=0) / S_1.shape[0]
     return fAPAR, fIPAR
 
+
+def calc_fapar_campbell(skyl, lai, leaf_angle, sza, rho_leaf, tau_leaf, rsoil):
+    x_lad = rad.leafangle_2_chi(leaf_angle)
+    albb, albd, taubt, taudt = rad.calc_spectra_Cambpell(lai,
+                                                         sza,
+                                                         rho_leaf,
+                                                         tau_leaf,
+                                                         rsoil,
+                                                         x_lad=x_lad)
+    fapar = (1.0 - taubt) * (1.0 - albb) * (1. - skyl) + \
+            (1.0 - taudt) * (1.0 - albd) * skyl
+
+    akb = rad.calc_K_be_Campbell(sza, x_lad=x_lad)
+    taub = np.exp(-akb * lai)
+    taud = rad._calc_taud(x_lad, lai)
+    fipar = (1.0 - taub) * (1.0 - skyl) + (1.0 - taud) * skyl
+
+    return fapar, fipar
 
 def inputdict2array(input_param,
                     obj_param=('N_leaf',
