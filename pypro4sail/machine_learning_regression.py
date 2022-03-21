@@ -287,16 +287,11 @@ def test_reg(X_array,
              scaling_output=None,
              reduce_pca=None,
              outfile=None,
-             param_names=None):
+             param_name=None):
     print('Testing Regression fit')
 
     X_array = np.asarray(X_array)
     Y_array = np.asarray(Y_array)
-
-    # Estimate error measuremenents
-    rmses = []
-    bias = []
-    cors = []
 
     if scaling_input:
         X_array = scaling_input.transform(X_array)
@@ -306,16 +301,12 @@ def test_reg(X_array,
     Y_test = reg_object.predict(X_array)
 
     if scaling_output:
-        Y_test = scaling_output.inverse_transform(Y_test)
-
-    Y_test.reshape(-1)
+        Y_test = scaling_output.inverse_transform(Y_test.reshape(-1, 1)).reshape(-1)
 
     f = plt.figure()
-    rmse = np.sqrt(np.mean((Y_array - Y_test) ** 2))
-    rmses.append(rmse)
-    bias.append(np.mean(Y_array - Y_test))
+    rmse = np.sqrt(np.nanmean((Y_array - Y_test) ** 2))
+    bias = np.nanmean(Y_array - Y_test)
     cor = pearsonr(Y_array, Y_test)[0]
-    cors.append(cor)
     plt.scatter(Y_test,
                 Y_array,
                 color='black',
@@ -327,7 +318,7 @@ def test_reg(X_array,
                           [np.amin(Y_array), np.amax(Y_array)]])
 
     plt.plot(absline[0], absline[1], color='red')
-    plt.title(param_names[0])
+    plt.title(param_name)
     plt.xlabel("Predicted")
     plt.ylabel("Observed")
     plt.figtext(0.1, 0.8,
@@ -339,7 +330,7 @@ def test_reg(X_array,
         f.savefig(outfile)
     plt.close()
 
-    return rmses, bias, cors
+    return rmse, bias, cor
 
 
 def build_prospect_database(n_simulations,
