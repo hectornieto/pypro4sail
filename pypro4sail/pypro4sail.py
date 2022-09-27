@@ -223,7 +223,7 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith, solar
      gammaso] = four_sail.foursail(LAI, hot_spot,
                                    lidf, solar_zenith, view_zenith, psi, rho_leaf, tau_leaf, rsoil)
 
-    tso = tss * too + tss * (tdo + rsoil * rdd * too) / (1. - rsoil * rdd)
+    tso = tsstoo + tss * (tdo + rsoil * rdd * too) / (1. - rsoil * rdd)
     gammad = 1 - rdd - tdd
     gammao = 1 - rdo - tdo - too
     ttot = (too + tdo) / (1. - rsoil * rdd)
