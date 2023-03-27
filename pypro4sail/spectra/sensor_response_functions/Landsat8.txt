@@ -1,4 +1,4 @@
-SR_WL	band1	band2	band3	band4	band5	band6	band7
+SR_WL	B1	B2	B3	B4	B5	B6	B7
 400	0	0	0	0	0	0	0
 401	0	0	0	0	0	0	0
 402	0	0	0	0	0	0	0

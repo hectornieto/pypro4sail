@@ -22,6 +22,7 @@ from scipy.ndimage.filters import gaussian_filter1d
 from SALib.sample import saltelli
 import pandas as pd
 import multiprocessing as mp
+from pyTSEB import net_radiation as rad
 
 UNIFORM_DIST = 1
 GAUSSIAN_DIST = 2
@@ -286,16 +287,11 @@ def test_reg(X_array,
              scaling_output=None,
              reduce_pca=None,
              outfile=None,
-             param_names=None):
+             param_name=None):
     print('Testing Regression fit')
 
     X_array = np.asarray(X_array)
     Y_array = np.asarray(Y_array)
-
-    # Estimate error measuremenents
-    rmses = []
-    bias = []
-    cors = []
 
     if scaling_input:
         X_array = scaling_input.transform(X_array)
@@ -305,16 +301,12 @@ def test_reg(X_array,
     Y_test = reg_object.predict(X_array)
 
     if scaling_output:
-        Y_test = scaling_output.inverse_transform(Y_test)
-
-    Y_test.reshape(-1)
+        Y_test = scaling_output.inverse_transform(Y_test.reshape(-1, 1)).reshape(-1)
 
     f = plt.figure()
-    rmse = np.sqrt(np.mean((Y_array - Y_test) ** 2))
-    rmses.append(rmse)
-    bias.append(np.mean(Y_array - Y_test))
+    rmse = np.sqrt(np.nanmean((Y_array - Y_test) ** 2))
+    bias = np.nanmean(Y_array - Y_test)
     cor = pearsonr(Y_array, Y_test)[0]
-    cors.append(cor)
     plt.scatter(Y_test,
                 Y_array,
                 color='black',
@@ -326,7 +318,7 @@ def test_reg(X_array,
                           [np.amin(Y_array), np.amax(Y_array)]])
 
     plt.plot(absline[0], absline[1], color='red')
-    plt.title(param_names[0])
+    plt.title(param_name)
     plt.xlabel("Predicted")
     plt.ylabel("Observed")
     plt.figtext(0.1, 0.8,
@@ -338,7 +330,7 @@ def test_reg(X_array,
         f.savefig(outfile)
     plt.close()
 
-    return rmses, bias, cors
+    return rmse, bias, cor
 
 
 def build_prospect_database(n_simulations,
@@ -699,11 +691,10 @@ def simulate_prosail_lut(input_dict,
 
         if calc_FAPAR:
             par_index = wls <= 700
-            rho_leaf_fapar = np.mean(r[par_index, :], axis=0).reshape(1, -1)
-            tau_leaf_fapar = np.mean(t[par_index, :], axis=0).reshape(1, -1)
-            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0).reshape(1, -1)
-            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0).reshape(1,
-                                                                            -1)
+            rho_leaf_fapar = np.mean(r[par_index, :], axis=0)
+            tau_leaf_fapar = np.mean(t[par_index, :], axis=0)
+            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0)
+            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0)
 
     elif reduce_4sail:
         wls_sim = np.asarray(wls_sim)
@@ -718,10 +709,10 @@ def simulate_prosail_lut(input_dict,
         rsoil = np.asarray(rsoil)
         if calc_FAPAR:
             par_index = wls <= 700
-            rho_leaf_fapar = np.mean(r[par_index, :], axis=0).reshape(1, -1)
-            tau_leaf_fapar = np.mean(t[par_index, :], axis=0).reshape(1, -1)
-            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0).reshape(1, -1)
-            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0).reshape(1, -1)
+            rho_leaf_fapar = np.mean(r[par_index, :], axis=0)
+            tau_leaf_fapar = np.mean(t[par_index, :], axis=0)
+            skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0)
+            rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0)
     else:
         rho_leaf = r.T
         tau_leaf = t.T
@@ -774,10 +765,9 @@ def simulate_prosail_lut(input_dict,
     del rdot, rsot
 
     if calc_FAPAR:
-        fAPAR_array, fIPAR_array = calc_fapar_4sail(skyl_rho_fapar,
+        fAPAR_array, fIPAR_array = calc_fapar_campbell(skyl_rho_fapar,
                                                     input_dict['LAI'],
-                                                    lidf,
-                                                    input_dict['hotspot'],
+                                                    input_dict['leaf_angle'],
                                                     np.ones(input_dict[
                                                                 'LAI'].shape) * sza,
                                                     rho_leaf_fapar,
@@ -879,15 +869,19 @@ def calc_fapar_4sail(skyl,
     S_0 = np.zeros(rho_leaf.shape)
     S_1 = np.zeros(rho_leaf.shape)
 
+    # vzas = np.linspace(0, 90, num=36)
+    # vaas = np.linspace(0, 360, num=12)
+    # step_vza_radians = np.radians(vzas[1] - vzas[0])
+    # step_psi_radians = np.radians(vaas[1] - vaas[0])
+    # vzas, psis = np.meshgrid(vzas, vaas, indexing="ij")
     # Start the hemispherical integration
-    vzas_psis = ((vza, psi) for vza in
-                 np.arange(0, 90 - STEP_VZA / 2., STEP_VZA)
-                 for psi in np.arange(0, 360, STEP_PSI))
-
+    vzas = np.arange(0, 90 - STEP_VZA / 2., STEP_VZA)
+    psis = np.arange(0, 360, STEP_PSI)
+    vzas, psis = np.meshgrid(vzas, psis, indexing="ij")
     step_vza_radians, step_psi_radians = np.radians(STEP_VZA), np.radians(
         STEP_PSI)
 
-    for vza, psi in vzas_psis:
+    for vza, psi in zip(vzas.reshape(-1), psis.reshape(-1)):
         vza += STEP_VZA / 2.
 
         # Calculate the reflectance factor and project into the solid angle
@@ -934,11 +928,10 @@ def calc_fapar_4sail(skyl,
         Eo_0 = rdot * Ed + rsot * Es
         # Spectral flux at the top of the canopy        
         # & add the top of the canopy flux to the integral and continue through the hemisphere
-        S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians
+        S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Spectral flus at the bottom of the canopy
         # & add the bottom of the canopy flux to the integral and continue through the hemisphere
-        S_1 += (
-                           Es_1 + tdd * Ed) * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
+        S_1 += (Es_1 + tdd * Ed) * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Absorbed flux at ground lnevel
         Sn_soil = (1. - rsoil) * (
                     Es_1 + Ed_down_1)  # narrowband net soil shortwave radiation
@@ -950,6 +943,24 @@ def calc_fapar_4sail(skyl,
     fIPAR = np.sum(1.0 - S_1, axis=0) / S_1.shape[0]
     return fAPAR, fIPAR
 
+
+def calc_fapar_campbell(skyl, lai, leaf_angle, sza, rho_leaf, tau_leaf, rsoil):
+    x_lad = rad.leafangle_2_chi(leaf_angle)
+    albb, albd, taubt, taudt = rad.calc_spectra_Cambpell(lai,
+                                                         sza,
+                                                         rho_leaf,
+                                                         tau_leaf,
+                                                         rsoil,
+                                                         x_lad=x_lad)
+    fapar = (1.0 - taubt) * (1.0 - albb) * (1. - skyl) + \
+            (1.0 - taudt) * (1.0 - albd) * skyl
+
+    akb = rad.calc_K_be_Campbell(sza, x_lad=x_lad)
+    taub = np.exp(-akb * lai)
+    taud = rad._calc_taud(x_lad, lai)
+    fipar = (1.0 - taub) * (1.0 - skyl) + (1.0 - taud) * skyl
+
+    return fapar, fipar
 
 def inputdict2array(input_param,
                     obj_param=('N_leaf',
