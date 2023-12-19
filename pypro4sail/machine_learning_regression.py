@@ -66,8 +66,8 @@ MIN_CM = 0.0017  # From LOPEX + ANGERS average
 MIN_CW = 0.000  # From LOPEX + ANGERS average
 MIN_ANT = 0.0
 MIN_LAI = 0.0
-MIN_LEAF_ANGLE = 30.0  # from S2 L2B ATBD
-MIN_HOTSPOT = 0.1  # from S2 L2B ATBD
+MIN_LEAF_ANGLE = 20.0  # from S2 L2B ATBD
+MIN_HOTSPOT = 0.05  # from S2 L2B ATBD
 MIN_BS = 0.50  # from S2 L2B ATBD
 
 MAX_N_LEAF = 3.0  # From LOPEX + ANGERS average
@@ -77,9 +77,9 @@ MAX_CBROWN = 2.00  # from S2 L2B ATBD
 MAX_CM = 0.0331  # From LOPEX + ANGERS average
 MAX_CW = 0.0525  # From LOPEX + ANGERS average
 MAX_ANT = 40.0
-MAX_LAI = 15.0  # from S2 L2B ATBD
+MAX_LAI = 8.0  # from effective LAI in Valeri sites
 MAX_LEAF_ANGLE = 80.0  # from S2 L2B ATBD
-MAX_HOTSPOT = 0.5  # from S2 L2B ATBD
+MAX_HOTSPOT = 1  # from S2 L2B ATBD
 MAX_BS = 3.5  # from S2 L2B ATBD
 
 # log Covariance matrix
