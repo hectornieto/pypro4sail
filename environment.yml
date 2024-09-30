@@ -1,6 +1,6 @@
 channels:
   - conda-forge
-  - defaults
+  - default
 dependencies:
   - numpy
   - scipy
@@ -13,3 +13,4 @@ dependencies:
   - pip
   pip:
     - git+https://github.com/hectornieto/pyTSEB
+
