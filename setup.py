@@ -40,6 +40,8 @@ setup(
     name                  = "pypro4sail",
     packages              = ['pypro4sail'],
     include_package_data  = True,
+    package_data          = {"pypro4sail": ["spectra/soil_spectral_library/*.txt",
+                                            "spectra/sensor_response_functions/*.txt"]},
     zip_safe              = False,
     version               = "0.1-alpha",
     author                = "Hector Nieto",
