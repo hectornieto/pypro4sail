@@ -1,0 +1,34 @@
+---
+title: General Hybrid Inversion of PROSPECTD+4SAIL
+---
+flowchart LR
+    s2-l2a[(fa:fa-layer-group \n Level 2A)]
+    boa[/fa:fa-map \n BOA reflectance/]
+    vza[/fa:fa-satellite \n VZA/]
+    sun[/fa:fa-sun \n Solar angles/]
+    wvp[/fa:fa-shower \n TCWV/]
+    aot[/fa:fa-spray-can \n AOT/]
+    6s[[fa:fa-gears \n 6S RTM]]
+    click 6s "https://github.com/robintw/Py6S"
+    skyl[/fa:fa-cloud-sun \n SKYL/]
+    prosail[[fa:fa-chart-line \n Prospect-D + 4SAIL \n RTM]]
+    click prosail "https://github.com/hectornieto/pypro4sail"
+    simulations[/fa:fa-database \n 50000 simulations/]
+    rf_train[[fa:fa-diagram-project \n Train \n Random Forest Regression]]
+    click rf "https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html"
+    rf_apply[[fa:fa-play \n Apply \n Random Forest Regression]]
+    s2-l2b[/fa:fa-layer-group \n Biophysical traits/]
+
+    s2-l2a --> boa & vza & wvp & aot & sun
+    sun & wvp & aot --> 6s
+    vza ----> prosail
+    sun --> prosail
+    subgraph fab:fa-python Parallel Processing
+        6s --> skyl
+        skyl --> prosail
+        prosail --> simulations
+        simulations --> rf_train
+        rf_train --> rf_apply
+    end
+    boa -------> rf_apply
+    rf_apply --> s2-l2b
