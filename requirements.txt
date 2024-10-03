@@ -1,2 +1,10 @@
 numpy
 scipy
+pandas
+matplotlib
+scikit-learn
+scikit-learn-intelex
+joblib
+SALib
+git+https://github.com/hectornieto/pyTSEB
+

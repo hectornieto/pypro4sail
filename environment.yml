@@ -1,0 +1,15 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - scikit-learn
+  - joblib
+  - scikit-learn-intelex
+  - salib
+  - pip
+  pip:
+    - git+https://github.com/hectornieto/pyTSEB
