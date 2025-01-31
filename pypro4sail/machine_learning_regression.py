@@ -539,7 +539,12 @@ def simulate_prosail_lut_parallel(n_jobs,
     input_dict = pd.DataFrame.from_dict(input_dict)
     simulations = input_dict.shape[0]
     print("Running %i simulations" % simulations)
-
+    if np.isscalar(vza):
+        vza = np.full_like(input_dict["LAI"], vza)
+    if np.isscalar(sza):
+        sza = np.full_like(input_dict["LAI"], sza)
+    if np.isscalar(psi):
+        psi = np.full_like(input_dict["LAI"], psi)
     # Calculate the total number of multiprocess loops
     tp = mp.Pool(n_jobs)
     subsample_size = np.ceil(simulations / n_jobs)
@@ -557,9 +562,9 @@ def simulate_prosail_lut_parallel(n_jobs,
                      wls_sim,
                      rsoil_vec[:, start:end],
                      skyl,
-                     sza,
-                     vza,
-                     psi,
+                     sza[start:end],
+                     vza[start:end],
+                     psi[start:end],
                      srf,
                      calc_FAPAR,
                      reduce_4sail))
