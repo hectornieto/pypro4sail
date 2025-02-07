@@ -4,6 +4,7 @@ Created on Fri Jun 10 16:56:25 2016
 
 @author: hector
 """
+from pathlib import Path
 import numpy as np
 from sklearnex import patch_sklearn
 patch_sklearn()
@@ -25,6 +26,7 @@ from SALib.sample import saltelli
 import pandas as pd
 import multiprocessing as mp
 from pyTSEB import net_radiation as rad
+
 
 UNIFORM_DIST = 1
 GAUSSIAN_DIST = 2
@@ -1016,7 +1018,8 @@ def srf_from_fwhm(wl, fwhm):
 
 
 def build_soil_database(soil_albedo_factor,
-                        soil_library=SOIL_LIBRARY):
+                        soil_library=sail.SOIL_LIBRARY):
+
     soil_library = Path(soil_library)
     n_simulations = np.size(soil_albedo_factor)
     soil_files = list(soil_library.glob('jhu.*spectrum.txt'))
