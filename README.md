@@ -1,11 +1,13 @@
 # pyPro4Sail
-Prospect5 and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies.
+Vectorized vesions of the ProspectD and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies.
 
 ## Synopsis
 
 This project contains *Python* code for *Prospect* and *4SAIL* Radiative Transfer Models (**RTM**)
 for simulating the transmission of optical and thermal electromagnetic radiation through 
 leaves and vegetated canopies.
+
+The package also include helpers for inverting the models, either using gradient-based optimization algorithms or regression-based approaches based of forward simulations.
 
 The project consists of: 
 

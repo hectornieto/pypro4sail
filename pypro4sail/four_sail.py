@@ -45,6 +45,8 @@ EXAMPLE
     
 """
 import numpy as np
+from pathlib import Path
+import Py6S as sixs
 
 params_sail = ('LAI', 'hotspot', 'leaf_angle')
 params_prosail = ('N_leaf',
@@ -57,6 +59,9 @@ params_prosail = ('N_leaf',
                   'LAI',
                   'hotspot',
                   'leaf_angle')
+
+SOIL_LIBRARY = Path(__file__).parent / "spectra" / "soil_spectral_library"
+SRF_LIBRARY = Path(__file__).parent / "spectra" / "sensor_response_functions"
 
 
 def calc_lidf_verhoef(a, b, n_elements=18):
@@ -1516,4 +1521,60 @@ def surface_emissivity(lai, lidf, vza, e_leaf=0.99, e_soil=0.97, tau=0):
     emiss = 1 - rdot
     
     return emiss
+
+
+def get_diffuse_radiation_6S(aot, wvp, sza, saa, date,
+                             altitude=0.1, wls_step=10, n_jobs=None):
+    s = sixs.SixS()
+    s.atmos_profile = sixs.AtmosProfile.PredefinedType(
+        sixs.AtmosProfile.MidlatitudeSummer)
+
+    s.aeroprofile = sixs.AeroProfile.PredefinedType(
+        sixs.AeroProfile.Continental)
+
+    s.ground_reflectance = sixs.GroundReflectance.HomogeneousLambertian(0)
+
+    if np.isfinite(wvp) and wvp > 0:
+        s.atmos_profile = sixs.AtmosProfile.UserWaterAndOzone(wvp, 0.9)
+
+    if np.isfinite(aot) and aot > 0:
+        s.aot550 = aot
+
+    s.geometry.solar_z = sza
+    s.geometry.solar_a = saa
+    s.geometry.view_z = 0
+    s.geometry.view_a = 0
+    s.geometry.day = date.day
+    s.geometry.month = date.month
+
+    s.altitudes.set_target_custom_altitude(altitude)
+    s.wavelength = sixs.Wavelength(0.4, 2.5)
+
+    wls = np.arange(400, 2501)
+    wls_sim = np.arange(400, 2501, wls_step)
+
+    wv, res = sixs.SixSHelpers.Wavelengths.run_wavelengths(s,
+                                                           wls_sim / 1000.,
+                                                           verbose=False,
+                                                           n=n_jobs)
+
+    eg_d = np.array(sixs.SixSHelpers.Wavelengths.extract_output(res,
+                                                                'diffuse_solar_irradiance'))
+
+    eg_s = np.array(sixs.SixSHelpers.Wavelengths.extract_output(res,
+                                                                'direct_solar_irradiance'))
+
+    eg_d = np.maximum(eg_d, 0)
+    eg_s = np.maximum(eg_s, 0)
+    skyl = np.full_like(wls, np.nan, dtype=np.float64)
+    # Fill the diffuse values into a full wavelenght array
+    valid = np.in1d(wls, wls_sim, assume_unique=True)
+    skyl[valid] = eg_d / (eg_d + eg_s)
+    # Fill nans by linear interpolation
+    nans, x = np.isnan(skyl), lambda z: z.nonzero()[0]
+    skyl[nans] = np.interp(x(nans), x(~nans), skyl[~nans])
+
+    return skyl
+
+
 

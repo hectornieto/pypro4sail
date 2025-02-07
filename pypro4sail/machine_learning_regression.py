@@ -1014,3 +1014,23 @@ def srf_from_fwhm(wl, fwhm):
     srf = srf / np.max(srf)
     return srf
 
+
+def build_soil_database(soil_albedo_factor,
+                        soil_library=SOIL_LIBRARY):
+    soil_library = Path(soil_library)
+    n_simulations = np.size(soil_albedo_factor)
+    soil_files = list(soil_library.glob('jhu.*spectrum.txt'))
+    n_soils = len(soil_files)
+    soil_spectrum = []
+    for soil_file in soil_files:
+        r = np.genfromtxt(soil_file)
+        soil_spectrum.append(r[:, 1])
+
+    multiplier = int(np.ceil(float(n_simulations / n_soils)))
+    soil_spectrum = np.asarray(soil_spectrum * multiplier)
+    soil_spectrum = soil_spectrum[:n_simulations]
+    soil_spectrum = soil_spectrum * soil_albedo_factor.reshape(-1, 1)
+    soil_spectrum = np.clip(soil_spectrum, 0, 1)
+    soil_spectrum = soil_spectrum.T
+    return soil_spectrum
+
