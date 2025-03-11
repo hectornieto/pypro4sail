@@ -10,6 +10,8 @@ dependencies:
   - joblib
   - scikit-learn-intelex
   - salib
+  - sixs
+  - Py6S
   - pip
   pip:
     - git+https://github.com/hectornieto/pyTSEB

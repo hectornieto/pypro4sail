@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Nieto"
+  given-names: "Hector"
+  orcid: "https://orcid.org/0000-0003-4250-6424"
+
+title: "pyPro4SAIL: Vectorized vesions of the Prospect5 and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies.
+"
+version: 1.2
+doi: 10.5281/zenodo.11279249
+date-released: 2025-02-07
+url: "https://github.com/hectornieto/pypro4sail"
+

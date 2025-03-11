@@ -6,5 +6,6 @@ scikit-learn
 scikit-learn-intelex
 joblib
 SALib
+Py6S
 git+https://github.com/hectornieto/pyTSEB
 
