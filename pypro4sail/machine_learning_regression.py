@@ -137,7 +137,7 @@ prospect_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
                        'Cm': ((MIN_CM, MAX_CM),
                               (0.005, 0.011)),
                        'Ant': ((MIN_ANT, MAX_ANT),
-                               (0, 40))}
+                               (0, 10))}
 
 prosail_bounds = {'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
                   'Cab': (MIN_CAB, MAX_CAB),
@@ -175,26 +175,13 @@ prosail_distribution = {'N_leaf': UNIFORM_DIST,
                         'hotspot': GAUSSIAN_DIST,
                         'bs': GAUSSIAN_DIST}
 
-prosail_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
-                                 (1.3, 1.8)),
-                      'Cab': ((MIN_CAB, MAX_CAB),
-                              (45, 100)),
-                      'Car': ((MIN_CAR, MAX_CAR),
-                              (20, 40)),
-                      'Cbrown': ((MIN_CBROWN, MAX_CBROWN),
-                                 (0, 0.2)),
-                      'Cw': ((MIN_CW, MAX_CW),
-                             (0.005, 0.011)),
-                      'Cm': ((MIN_CM, MAX_CM),
-                             (0.005, 0.011)),
-                      'Ant': ((MIN_ANT, MAX_ANT),
-                              (0, 40)),
-                      'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
+prosail_covariates = {'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
                                      (55, 65)),
                       'hotspot': ((MIN_HOTSPOT, MAX_HOTSPOT),
                                   (0.1, 0.5)),
                       'bs': ((MIN_BS, MAX_BS),
-                             (0.5, 1.2))}
+                             (0.5, 1.2)),
+                      **prospect_covariates}
 
 
 def train_reg(X_array,
@@ -341,7 +328,7 @@ def build_prospect_database(n_simulations,
                             param_bounds=None,
                             moments=None,
                             distribution=None,
-                            apply_covariate=None,
+                            apply_covariate=False,
                             covariate=None):
     if covariate is None:
         covariate = prospect_covariates
@@ -361,10 +348,9 @@ def build_prospect_database(n_simulations,
         input_param = montecarlo_distribution(n_simulations, param_bounds)
 
     # Apply covariates where needed
-    if apply_covariate is not None:
+    if apply_covariate:
         input_param = covariate_constraint(input_param,
                                            param_bounds,
-                                           apply_covariate,
                                            covariate,
                                            "Cab")
 
@@ -375,7 +361,7 @@ def build_prosail_database(n_simulations,
                            param_bounds=None,
                            moments=None,
                            distribution=None,
-                           apply_covariate=None,
+                           apply_covariate=False,
                            covariate=None):
     if covariate is None:
         covariate = prosail_covariates
@@ -395,10 +381,9 @@ def build_prosail_database(n_simulations,
         input_param = montecarlo_distribution(n_simulations, param_bounds)
 
     # Apply covariates where needed
-    if apply_covariate is not None:
+    if apply_covariate:
         input_param = covariate_constraint(input_param,
                                            param_bounds,
-                                           apply_covariate,
                                            covariate,
                                            "LAI")
 
@@ -407,22 +392,17 @@ def build_prosail_database(n_simulations,
 
 def covariate_constraint(input_dict,
                          bounds,
-                         apply,
                          covariates,
                          ref_param):
     range = bounds[ref_param][1] - bounds[ref_param][0]
-    for param in apply:
-        if apply:
-            Vmin = covariates[param][0][0] \
-                   + input_dict[ref_param] * (covariates[param][1][0]
-                                              - covariates[param][0][
-                                                  0]) / range
-            Vmax = covariates[param][0][1] \
-                   + input_dict[ref_param] * (covariates[param][1][1]
-                                              - covariates[param][0][
-                                                  1]) / range
+    for param, limits in covariates.items():
+        v_min = limits[0][0] + input_dict[ref_param] * (limits[1][0] -
+                                                        limits[0][0]) / range
+        v_max = limits[0][1] + input_dict[ref_param] * (limits[1][1] -
+                                                        limits[0][1]) / range
 
-            input_dict[param] = np.clip(input_dict[param], Vmin, Vmax)
+        input_dict[param] = np.clip(input_dict[param], v_min, v_max)
+
     return input_dict
 
 
