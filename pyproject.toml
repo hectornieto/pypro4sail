@@ -1,0 +1,52 @@
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyPro4SAIL"
+version = "1.1"
+description = "Vectorized vesions of the ProspectD and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies"
+authors = [
+    { name = "Héctor Nieto", email = "hector.nieto@csic.es" },
+]
+
+keywords = ['Prospect',
+            '4SAIL',
+            'Radiative Transfer Model',
+            'RTM',
+            'Remote Sensing']
+
+classifiers  = [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering :: Agricultural Science",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3"]
+        
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.6"
+dependencies = ["numpy",
+                "scipy",
+                "pandas",
+                "matplotlib",
+                "scikit-learn",
+                "joblib",
+                "scikit-learn-intelex",
+                "salib",
+                "Py6S",
+                "pyTSEB@git+https://github.com/hectornieto/pyTSEB"
+                ]
+
+[project.urls]
+Homepage = "https://github.com/hectornieto/pypro4sail"
+Documentation = "https://pypro4sail.readthedocs.io"
+
+[tool.setuptools]
+packages = ["pypro4sail"]
+
+[tool.setuptools.package-data]
+"pypro4sail" = ["*.txt"]
