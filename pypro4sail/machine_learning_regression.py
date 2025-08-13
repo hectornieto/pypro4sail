@@ -25,7 +25,7 @@ from scipy.ndimage.filters import gaussian_filter1d
 from SALib.sample import saltelli
 import pandas as pd
 import multiprocessing as mp
-from pyTSEB import net_radiation as rad
+from . import radiation_helpers as rad
 
 
 UNIFORM_DIST = 1
