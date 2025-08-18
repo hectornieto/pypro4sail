@@ -35,10 +35,13 @@ dependencies = ["numpy",
                 "matplotlib",
                 "scikit-learn",
                 "joblib",
-                "scikit-learn-intelex",
                 "salib",
                 "Py6S",
                 ]
+
+[project.optional-dependencies]
+intelex = ["scikit-learn-intelex"]
+
 
 [project.urls]
 Homepage = "https://github.com/hectornieto/pypro4sail"

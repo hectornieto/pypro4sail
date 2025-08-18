@@ -8,7 +8,6 @@ dependencies:
   - matplotlib
   - scikit-learn
   - joblib
-  - scikit-learn-intelex
   - salib
   - sixs
   - Py6S

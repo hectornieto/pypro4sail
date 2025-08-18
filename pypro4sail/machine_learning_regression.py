@@ -6,8 +6,15 @@ Created on Fri Jun 10 16:56:25 2016
 """
 from pathlib import Path
 import numpy as np
-from sklearnex import patch_sklearn
-patch_sklearn()
+try:
+    from sklearnex import patch_sklearn
+    patch_sklearn()
+except:
+    print("scikit-learn-intelex not available, skipping the use af Intel "
+          "acceleration.\n"
+          "Try to consider installing Intel acceleration via "
+          "`pip install scikit-learn-intelex`")
+
 from sklearn.neural_network import MLPRegressor as ann_sklearn
 from sklearn.ensemble import RandomForestRegressor as rf_sklearn
 import pickle

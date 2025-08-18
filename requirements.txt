@@ -3,7 +3,6 @@ scipy
 pandas
 matplotlib
 scikit-learn
-scikit-learn-intelex
 joblib
 SALib
 Py6S
