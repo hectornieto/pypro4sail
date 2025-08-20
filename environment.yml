@@ -2,6 +2,7 @@ channels:
   - conda-forge
   - default
 dependencies:
+  - dask
   - numpy
   - scipy
   - pandas
@@ -11,4 +12,3 @@ dependencies:
   - salib
   - sixs
   - Py6S
-

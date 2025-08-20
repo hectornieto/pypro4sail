@@ -5,6 +5,7 @@ Created on Fri Jun 10 16:56:25 2016
 @author: hector
 """
 from pathlib import Path
+import dask.array as da
 import numpy as np
 try:
     from sklearnex import patch_sklearn
@@ -634,16 +635,17 @@ def simulate_prosail_lut(input_dict,
     # Calculate the lidf
     lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
     # for i,wl in enumerate(wls_wim):
-    [wls, r, t] = prospect.prospectd_vec(input_dict['N_leaf'],
-                                         input_dict['Cab'],
-                                         input_dict['Car'],
-                                         input_dict['Cbrown'],
-                                         input_dict['Cw'],
-                                         input_dict['Cm'],
-                                         input_dict['Ant'])
+    chunk = (int(input_dict["N_leaf"].shape[0]/4),)
+    [wls, r, t] = prospect.prospectd_vec(da.from_array(input_dict['N_leaf'], chunk),
+                                         da.from_array(input_dict['Cab'], chunk),
+                                         da.from_array(input_dict['Car'], chunk),
+                                         da.from_array(input_dict['Cbrown'], chunk),
+                                         da.from_array(input_dict['Cw'], chunk),
+                                         da.from_array(input_dict['Cm'], chunk),
+                                         da.from_array(input_dict['Ant'], chunk))
 
-    r = r.T
-    t = t.T
+    r = (r.compute(num_workers=1)).T
+    t = (t.compute(num_workers=1)).T
 
     if type(skyl) == float:
         skyl = np.full(r.shape, skyl)
@@ -828,7 +830,7 @@ def calc_fapar_4sail(skyl,
                      rsoil):
     '''Estimates the fraction of Absorbed and intercepted PAR using the 4SAIL
          Radiative Transfer Model.
-        
+
     Parameters
     ----------
     skyl : float
@@ -842,14 +844,14 @@ def calc_fapar_4sail(skyl,
     sza : float
         Sun Zenith Angle (degrees)
     rho_leaf : list
-        Narrowband leaf bihemispherical reflectance, 
+        Narrowband leaf bihemispherical reflectance,
             it might be simulated with PROSPECT (400-700 @1nm)
     tau_leaf : list
-        Narrowband leaf bihemispherical transmittance, 
+        Narrowband leaf bihemispherical transmittance,
             it might be simulated with PROSPECT (400-700 @1nm)
     rsoil : list
         Narrowband soil bihemispherical reflectance (400-700 @1nm)
-    
+
     Returns
     -------
     fAPAR : float
@@ -918,11 +920,11 @@ def calc_fapar_4sail(skyl,
         Es_1 = tss * Es
         # Upwelling diffuse shortwave radiation at ground level
         Ed_up_1 = (rsoil * (Es_1 + tsd * Es + tdd * Ed)) / (1. - rsoil * rdd)
-        # Downwelling diffuse shortwave radiation at ground level            
+        # Downwelling diffuse shortwave radiation at ground level
         Ed_down_1 = tsd * Es + tdd * Ed + rdd * Ed_up_1
         # Upwelling shortwave (beam and diffuse) radiation towards the observer (at angle psi/vza)
         Eo_0 = rdot * Ed + rsot * Es
-        # Spectral flux at the top of the canopy        
+        # Spectral flux at the top of the canopy
         # & add the top of the canopy flux to the integral and continue through the hemisphere
         S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Spectral flus at the bottom of the canopy
@@ -1023,4 +1025,3 @@ def build_soil_database(soil_albedo_factor,
     soil_spectrum = np.clip(soil_spectrum, 0, 1)
     soil_spectrum = soil_spectrum.T
     return soil_spectrum
-
