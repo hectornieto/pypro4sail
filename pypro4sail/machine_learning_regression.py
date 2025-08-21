@@ -709,10 +709,14 @@ def simulate_prosail_lut(input_dict,
             tau_leaf_fapar = np.mean(t[par_index, :], axis=0)
             skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0)
             rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0)
+
     else:
-        rho_leaf = r.T
-        tau_leaf = t.T
-        skyl_rho = np.asarray(skyl.T)
+        rho_leaf = r
+        tau_leaf = t
+        if skyl.ndim == 2:
+            skyl_rho = np.asarray(skyl.T)
+        else:
+            skyl_rho = np.repeat(skyl[:, np.newaxis], rho_leaf.shape[1], 1)
         rsoil = np.asarray(rsoil_vec)
 
     rho_leaf = np.asarray(rho_leaf)
