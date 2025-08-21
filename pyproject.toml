@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyPro4SAIL"
-version = "1.1"
+version = "1.5"
 description = "Vectorized vesions of the ProspectD and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies"
 authors = [
     { name = "Héctor Nieto", email = "hector.nieto@csic.es" },
