@@ -524,7 +524,8 @@ def simulate_prosail_lut_parallel(n_jobs,
                                   srf=None,
                                   outfile=None,
                                   calc_FAPAR=False,
-                                  reduce_4sail=False):
+                                  reduce_4sail=False,
+                                  chunks=1):
 
     input_dict = pd.DataFrame.from_dict(input_dict)
     simulations = input_dict.shape[0]
@@ -557,7 +558,8 @@ def simulate_prosail_lut_parallel(n_jobs,
                      psi[start:end],
                      srf,
                      calc_FAPAR,
-                     reduce_4sail))
+                     reduce_4sail,
+                     chunks))
 
     results = tp.starmap(simulate_prosail_lut_worker, jobs)
 
@@ -601,7 +603,8 @@ def simulate_prosail_lut_worker(job,
                                 psi=0,
                                 srf=None,
                                 calc_FAPAR=False,
-                                reduce_4sail=False):
+                                reduce_4sail=False,
+                                chunks=1):
     print("Running job %i" % job)
     rho_canopy, input_dict = simulate_prosail_lut(input_dict,
                                                   wls_sim,
@@ -613,7 +616,8 @@ def simulate_prosail_lut_worker(job,
                                                   srf=srf,
                                                   outfile=None,
                                                   calc_FAPAR=calc_FAPAR,
-                                                  reduce_4sail=reduce_4sail)
+                                                  reduce_4sail=reduce_4sail,
+                                                  chunks=chunks)
 
     print("Finished job %i" % job)
     return (job, [rho_canopy, input_dict])
@@ -629,23 +633,37 @@ def simulate_prosail_lut(input_dict,
                          srf=None,
                          outfile=None,
                          calc_FAPAR=False,
-                         reduce_4sail=False):
+                         reduce_4sail=False,
+                         chunks=1):
     print('Starting %i Simulations' % np.size(input_dict['leaf_angle']))
 
     # Calculate the lidf
     lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
-    # for i,wl in enumerate(wls_wim):
-    chunk = (int(input_dict["N_leaf"].shape[0]/4),)
-    [wls, r, t] = prospect.prospectd_vec(da.from_array(input_dict['N_leaf'], chunk),
-                                         da.from_array(input_dict['Cab'], chunk),
-                                         da.from_array(input_dict['Car'], chunk),
-                                         da.from_array(input_dict['Cbrown'], chunk),
-                                         da.from_array(input_dict['Cw'], chunk),
-                                         da.from_array(input_dict['Cm'], chunk),
-                                         da.from_array(input_dict['Ant'], chunk))
 
-    r = (r.compute(num_workers=1)).T
-    t = (t.compute(num_workers=1)).T
+    # When many simulations are run for many bands then this part uses the most memory. To reduce
+    # the peak memory usage, at a cost of slight slow down, dask chunking can be used (recommended
+    # chunks=4)
+    if chunks > 1:
+        chunk = (int(input_dict["N_leaf"].shape[0]/chunks),)
+        [wls, r, t] = prospect.prospectd_vec(da.from_array(input_dict['N_leaf'], chunk),
+                                             da.from_array(input_dict['Cab'], chunk),
+                                             da.from_array(input_dict['Car'], chunk),
+                                             da.from_array(input_dict['Cbrown'], chunk),
+                                             da.from_array(input_dict['Cw'], chunk),
+                                             da.from_array(input_dict['Cm'], chunk),
+                                             da.from_array(input_dict['Ant'], chunk))
+        r = r.compute(num_workers=1)
+        t = t.compute(num_workers=1)
+    else:
+        [wls, r, t] = prospect.prospectd_vec(input_dict['N_leaf'],
+                                             input_dict['Cab'],
+                                             input_dict['Car'],
+                                             input_dict['Cbrown'],
+                                             input_dict['Cw'],
+                                             input_dict['Cm'],
+                                             input_dict['Ant'])
+    r = r.T
+    t = t.T
 
     if type(skyl) == float:
         skyl = np.full(r.shape, skyl)
