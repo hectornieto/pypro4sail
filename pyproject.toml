@@ -24,12 +24,13 @@ classifiers  = [
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3"]
-        
+
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.6"
-dependencies = ["numpy",
+dependencies = ["dask",
+                "numpy",
                 "scipy",
                 "pandas",
                 "matplotlib",

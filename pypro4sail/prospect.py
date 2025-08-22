@@ -9,7 +9,7 @@ Modified on Apr 14 2016
 
 DESCRIPTION
 ===========
-This package contains the main functions to run the leaf radiative transfer model 
+This package contains the main functions to run the leaf radiative transfer model
 PROSPECT5.
 
 PACKAGE CONTENTS
@@ -19,7 +19,7 @@ PACKAGE CONTENTS
 
 Ancillary functions
 -------------------
-* :func:`tav` Average transmittivity at the leaf surface. 
+* :func:`tav` Average transmittivity at the leaf surface.
 * :func:`tav_wl` Average transmittivity at the leaf surface for :func:`Prospect5_wl`.
 
 EXAMPLE
@@ -28,9 +28,9 @@ EXAMPLE
 
     # Running Prospect5
     import Prospect5
-    # Simulate leaf full optical spectrum (400-2500nm) 
+    # Simulate leaf full optical spectrum (400-2500nm)
     wl, rho_leaf, tau_leaf = Prospect5.Prospect5(1.2, 30., 10., 0.0, 0.015, 0.009)
-    
+
 """
 
 # Extinction coefficients and refractive index
@@ -48,7 +48,7 @@ def prospectd(Nleaf, Cab, Car, Cbrown, Cw, Cm, Ant):
     from 400 nm to 2500 nm (1 nm step).
 
     Parameters
-    ----------    
+    ----------
     Nleaf : float
         leaf structure parameter.
     Cab : float
@@ -72,7 +72,7 @@ def prospectd(Nleaf, Cab, Car, Cbrown, Cw, Cm, Ant):
         leaf reflectance .
     tau : array_like
         leaf transmittance .
-    
+
     Notes
     -----
     Some examples observed during the LOPEX'93 experiment on
@@ -186,9 +186,10 @@ def reflectance_n_layers_stokes_vec(r, t, Ra, Ta, Nleaf):
     Tsub = bNm1 * (a2 - 1.) / denom
 
     # Case of zero absorption
-    j = r + t >= 1.
-    Tsub[j] = t[j] / (t[j] + (1. - t[j]) * (np.repeat(Nleaf, r.shape[1], axis=1)[j] - 1.))
-    Rsub[j] = 1. - Tsub[j]
+    Tsub = np.where(r + t >= 1,
+                    t / (t + (1. - t) * (np.repeat(Nleaf, r.shape[1], axis=1) - 1.)),
+                    Tsub)
+    Rsub = np.where(r + t >= 1, 1 - Tsub, Rsub)
 
     # Reflectance and transmittance of the leaf: combine top layer with next N-1 layers
     denom = 1. - Rsub * r
@@ -292,11 +293,11 @@ def prospectd_vec(Nleaf, Cab, Car, Cbrown, Cw, Cm, Ant):
 
 
 def prospectd_wl(wl, Nleaf, Cab, Car, Cbrown, Cw, Cm, Ant):
-    '''PROSPECT 5 Plant leaf reflectance and transmittance modeled 
+    '''PROSPECT 5 Plant leaf reflectance and transmittance modeled
     from a single given wavelenght. Aimed for computation speed.
 
     Parameters
-    ----------    
+    ----------
     wl : float
         wavelenght (nm) to simulate.
     Nleaf : float
@@ -319,8 +320,8 @@ def prospectd_wl(wl, Nleaf, Cab, Car, Cbrown, Cw, Cm, Ant):
     rho : float
         leaf reflectance .
     tau : float
-        leaf transmittance. 
-    
+        leaf transmittance.
+
     Notes
     -----
     Some examples observed during the LOPEX'93 experiment on
