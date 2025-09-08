@@ -29,7 +29,7 @@ import pypro4sail.four_sail as sail
 import numpy.random as rnd
 from scipy.stats import gamma, norm
 from scipy.ndimage.filters import gaussian_filter1d
-from SALib.sample import saltelli
+from SALib.sample import sobol
 import pandas as pd
 import multiprocessing as mp
 from . import radiation_helpers as rad
@@ -336,7 +336,8 @@ def build_prospect_database(n_simulations,
                             moments=None,
                             distribution=None,
                             apply_covariate=False,
-                            covariate=None):
+                            covariate=None,
+                            random_seed=None):
     if covariate is None:
         covariate = prospect_covariates
     if distribution is None:
@@ -350,9 +351,10 @@ def build_prospect_database(n_simulations,
         input_param = probabilistic_distribution(n_simulations,
                                                  moments,
                                                  param_bounds,
-                                                 distribution)
+                                                 distribution,
+                                                 random_seed)
     elif distribution == SALTELLI_DIST:
-        input_param = montecarlo_distribution(n_simulations, param_bounds)
+        input_param = montecarlo_distribution(n_simulations, param_bounds, random_seed)
 
     # Apply covariates where needed
     if apply_covariate:
@@ -369,7 +371,8 @@ def build_prosail_database(n_simulations,
                            moments=None,
                            distribution=None,
                            apply_covariate=False,
-                           covariate=None):
+                           covariate=None,
+                           random_seed=None):
     if covariate is None:
         covariate = prosail_covariates
     if distribution is None:
@@ -383,9 +386,10 @@ def build_prosail_database(n_simulations,
         input_param = probabilistic_distribution(n_simulations,
                                                  moments,
                                                  param_bounds,
-                                                 distribution)
+                                                 distribution,
+                                                 random_seed)
     elif distribution == SALTELLI_DIST:
-        input_param = montecarlo_distribution(n_simulations, param_bounds)
+        input_param = montecarlo_distribution(n_simulations, param_bounds, random_seed)
 
     # Apply covariates where needed
     if apply_covariate:
@@ -414,16 +418,17 @@ def covariate_constraint(input_dict,
 
 
 def probabilistic_distribution(simulations, moments_dict, bounds,
-                               distribution_type):
+                            distribution_type, random_seed=None):
+    rng = rnd.default_rng(random_seed)
     output = dict()
     for param in bounds:
         if distribution_type[param] == UNIFORM_DIST:
-            output[param] = rnd.uniform(low=bounds[param][0],
+            output[param] = rng.uniform(low=bounds[param][0],
                                         high=bounds[param][1],
                                         size=simulations)
 
         elif distribution_type[param] == GAUSSIAN_DIST:
-            output[param] = rnd.normal(loc=moments_dict[param][0],
+            output[param] = rng.normal(loc=moments_dict[param][0],
                                        scale=moments_dict[param][1],
                                        size=simulations)
 
@@ -435,7 +440,8 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
             output[param] = gamma.rvs(shape,
                                       scale=scale,
                                       loc=bounds[param][0],
-                                      size=simulations)
+                                      size=simulations,
+                                      random_state=rng)
 
         output[param] = np.clip(output[param],
                                 bounds[param][0],
@@ -444,7 +450,7 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
     return output
 
 
-def montecarlo_distribution(simulations, bounds):
+def montecarlo_distribution(simulations, bounds, random_seed=None):
     problem = {'num_vars': len(bounds),
                'names': [name for name in bounds.keys()],
                'bounds': [bounds for key, bounds in
@@ -453,7 +459,7 @@ def montecarlo_distribution(simulations, bounds):
     # The total number of simulations by saltelli.sample (calc_second_order=True)
     # is N * (2D + 2) where D is the number of parameters
     n_simulations = int(np.round(simulations / (2 * len(bounds) + 2)))
-    param_values = saltelli.sample(problem, n_simulations).T
+    param_values = sobol.sample(problem, n_simulations, seed=random_seed).T
     output = dict()
 
     for i, param in enumerate(bounds.keys()):
