@@ -33,8 +33,10 @@ jobs:
 
       - name: Check the built packages
         run: python -m twine check dist/*
-
+        
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          username: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
