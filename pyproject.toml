@@ -20,7 +20,7 @@ keywords = ['Prospect',
 classifiers  = [
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
-        "Topic :: Scientific/Engineering :: Agricultural Science",
+        "Topic :: Scientific/Engineering",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3"]
