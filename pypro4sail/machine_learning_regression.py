@@ -6,8 +6,16 @@ Created on Fri Jun 10 16:56:25 2016
 """
 from pathlib import Path
 import numpy as np
-# from sklearnex import patch_sklearn
-# patch_sklearn()
+
+try:
+    from sklearnex import patch_sklearn
+    patch_sklearn()
+except:
+    print("scikit-learn-intelex not available, skipping the use af Intel "
+          "acceleration.\n"
+          "Try to consider installing Intel acceleration via "
+          "`pip install scikit-learn-intelex`")
+
 from sklearn.neural_network import MLPRegressor as ann_sklearn
 from sklearn.ensemble import RandomForestRegressor as rf_sklearn
 import pickle
@@ -22,10 +30,10 @@ import pypro4sail.four_sail as sail
 import numpy.random as rnd
 from scipy.stats import gamma, norm
 from scipy.ndimage.filters import gaussian_filter1d
-from SALib.sample import saltelli
+from SALib.sample import sobol
 import pandas as pd
 import multiprocessing as mp
-from pyTSEB import net_radiation as rad
+from . import radiation_helpers as rad
 
 
 UNIFORM_DIST = 1
@@ -137,7 +145,7 @@ prospect_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
                        'Cm': ((MIN_CM, MAX_CM),
                               (0.005, 0.011)),
                        'Ant': ((MIN_ANT, MAX_ANT),
-                               (0, 40))}
+                               (0, 10))}
 
 prosail_bounds = {'N_leaf': (MIN_N_LEAF, MAX_N_LEAF),
                   'Cab': (MIN_CAB, MAX_CAB),
@@ -175,26 +183,13 @@ prosail_distribution = {'N_leaf': UNIFORM_DIST,
                         'hotspot': GAUSSIAN_DIST,
                         'bs': GAUSSIAN_DIST}
 
-prosail_covariates = {'N_leaf': ((MIN_N_LEAF, MAX_N_LEAF),
-                                 (1.3, 1.8)),
-                      'Cab': ((MIN_CAB, MAX_CAB),
-                              (45, 100)),
-                      'Car': ((MIN_CAR, MAX_CAR),
-                              (20, 40)),
-                      'Cbrown': ((MIN_CBROWN, MAX_CBROWN),
-                                 (0, 0.2)),
-                      'Cw': ((MIN_CW, MAX_CW),
-                             (0.005, 0.011)),
-                      'Cm': ((MIN_CM, MAX_CM),
-                             (0.005, 0.011)),
-                      'Ant': ((MIN_ANT, MAX_ANT),
-                              (0, 40)),
-                      'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
+prosail_covariates = {'leaf_angle': ((MIN_LEAF_ANGLE, MAX_LEAF_ANGLE),
                                      (55, 65)),
                       'hotspot': ((MIN_HOTSPOT, MAX_HOTSPOT),
                                   (0.1, 0.5)),
                       'bs': ((MIN_BS, MAX_BS),
-                             (0.5, 1.2))}
+                             (0.5, 1.2)),
+                      **prospect_covariates}
 
 
 def train_reg(X_array,
@@ -341,8 +336,9 @@ def build_prospect_database(n_simulations,
                             param_bounds=None,
                             moments=None,
                             distribution=None,
-                            apply_covariate=None,
-                            covariate=None):
+                            apply_covariate=False,
+                            covariate=None,
+                            random_seed=None):
     if covariate is None:
         covariate = prospect_covariates
     if distribution is None:
@@ -356,15 +352,15 @@ def build_prospect_database(n_simulations,
         input_param = probabilistic_distribution(n_simulations,
                                                  moments,
                                                  param_bounds,
-                                                 distribution)
+                                                 distribution,
+                                                 random_seed)
     elif distribution == SALTELLI_DIST:
-        input_param = montecarlo_distribution(n_simulations, param_bounds)
+        input_param = montecarlo_distribution(n_simulations, param_bounds, random_seed)
 
     # Apply covariates where needed
-    if apply_covariate is not None:
+    if apply_covariate:
         input_param = covariate_constraint(input_param,
                                            param_bounds,
-                                           apply_covariate,
                                            covariate,
                                            "Cab")
 
@@ -375,8 +371,9 @@ def build_prosail_database(n_simulations,
                            param_bounds=None,
                            moments=None,
                            distribution=None,
-                           apply_covariate=None,
-                           covariate=None):
+                           apply_covariate=False,
+                           covariate=None,
+                           random_seed=None):
     if covariate is None:
         covariate = prosail_covariates
     if distribution is None:
@@ -390,15 +387,15 @@ def build_prosail_database(n_simulations,
         input_param = probabilistic_distribution(n_simulations,
                                                  moments,
                                                  param_bounds,
-                                                 distribution)
+                                                 distribution,
+                                                 random_seed)
     elif distribution == SALTELLI_DIST:
-        input_param = montecarlo_distribution(n_simulations, param_bounds)
+        input_param = montecarlo_distribution(n_simulations, param_bounds, random_seed)
 
     # Apply covariates where needed
-    if apply_covariate is not None:
+    if apply_covariate:
         input_param = covariate_constraint(input_param,
                                            param_bounds,
-                                           apply_covariate,
                                            covariate,
                                            "LAI")
 
@@ -407,36 +404,32 @@ def build_prosail_database(n_simulations,
 
 def covariate_constraint(input_dict,
                          bounds,
-                         apply,
                          covariates,
                          ref_param):
     range = bounds[ref_param][1] - bounds[ref_param][0]
-    for param in apply:
-        if apply:
-            Vmin = covariates[param][0][0] \
-                   + input_dict[ref_param] * (covariates[param][1][0]
-                                              - covariates[param][0][
-                                                  0]) / range
-            Vmax = covariates[param][0][1] \
-                   + input_dict[ref_param] * (covariates[param][1][1]
-                                              - covariates[param][0][
-                                                  1]) / range
+    for param, limits in covariates.items():
+        v_min = limits[0][0] + input_dict[ref_param] * (limits[1][0] -
+                                                        limits[0][0]) / range
+        v_max = limits[0][1] + input_dict[ref_param] * (limits[1][1] -
+                                                        limits[0][1]) / range
 
-            input_dict[param] = np.clip(input_dict[param], Vmin, Vmax)
+        input_dict[param] = np.clip(input_dict[param], v_min, v_max)
+
     return input_dict
 
 
 def probabilistic_distribution(simulations, moments_dict, bounds,
-                               distribution_type):
+                            distribution_type, random_seed=None):
+    rng = rnd.default_rng(random_seed)
     output = dict()
     for param in bounds:
         if distribution_type[param] == UNIFORM_DIST:
-            output[param] = rnd.uniform(low=bounds[param][0],
+            output[param] = rng.uniform(low=bounds[param][0],
                                         high=bounds[param][1],
                                         size=simulations)
 
         elif distribution_type[param] == GAUSSIAN_DIST:
-            output[param] = rnd.normal(loc=moments_dict[param][0],
+            output[param] = rng.normal(loc=moments_dict[param][0],
                                        scale=moments_dict[param][1],
                                        size=simulations)
 
@@ -448,7 +441,8 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
             output[param] = gamma.rvs(shape,
                                       scale=scale,
                                       loc=bounds[param][0],
-                                      size=simulations)
+                                      size=simulations,
+                                      random_state=rng)
 
         output[param] = np.clip(output[param],
                                 bounds[param][0],
@@ -457,7 +451,7 @@ def probabilistic_distribution(simulations, moments_dict, bounds,
     return output
 
 
-def montecarlo_distribution(simulations, bounds):
+def montecarlo_distribution(simulations, bounds, random_seed=None):
     problem = {'num_vars': len(bounds),
                'names': [name for name in bounds.keys()],
                'bounds': [bounds for key, bounds in
@@ -466,7 +460,7 @@ def montecarlo_distribution(simulations, bounds):
     # The total number of simulations by saltelli.sample (calc_second_order=True)
     # is N * (2D + 2) where D is the number of parameters
     n_simulations = int(np.round(simulations / (2 * len(bounds) + 2)))
-    param_values = saltelli.sample(problem, n_simulations).T
+    param_values = sobol.sample(problem, n_simulations, seed=random_seed).T
     output = dict()
 
     for i, param in enumerate(bounds.keys()):
@@ -722,10 +716,14 @@ def simulate_prosail_lut(input_dict,
             tau_leaf_fapar = np.mean(t[par_index, :], axis=0)
             skyl_rho_fapar = np.mean(skyl[par_index, :], axis=0)
             rsoil_vec_fapar = np.mean(rsoil_vec[par_index, :], axis=0)
+
     else:
-        rho_leaf = r.T
-        tau_leaf = t.T
-        skyl_rho = np.asarray(skyl.T)
+        rho_leaf = r
+        tau_leaf = t
+        if skyl.ndim == 2:
+            skyl_rho = np.asarray(skyl.T)
+        else:
+            skyl_rho = np.repeat(skyl[:, np.newaxis], rho_leaf.shape[1], 1)
         rsoil = np.asarray(rsoil_vec)
 
     rho_leaf = np.asarray(rho_leaf)
