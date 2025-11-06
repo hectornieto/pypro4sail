@@ -6,6 +6,7 @@ Created on Fri Jun 10 16:56:25 2016
 """
 from pathlib import Path
 import numpy as np
+
 try:
     from sklearnex import patch_sklearn
     patch_sklearn()
