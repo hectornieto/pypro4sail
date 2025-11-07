@@ -5,6 +5,7 @@ Created on Fri Jun 10 16:56:25 2016
 @author: hector
 """
 from pathlib import Path
+import dask.array as da
 import numpy as np
 try:
     from sklearnex import patch_sklearn
@@ -529,7 +530,8 @@ def simulate_prosail_lut_parallel(n_jobs,
                                   srf=None,
                                   outfile=None,
                                   calc_FAPAR=False,
-                                  reduce_4sail=False):
+                                  reduce_4sail=False,
+                                  chunks=1):
 
     input_dict = pd.DataFrame.from_dict(input_dict)
     simulations = input_dict.shape[0]
@@ -562,7 +564,8 @@ def simulate_prosail_lut_parallel(n_jobs,
                      psi[start:end],
                      srf,
                      calc_FAPAR,
-                     reduce_4sail))
+                     reduce_4sail,
+                     chunks))
 
     results = tp.starmap(simulate_prosail_lut_worker, jobs)
 
@@ -606,7 +609,8 @@ def simulate_prosail_lut_worker(job,
                                 psi=0,
                                 srf=None,
                                 calc_FAPAR=False,
-                                reduce_4sail=False):
+                                reduce_4sail=False,
+                                chunks=1):
     print("Running job %i" % job)
     rho_canopy, input_dict = simulate_prosail_lut(input_dict,
                                                   wls_sim,
@@ -618,7 +622,8 @@ def simulate_prosail_lut_worker(job,
                                                   srf=srf,
                                                   outfile=None,
                                                   calc_FAPAR=calc_FAPAR,
-                                                  reduce_4sail=reduce_4sail)
+                                                  reduce_4sail=reduce_4sail,
+                                                  chunks=chunks)
 
     print("Finished job %i" % job)
     return (job, [rho_canopy, input_dict])
@@ -634,20 +639,35 @@ def simulate_prosail_lut(input_dict,
                          srf=None,
                          outfile=None,
                          calc_FAPAR=False,
-                         reduce_4sail=False):
+                         reduce_4sail=False,
+                         chunks=1):
     print('Starting %i Simulations' % np.size(input_dict['leaf_angle']))
 
     # Calculate the lidf
     lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
-    # for i,wl in enumerate(wls_wim):
-    [wls, r, t] = prospect.prospectd_vec(input_dict['N_leaf'],
-                                         input_dict['Cab'],
-                                         input_dict['Car'],
-                                         input_dict['Cbrown'],
-                                         input_dict['Cw'],
-                                         input_dict['Cm'],
-                                         input_dict['Ant'])
 
+    # When many simulations are run for many bands then this part uses the most memory. To reduce
+    # the peak memory usage, at a cost of slight slow down, dask chunking can be used (recommended
+    # chunks=4)
+    if chunks > 1:
+        chunk = (int(input_dict["N_leaf"].shape[0]/chunks),)
+        [wls, r, t] = prospect.prospectd_vec(da.from_array(input_dict['N_leaf'], chunk),
+                                             da.from_array(input_dict['Cab'], chunk),
+                                             da.from_array(input_dict['Car'], chunk),
+                                             da.from_array(input_dict['Cbrown'], chunk),
+                                             da.from_array(input_dict['Cw'], chunk),
+                                             da.from_array(input_dict['Cm'], chunk),
+                                             da.from_array(input_dict['Ant'], chunk))
+        r = r.compute(num_workers=1)
+        t = t.compute(num_workers=1)
+    else:
+        [wls, r, t] = prospect.prospectd_vec(input_dict['N_leaf'],
+                                             input_dict['Cab'],
+                                             input_dict['Car'],
+                                             input_dict['Cbrown'],
+                                             input_dict['Cw'],
+                                             input_dict['Cm'],
+                                             input_dict['Ant'])
     r = r.T
     t = t.T
 
@@ -838,7 +858,7 @@ def calc_fapar_4sail(skyl,
                      rsoil):
     '''Estimates the fraction of Absorbed and intercepted PAR using the 4SAIL
          Radiative Transfer Model.
-        
+
     Parameters
     ----------
     skyl : float
@@ -852,14 +872,14 @@ def calc_fapar_4sail(skyl,
     sza : float
         Sun Zenith Angle (degrees)
     rho_leaf : list
-        Narrowband leaf bihemispherical reflectance, 
+        Narrowband leaf bihemispherical reflectance,
             it might be simulated with PROSPECT (400-700 @1nm)
     tau_leaf : list
-        Narrowband leaf bihemispherical transmittance, 
+        Narrowband leaf bihemispherical transmittance,
             it might be simulated with PROSPECT (400-700 @1nm)
     rsoil : list
         Narrowband soil bihemispherical reflectance (400-700 @1nm)
-    
+
     Returns
     -------
     fAPAR : float
@@ -928,11 +948,11 @@ def calc_fapar_4sail(skyl,
         Es_1 = tss * Es
         # Upwelling diffuse shortwave radiation at ground level
         Ed_up_1 = (rsoil * (Es_1 + tsd * Es + tdd * Ed)) / (1. - rsoil * rdd)
-        # Downwelling diffuse shortwave radiation at ground level            
+        # Downwelling diffuse shortwave radiation at ground level
         Ed_down_1 = tsd * Es + tdd * Ed + rdd * Ed_up_1
         # Upwelling shortwave (beam and diffuse) radiation towards the observer (at angle psi/vza)
         Eo_0 = rdot * Ed + rsot * Es
-        # Spectral flux at the top of the canopy        
+        # Spectral flux at the top of the canopy
         # & add the top of the canopy flux to the integral and continue through the hemisphere
         S_0 += Eo_0 * cosvza * sinvza * step_vza_radians * step_psi_radians / np.pi
         # Spectral flus at the bottom of the canopy
@@ -1033,4 +1053,3 @@ def build_soil_database(soil_albedo_factor,
     soil_spectrum = np.clip(soil_spectrum, 0, 1)
     soil_spectrum = soil_spectrum.T
     return soil_spectrum
-
