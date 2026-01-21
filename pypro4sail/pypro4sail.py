@@ -35,6 +35,8 @@ EXAMPLE
 from pypro4sail import four_sail, prospect
 import numpy as np
 import os
+import logging
+log = logging.getLogger(__name__)
 
 # Define Constants
 SOIL_FOLDER = os.path.join(os.path.dirname(four_sail.__file__), 'spectra', 'soil_spectral_library')
@@ -117,10 +119,12 @@ def run(N, chloro, caroten, brown, EWT, LMA, Ant, LAI, hot_spot, solar_zenith, s
     # Calculate the lidf
     if type(LIDF) == tuple or type(LIDF) == list:
         if len(LIDF) != 2:
-            print("ERROR, Verhoef's bimodal LIDF distribution must have two elements (LIDFa, LIDFb)")
+            log.critical(
+                "Verhoef's bimodal LIDF distribution must have two elements (LIDFa, LIDFb)")
             return None, None
         elif LIDF[0] + LIDF[1] > 1:
-            print("ERROR,  |LIDFa| + |LIDFb| > 1 in Verhoef's bimodal LIDF distribution")
+            log.critical(
+                "|LIDFa| + |LIDFb| > 1 in Verhoef's bimodal LIDF distribution")
         else:
             lidf = four_sail.calc_lidf_verhoef(LIDF[0], LIDF[1])
     else:
@@ -206,10 +210,12 @@ def run_TIR(emisVeg, emisSoil, T_Veg, T_Soil, LAI, hot_spot, solar_zenith, solar
     # Calculate the lidf,
     if type(LIDF) == tuple or type(LIDF) == list:
         if len(LIDF) != 2:
-            print("ERROR, Verhoef's bimodal LIDF distribution must have two elements (LIDFa, LIDFb)")
+            log.critical(
+                "Verhoef's bimodal LIDF distribution must have two elements (LIDFa, LIDFb)")
             return None, None
         elif LIDF[0] + LIDF[1] > 1:
-            print("ERROR,  |LIDFa| + |LIDFb| > 1 in Verhoef's bimodal LIDF distribution")
+            log.critical(
+            "|LIDFa| + |LIDFb| > 1 in Verhoef's bimodal LIDF distribution")
         else:
             lidf = four_sail.calc_lidf_verhoef(LIDF[0], LIDF[1])
     else:

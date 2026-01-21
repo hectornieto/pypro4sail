@@ -34,6 +34,8 @@ from SALib.sample import sobol
 import pandas as pd
 import multiprocessing as mp
 from . import radiation_helpers as rad
+import logging
+log = logging.getLogger(__name__)
 
 
 UNIFORM_DIST = 1
@@ -200,7 +202,7 @@ def train_reg(X_array,
               outfile=None,
               reg_method="neural_network",
               regressor_opts={'activation': 'logistic'}):
-    print('Fitting %s' % reg_method)
+    log.info('Fitting %s' % reg_method)
 
     Y_array = np.asarray(Y_array)
     X_array = np.asarray(X_array)
@@ -287,7 +289,7 @@ def test_reg(X_array,
              reduce_pca=None,
              outfile=None,
              param_name=None):
-    print('Testing Regression fit')
+    log.info('Testing Regression fit')
 
     X_array = np.asarray(X_array)
     Y_array = np.asarray(Y_array)
@@ -533,8 +535,8 @@ def simulate_prosail_lut_parallel(n_jobs,
                                   reduce_4sail=False):
 
     input_dict = pd.DataFrame.from_dict(input_dict)
-    simulations = input_dict.shape[0]
-    print("Running %i simulations" % simulations)
+    simulations = len(input_dict)
+    log.info(f"Running {simulations} simulations distributed in {n_jobs} CPUs")
     if np.isscalar(vza):
         vza = np.full_like(input_dict["LAI"], vza)
     if np.isscalar(sza):
@@ -576,7 +578,7 @@ def simulate_prosail_lut_parallel(n_jobs,
     else:
         n_bands = len(srf)
     rho_canopy = np.empty((simulations, n_bands))
-    print("Filling output matrix")
+    log.info("Filling output matrix")
     for k, result in results:
         start = int(k * subsample_size)
         end = int(np.minimum((k + 1) * subsample_size,
@@ -608,7 +610,7 @@ def simulate_prosail_lut_worker(job,
                                 srf=None,
                                 calc_FAPAR=False,
                                 reduce_4sail=False):
-    print("Running job %i" % job)
+    log.debug("Running job %i" % job)
     rho_canopy, input_dict = simulate_prosail_lut(input_dict,
                                                   wls_sim,
                                                   rsoil_vec,
@@ -621,7 +623,7 @@ def simulate_prosail_lut_worker(job,
                                                   calc_FAPAR=calc_FAPAR,
                                                   reduce_4sail=reduce_4sail)
 
-    print("Finished job %i" % job)
+    log.debug("Finished job %i" % job)
     return (job, [rho_canopy, input_dict])
 
 
@@ -636,8 +638,9 @@ def simulate_prosail_lut(input_dict,
                          outfile=None,
                          calc_FAPAR=False,
                          reduce_4sail=False):
-    print('Starting %i Simulations' % np.size(input_dict['leaf_angle']))
 
+    simulations = len(input_dict)
+    log.info(f"Running {simulations} simulations")
     # Calculate the lidf
     lidf = sail.calc_lidf_campbell_vec(input_dict['leaf_angle'])
     # for i,wl in enumerate(wls_wim):
