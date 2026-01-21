@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "radiative-transfer-models"
-version = "1.5.1"
+version = "1.6.1"
 description = "Vectorized vesions of the ProspectD and 4SAIL Radiative Transfer Models for simulating the transmission of radiation in leaves and canopies"
 authors = [
     { name = "Héctor Nieto", email = "hector.nieto@csic.es" },
